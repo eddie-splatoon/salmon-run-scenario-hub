@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 interface Weapon {
   id: number
   name: string
+  icon_url: string | null
 }
 
 interface WeaponsResponse {
@@ -21,7 +22,7 @@ export async function GET(): Promise<NextResponse<WeaponsResponse>> {
 
     const { data: weapons, error } = await supabase
       .from('m_weapons')
-      .select('id, name')
+      .select('id, name, icon_url')
       .order('name')
 
     if (error) {
