@@ -38,6 +38,32 @@ npm run dev
 
 ブラウザで [http://localhost:3000](http://localhost:3000) を開いてください。
 
+### 5. テストの実行
+
+```bash
+# テストを実行
+npm run test
+
+# テストUIを開く
+npm run test:ui
+
+# カバレッジレポートを生成
+npm run test:coverage
+```
+
+### 6. Dockerでの起動
+
+```bash
+# Dockerイメージをビルド
+docker-compose build
+
+# コンテナを起動
+docker-compose up
+
+# バックグラウンドで起動
+docker-compose up -d
+```
+
 ## プロジェクト構成
 
 ```
@@ -90,9 +116,22 @@ const user = await getCurrentUser()
 ```typescript
 import { createClient } from '@/lib/supabase/server'
 
-const supabase = createClient()
+const supabase = await createClient()
 const { data: { user } } = await supabase.auth.getUser()
 ```
+
+## CI/CD
+
+このリポジトリでは、GitHub Actionsを利用してCI/CDパイプラインを構築しています。
+
+### CI (継続的インテグレーション)
+- `main`または`staging`ブランチへのプルリクエスト時、および`main`ブランチへのプッシュ時に自動実行
+- Lintとテストが実行されます
+- カバレッジレポートがCodecovにアップロードされます
+
+### CD (継続的デリバリー)
+- `main`ブランチへのマージをトリガーとして、Dockerイメージがビルドされます
+- DockerイメージはGitHub Container Registryに自動的にプッシュされます
 
 ## 次のステップ
 
