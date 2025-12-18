@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
 
@@ -11,9 +11,23 @@ export default function ImageAnalyzer() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzedScenario | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // プレビューURLのクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // 古いプレビューURLを破棄
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+
       setSelectedImage(file)
       setAnalysisResult(null)
       setError(null)
@@ -60,6 +74,11 @@ export default function ImageAnalyzer() {
   }
 
   const handleClear = () => {
+    // プレビューURLを破棄
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
     setSelectedImage(null)
     setPreviewUrl(null)
     setAnalysisResult(null)
