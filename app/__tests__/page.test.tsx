@@ -9,10 +9,10 @@ describe('Home Page', () => {
     expect(heading).toHaveTextContent('Salmon Run Scenario Hub')
   })
 
-  it('renders welcome message', () => {
+  it('renders image analyzer component', () => {
     render(<Home />)
-    const welcomeText = screen.getByText(/Welcome to the Salmon Run Scenario Hub/i)
-    expect(welcomeText).toBeInTheDocument()
+    const analyzerHeading = screen.getByRole('heading', { level: 2 })
+    expect(analyzerHeading).toHaveTextContent('画像解析')
   })
 })
 
