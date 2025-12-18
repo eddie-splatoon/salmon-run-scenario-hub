@@ -61,6 +61,13 @@ CREATE POLICY "scenario_waves_update_authenticated" ON scenario_waves
       WHERE scenarios.code = scenario_waves.scenario_code
       AND scenarios.author_id = auth.uid()
     )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM scenarios
+      WHERE scenarios.code = scenario_waves.scenario_code
+      AND scenarios.author_id = auth.uid()
+    )
   );
 
 CREATE POLICY "scenario_waves_delete_authenticated" ON scenario_waves
@@ -91,6 +98,13 @@ CREATE POLICY "scenario_weapons_insert_authenticated" ON scenario_weapons
 CREATE POLICY "scenario_weapons_update_authenticated" ON scenario_weapons
   FOR UPDATE
   USING (
+    EXISTS (
+      SELECT 1 FROM scenarios
+      WHERE scenarios.code = scenario_weapons.scenario_code
+      AND scenarios.author_id = auth.uid()
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_weapons.scenario_code
