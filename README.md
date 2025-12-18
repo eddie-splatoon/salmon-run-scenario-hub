@@ -133,6 +133,11 @@ const { data: { user } } = await supabase.auth.getUser()
 - `main`ブランチへのマージをトリガーとして、Dockerイメージがビルドされます
 - DockerイメージはGitHub Container Registryに自動的にプッシュされます
 
+### Wiki同期
+- `docs-wiki`ディレクトリ（submodule）の変更を検知して、自動的にGitHub Wikiに同期されます
+- `main`ブランチへのマージ時、または`docs-wiki/**`パスへの変更時に実行されます
+- **セットアップ**: GitHubリポジトリのSettings > Secrets and variables > Actionsに`WIKI_SYNC_TOKEN`（Personal Access Token）を設定してください
+
 ## 次のステップ
 
 - [ ] Supabaseプロジェクトの作成と環境変数の設定

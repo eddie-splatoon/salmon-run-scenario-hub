@@ -50,6 +50,7 @@ Next.js 16 (App Router)、Tailwind CSS、TypeScript、Supabaseを使用したプ
 ### 9. CI/CDパイプライン
 - GitHub Actions CIワークフロー（Lint + Test）
 - GitHub Actions CDワークフロー（Dockerイメージのビルドとプッシュ）
+- GitHub Actions Wiki同期ワークフロー（`docs-wiki` submoduleからGitHub Wikiへの自動同期）
 
 ## 技術スタック
 
@@ -144,6 +145,7 @@ salmon-run-scenario-hub/
 ### CI/CD
 - `.github/workflows/ci.yml` - CIワークフロー
 - `.github/workflows/cd.yml` - CDワークフロー
+- `.github/workflows/sync-wiki.yml` - Wiki同期ワークフロー
 
 ## 関連Issue
 
