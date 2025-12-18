@@ -275,12 +275,6 @@ export default function ImageAnalyzer() {
 
     const updatedWaves = [...editableData.waves]
     const wave = updatedWaves[waveIndex]
-    const isExWave = wave.wave_number === 'EX'
-
-    // WAVE EXの場合、イベントは常に「オカシラ」
-    if (isExWave && field === 'event') {
-      value = 'オカシラ'
-    }
 
     updatedWaves[waveIndex] = {
       ...updatedWaves[waveIndex],
