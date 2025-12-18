@@ -122,7 +122,7 @@ export async function POST(
         scenario_code: body.scenario_code,
         wave_number: waveNumber,
         tide: wave.tide,
-        event: isExWave ? 'オカシラ' : (wave.event || null), // WAVE EXの場合は常に「オカシラ」
+        event: wave.event || null, // WAVE EXの場合は選択されたオカシラの種類（ヨコヅナ、タツ、ジョー、オカシラ連合）
         delivered_count: isExWave ? 0 : (wave.delivered_count || 0), // WAVE EXの場合は0
         quota: isExWave ? 1 : (wave.quota || wave.delivered_count || 1), // WAVE EXの場合は1（制約を満たすため）
         cleared: wave.cleared ?? false,
