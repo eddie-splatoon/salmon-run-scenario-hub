@@ -99,6 +99,15 @@ export default function ImageAnalyzer() {
     fetchWeapons()
   }, [])
 
+  // プレビューURLのクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
