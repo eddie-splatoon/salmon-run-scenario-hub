@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS m_weapons (
 -- シナリオ
 CREATE TABLE IF NOT EXISTS scenarios (
   code VARCHAR(50) PRIMARY KEY,
-  author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   stage_id INTEGER NOT NULL REFERENCES m_stages(id) ON DELETE RESTRICT,
   danger_rate INTEGER NOT NULL CHECK (danger_rate >= 0 AND danger_rate <= 333),
   total_golden_eggs INTEGER NOT NULL DEFAULT 0 CHECK (total_golden_eggs >= 0),
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
 
 -- シナリオのWAVE情報
 CREATE TABLE IF NOT EXISTS scenario_waves (
-  scenario_code VARCHAR(50) REFERENCES scenarios(code) ON DELETE CASCADE,
+  scenario_code VARCHAR(50) NOT NULL REFERENCES scenarios(code) ON DELETE CASCADE,
   wave_number INTEGER NOT NULL CHECK (wave_number >= 1 AND wave_number <= 3),
   tide VARCHAR(20) NOT NULL CHECK (tide IN ('low', 'normal', 'high')),
   event VARCHAR(50),
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS scenario_waves (
 
 -- シナリオの武器情報
 CREATE TABLE IF NOT EXISTS scenario_weapons (
-  scenario_code VARCHAR(50) REFERENCES scenarios(code) ON DELETE CASCADE,
+  scenario_code VARCHAR(50) NOT NULL REFERENCES scenarios(code) ON DELETE CASCADE,
   weapon_id INTEGER REFERENCES m_weapons(id) ON DELETE RESTRICT,
   display_order INTEGER NOT NULL CHECK (display_order >= 1 AND display_order <= 4),
   PRIMARY KEY (scenario_code, weapon_id)

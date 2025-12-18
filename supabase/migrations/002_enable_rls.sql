@@ -26,7 +26,6 @@ CREATE POLICY "scenarios_insert_authenticated" ON scenarios
   WITH CHECK (
     auth.role() = 'authenticated' 
     AND author_id = auth.uid()
-    AND author_id IS NOT NULL
   );
 
 CREATE POLICY "scenarios_update_own" ON scenarios
@@ -49,6 +48,7 @@ CREATE POLICY "scenario_waves_insert_authenticated" ON scenario_waves
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_waves.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
@@ -59,6 +59,7 @@ CREATE POLICY "scenario_waves_update_authenticated" ON scenario_waves
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_waves.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   )
@@ -66,6 +67,7 @@ CREATE POLICY "scenario_waves_update_authenticated" ON scenario_waves
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_waves.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
@@ -76,6 +78,7 @@ CREATE POLICY "scenario_waves_delete_authenticated" ON scenario_waves
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_waves.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
@@ -91,6 +94,7 @@ CREATE POLICY "scenario_weapons_insert_authenticated" ON scenario_weapons
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_weapons.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
@@ -101,6 +105,7 @@ CREATE POLICY "scenario_weapons_update_authenticated" ON scenario_weapons
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_weapons.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   )
@@ -108,6 +113,7 @@ CREATE POLICY "scenario_weapons_update_authenticated" ON scenario_weapons
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_weapons.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
@@ -118,6 +124,7 @@ CREATE POLICY "scenario_weapons_delete_authenticated" ON scenario_weapons
     EXISTS (
       SELECT 1 FROM scenarios
       WHERE scenarios.code = scenario_weapons.scenario_code
+      AND scenarios.author_id IS NOT NULL
       AND scenarios.author_id = auth.uid()
     )
   );
