@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS scenario_waves (
 -- シナリオの武器情報
 CREATE TABLE IF NOT EXISTS scenario_weapons (
   scenario_code VARCHAR(50) NOT NULL REFERENCES scenarios(code) ON DELETE CASCADE,
-  weapon_id INTEGER REFERENCES m_weapons(id) ON DELETE RESTRICT,
+  weapon_id INTEGER NOT NULL REFERENCES m_weapons(id) ON DELETE RESTRICT,
   display_order INTEGER NOT NULL CHECK (display_order >= 1 AND display_order <= 4),
   PRIMARY KEY (scenario_code, weapon_id)
 );
