@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
 
@@ -10,6 +10,7 @@ export default function ImageAnalyzer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalyzedScenario | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // プレビューURLのクリーンアップ
   useEffect(() => {
@@ -20,14 +21,30 @@ export default function ImageAnalyzer() {
     }
   }, [previewUrl])
 
+  // コンポーネントのアンマウント時に進行中のリクエストをキャンセル
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // 進行中のリクエストをキャンセル
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+
       // 古いプレビューURLを破棄
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl)
       }
 
+      setIsAnalyzing(false)
       setSelectedImage(file)
       setAnalysisResult(null)
       setError(null)
@@ -44,6 +61,15 @@ export default function ImageAnalyzer() {
       return
     }
 
+    // 前のリクエストをキャンセル
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // 新しいAbortControllerを作成
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
     setIsAnalyzing(true)
     setError(null)
     setAnalysisResult(null)
@@ -55,9 +81,20 @@ export default function ImageAnalyzer() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        signal: abortController.signal,
       })
 
+      // リクエストがキャンセルされた場合は何もしない
+      if (abortController.signal.aborted) {
+        return
+      }
+
       const data: AnalyzeResponse = await response.json()
+
+      // リクエストがキャンセルされた場合は何もしない（JSONパース後もチェック）
+      if (abortController.signal.aborted) {
+        return
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || '解析に失敗しました')
@@ -67,9 +104,17 @@ export default function ImageAnalyzer() {
         setAnalysisResult(data.data)
       }
     } catch (err) {
+      // AbortErrorの場合はエラーとして扱わない
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       setError(err instanceof Error ? err.message : '解析中にエラーが発生しました')
     } finally {
-      setIsAnalyzing(false)
+      // このリクエストがまだアクティブな場合のみ状態を更新
+      if (!abortController.signal.aborted) {
+        setIsAnalyzing(false)
+        abortControllerRef.current = null
+      }
     }
   }
 
