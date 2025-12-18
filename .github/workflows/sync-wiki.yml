@@ -1,0 +1,75 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs-wiki/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+          token: ${{ secrets.WIKI_SYNC_TOKEN }}
+
+      - name: Check if docs-wiki exists
+        id: check_wiki
+        run: |
+          if [ ! -d "docs-wiki" ]; then
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Warning: docs-wiki directory not found"
+            exit 0
+          else
+            echo "exists=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push to Wiki
+        if: steps.check_wiki.outputs.exists == 'true'
+        run: |
+          cd docs-wiki
+          
+          # Git設定
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # リモートURLを設定（既に設定されている場合はスキップ）
+          WIKI_REPO_URL="https://${{ secrets.WIKI_SYNC_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+          CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
+          
+          if [ "$CURRENT_REMOTE" != "$WIKI_REPO_URL" ]; then
+            if [ -n "$CURRENT_REMOTE" ]; then
+              git remote set-url origin "$WIKI_REPO_URL"
+            else
+              git remote add origin "$WIKI_REPO_URL"
+            fi
+          fi
+          
+          # 変更があるかチェック
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Changes detected, pushing to wiki..."
+            git add -A
+            git commit -m "Sync wiki from main branch [skip ci]" || echo "No changes to commit"
+            git push origin HEAD:main || git push origin HEAD:master || echo "Push failed or no changes"
+          else
+            echo "No changes to sync"
+          fi
+
+      - name: Summary
+        if: steps.check_wiki.outputs.exists == 'true'
+        run: |
+          echo "## Wiki Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Wiki directory: docs-wiki" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Wiki sync completed successfully" >> $GITHUB_STEP_SUMMARY
+
