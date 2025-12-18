@@ -13,7 +13,7 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
     .from('m_stages')
     .select('id')
     .eq('name', stageName)
-    .single()
+    .maybeSingle()
 
   if (exactMatch) {
     return exactMatch.id
@@ -52,7 +52,7 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
     .from('m_weapons')
     .select('id')
     .eq('name', weaponName)
-    .single()
+    .maybeSingle()
 
   if (exactMatch) {
     return exactMatch.id
