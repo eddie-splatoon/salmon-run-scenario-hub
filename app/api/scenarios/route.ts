@@ -112,8 +112,26 @@ export async function POST(
       weaponIds = validWeaponIds
     }
 
-    // トータルゴールデンエッグ数を計算（wavesのdelivered_countの合計）
-    const totalGoldenEggs = body.waves.reduce(
+    // scenario_wavesテーブル用のデータを準備（WAVE EXの処理を含む）
+    const waveInserts = body.waves.map((wave) => {
+      // wave_numberが'EX'の場合は3として扱う（データベースの制約に合わせる）
+      const waveNumber = wave.wave_number === 'EX' ? 3 : wave.wave_number
+      const isExWave = wave.wave_number === 'EX'
+
+      return {
+        scenario_code: body.scenario_code,
+        wave_number: waveNumber,
+        tide: wave.tide,
+        event: isExWave ? 'オカシラ' : (wave.event || null), // WAVE EXの場合は常に「オカシラ」
+        delivered_count: isExWave ? 0 : (wave.delivered_count || 0), // WAVE EXの場合は0
+        quota: isExWave ? 1 : (wave.quota || wave.delivered_count || 1), // WAVE EXの場合は1（制約を満たすため）
+        cleared: wave.cleared ?? false,
+      }
+    })
+
+    // トータルゴールデンエッグ数を計算（WAVE EXの処理後のdelivered_countの合計）
+    // これにより、scenariosテーブルとscenario_wavesテーブルのデータ整合性を保証
+    const totalGoldenEggs = waveInserts.reduce(
       (sum, wave) => sum + (wave.delivered_count || 0),
       0
     )
@@ -135,23 +153,6 @@ export async function POST(
         { status: 500 }
       )
     }
-
-    // scenario_wavesテーブルに保存
-    const waveInserts = body.waves.map((wave) => {
-      // wave_numberが'EX'の場合は3として扱う（データベースの制約に合わせる）
-      const waveNumber = wave.wave_number === 'EX' ? 3 : wave.wave_number
-      const isExWave = wave.wave_number === 'EX'
-
-      return {
-        scenario_code: body.scenario_code,
-        wave_number: waveNumber,
-        tide: wave.tide,
-        event: isExWave ? 'オカシラ' : (wave.event || null), // WAVE EXの場合は常に「オカシラ」
-        delivered_count: isExWave ? 0 : (wave.delivered_count || 0), // WAVE EXの場合は0
-        quota: isExWave ? 1 : (wave.quota || wave.delivered_count || 1), // WAVE EXの場合は1（制約を満たすため）
-        cleared: wave.cleared ?? false,
-      }
-    })
 
     const { error: wavesError } = await supabase
       .from('scenario_waves')
