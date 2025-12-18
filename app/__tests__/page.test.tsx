@@ -1,30 +1,86 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import Home from '../page'
 
-// Next.jsのuseRouterをモック
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    refresh: vi.fn(),
-  }),
-}))
+// fetchをモック
+global.fetch = vi.fn()
 
 describe('Home Page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // デフォルトのモックレスポンスを設定
+    vi.mocked(global.fetch).mockImplementation((url: string | URL) => {
+      if (typeof url === 'string') {
+        if (url.includes('/api/stages')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              data: [
+                { id: 1, name: 'アラマキ砦' },
+                { id: 2, name: 'シェケナダム' },
+              ],
+            }),
+          } as Response)
+        }
+        if (url.includes('/api/weapons')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              data: [
+                { id: 1, name: 'スプラシューター', icon_url: 'https://example.com/weapon1.png' },
+                { id: 2, name: 'スプラローラー', icon_url: 'https://example.com/weapon2.png' },
+              ],
+            }),
+          } as Response)
+        }
+        if (url.includes('/api/scenarios')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              data: [],
+            }),
+          } as Response)
+        }
+      }
+      return Promise.reject(new Error('Unknown URL'))
+    })
+  })
+
   it('renders the main heading', () => {
     render(<Home />)
     const heading = screen.getByRole('heading', { level: 1 })
     expect(heading).toHaveTextContent('Salmon Run Scenario Hub')
   })
 
-  it('renders image analyzer component', () => {
+  it('renders filter section', () => {
     render(<Home />)
-    const analyzerHeading = screen.getByRole('heading', { level: 2 })
-    expect(analyzerHeading).toHaveTextContent('画像解析')
+    const filterHeading = screen.getByRole('heading', { level: 2 })
+    expect(filterHeading).toHaveTextContent('フィルター')
+  })
+
+  it('renders link to analyze page', () => {
+    render(<Home />)
+    const analyzeLink = screen.getByRole('link', { name: '画像解析' })
+    expect(analyzeLink).toBeInTheDocument()
+    expect(analyzeLink).toHaveAttribute('href', '/analyze')
+  })
+
+  it('fetches master data on mount', async () => {
+    render(<Home />)
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/stages')
+      expect(global.fetch).toHaveBeenCalledWith('/api/weapons')
+    })
+  })
+
+  it('fetches scenarios on mount', async () => {
+    render(<Home />)
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/scenarios')
+    })
   })
 })
 
