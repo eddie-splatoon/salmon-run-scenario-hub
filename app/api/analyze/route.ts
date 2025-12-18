@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
     try {
       analyzedData = JSON.parse(jsonText)
     } catch (parseError) {
-      console.error('Failed to parse JSON:', text)
+      console.error('Failed to parse JSON:', text, parseError)
       return NextResponse.json(
         { success: false, error: 'Failed to parse AI response as JSON' },
         { status: 500 }
