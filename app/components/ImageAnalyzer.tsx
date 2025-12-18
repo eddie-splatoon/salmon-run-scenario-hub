@@ -44,6 +44,7 @@ export default function ImageAnalyzer() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
   const [weapons, setWeapons] = useState<Weapon[]>([])
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -184,6 +185,9 @@ export default function ImageAnalyzer() {
         }
         setAnalysisResult(processedData)
         setEditableData(processedData)
+
+        // 重複チェック
+        checkDuplicate(processedData.scenario_code)
       }
     } catch (err) {
       // AbortErrorの場合はエラーとして扱わない
@@ -212,6 +216,23 @@ export default function ImageAnalyzer() {
     setEditableData(null)
     setError(null)
     setSuccessMessage(null)
+    setDuplicateWarning(null)
+  }
+
+  const checkDuplicate = async (scenarioCode: string) => {
+    try {
+      const response = await fetch(`/api/scenarios/check?code=${encodeURIComponent(scenarioCode)}`)
+      const data = await response.json()
+
+      if (data.success && data.exists) {
+        setDuplicateWarning(`このシナリオコード "${scenarioCode}" は既に登録されています。保存しようとするとエラーになります。`)
+      } else {
+        setDuplicateWarning(null)
+      }
+    } catch (err) {
+      console.error('Failed to check duplicate:', err)
+      // 重複チェックのエラーは警告として表示しない（保存時にエラーが表示される）
+    }
   }
 
   const handleFieldChange = (field: keyof AnalyzedScenario, value: string | number | string[] | undefined) => {
@@ -221,6 +242,14 @@ export default function ImageAnalyzer() {
       ...editableData,
       [field]: value,
     })
+
+    // シナリオコードが変更された場合は重複チェック
+    if (field === 'scenario_code') {
+      setDuplicateWarning(null) // 一旦警告をクリア
+      if (typeof value === 'string' && value.trim()) {
+        checkDuplicate(value.trim())
+      }
+    }
   }
 
   const handleWaveChange = (waveIndex: number, field: keyof WaveInfo, value: string | number | boolean | null | undefined) => {
@@ -261,6 +290,7 @@ export default function ImageAnalyzer() {
     setSuccessMessage(null)
 
     try {
+      console.log('[ImageAnalyzer] 保存開始:', editableData)
       const response = await fetch('/api/scenarios', {
         method: 'POST',
         headers: {
@@ -270,11 +300,19 @@ export default function ImageAnalyzer() {
       })
 
       const data = await response.json()
+      console.log('[ImageAnalyzer] レスポンス:', { status: response.status, data })
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || '保存に失敗しました')
+        const errorMessage = data.error || '保存に失敗しました'
+        console.error('[ImageAnalyzer] 保存エラー:', {
+          status: response.status,
+          error: errorMessage,
+          data,
+        })
+        throw new Error(errorMessage)
       }
 
+      console.log('[ImageAnalyzer] 保存成功')
       setSuccessMessage('シナリオを保存しました')
       
       // ホームページにリダイレクト（詳細ページは別Issueで実装予定）
@@ -283,6 +321,7 @@ export default function ImageAnalyzer() {
         router.refresh()
       }, 1500)
     } catch (err) {
+      console.error('[ImageAnalyzer] 保存処理中にエラー:', err)
       setError(err instanceof Error ? err.message : '保存中にエラーが発生しました')
     } finally {
       setIsSaving(false)
@@ -335,6 +374,16 @@ export default function ImageAnalyzer() {
       {successMessage && (
         <div className="mb-4 p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg">
           {successMessage}
+        </div>
+      )}
+
+      {/* 重複警告 */}
+      {duplicateWarning && (
+        <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-700 text-yellow-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <span className="text-yellow-400">⚠️</span>
+            <span>{duplicateWarning}</span>
+          </div>
         </div>
       )}
 
