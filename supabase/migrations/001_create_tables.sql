@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS m_weapons (
 CREATE TABLE IF NOT EXISTS scenarios (
   code VARCHAR(50) PRIMARY KEY,
   author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  stage_id INTEGER REFERENCES m_stages(id) ON DELETE RESTRICT,
+  stage_id INTEGER NOT NULL REFERENCES m_stages(id) ON DELETE RESTRICT,
   danger_rate INTEGER NOT NULL CHECK (danger_rate >= 0 AND danger_rate <= 333),
   total_golden_eggs INTEGER NOT NULL DEFAULT 0 CHECK (total_golden_eggs >= 0),
   total_power_eggs INTEGER NOT NULL DEFAULT 0 CHECK (total_power_eggs >= 0),

@@ -23,7 +23,11 @@ CREATE POLICY "scenarios_select_all" ON scenarios
 
 CREATE POLICY "scenarios_insert_authenticated" ON scenarios
   FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (
+    auth.role() = 'authenticated' 
+    AND author_id = auth.uid()
+    AND author_id IS NOT NULL
+  );
 
 CREATE POLICY "scenarios_update_own" ON scenarios
   FOR UPDATE
