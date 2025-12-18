@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
-import type { AnalyzedScenario } from '@/app/types/analyze'
 
 interface SaveScenarioRequest {
   scenario_code: string
@@ -36,7 +35,7 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<SaveScenarioResponse>> {
   try {
-    console.log('[POST /api/scenarios] リクエスト受信')
+    console.warn('[POST /api/scenarios] リクエスト受信')
 
     // 認証チェック
     const supabase = await createClient()
@@ -53,13 +52,13 @@ export async function POST(
       )
     }
 
-    console.log('[POST /api/scenarios] 認証成功:', { userId: user.id })
+    console.warn('[POST /api/scenarios] 認証成功:', { userId: user.id })
 
     // リクエストボディを取得
     let body: SaveScenarioRequest
     try {
       body = await request.json()
-      console.log('[POST /api/scenarios] リクエストボディ取得:', {
+      console.warn('[POST /api/scenarios] リクエストボディ取得:', {
         scenario_code: body.scenario_code,
         stage_name: body.stage_name,
         weapons_count: body.weapons?.length,
@@ -88,7 +87,7 @@ export async function POST(
     }
 
     // 重複チェック
-    console.log('[POST /api/scenarios] 重複チェック開始:', body.scenario_code)
+    console.warn('[POST /api/scenarios] 重複チェック開始:', body.scenario_code)
     const { data: existingScenarios, error: checkError } = await supabase
       .from('scenarios')
       .select('code')
@@ -113,7 +112,7 @@ export async function POST(
     }
 
     if (existingScenarios && existingScenarios.length > 0) {
-      console.log('[POST /api/scenarios] 重複検出:', body.scenario_code)
+      console.warn('[POST /api/scenarios] 重複検出:', body.scenario_code)
       return NextResponse.json(
         {
           success: false,
@@ -122,10 +121,10 @@ export async function POST(
         { status: 409 }
       )
     }
-    console.log('[POST /api/scenarios] 重複なし')
+    console.warn('[POST /api/scenarios] 重複なし')
 
     // ステージIDの取得（名寄せ）
-    console.log('[POST /api/scenarios] ステージID取得開始:', body.stage_name)
+    console.warn('[POST /api/scenarios] ステージID取得開始:', body.stage_name)
     let stageId = body.stage_id
     if (!stageId) {
       stageId = await lookupStageId(body.stage_name)
@@ -137,10 +136,10 @@ export async function POST(
         )
       }
     }
-    console.log('[POST /api/scenarios] ステージID取得成功:', stageId)
+    console.warn('[POST /api/scenarios] ステージID取得成功:', stageId)
 
     // 武器IDの取得（名寄せ）
-    console.log('[POST /api/scenarios] 武器ID取得開始:', body.weapons)
+    console.warn('[POST /api/scenarios] 武器ID取得開始:', body.weapons)
     let weaponIds = body.weapon_ids
     if (!weaponIds || weaponIds.length === 0) {
       weaponIds = await lookupWeaponIds(body.weapons)
@@ -188,7 +187,7 @@ export async function POST(
         )
       }
     }
-    console.log('[POST /api/scenarios] 武器ID取得成功:', weaponIds)
+    console.warn('[POST /api/scenarios] 武器ID取得成功:', weaponIds)
 
     // scenario_wavesテーブル用のデータを準備（WAVE EXの処理を含む）
     // WAVE EXはwave_number: 4として保存する（WAVE 1, 2, 3, EXの4つを全て保存）
@@ -208,7 +207,7 @@ export async function POST(
       }
     })
     
-    console.log('[POST /api/scenarios] waveInserts:', waveInserts)
+    console.warn('[POST /api/scenarios] waveInserts:', waveInserts)
 
     // トータルゴールデンエッグ数を計算（WAVE EXの処理後のdelivered_countの合計）
     // これにより、scenariosテーブルとscenario_wavesテーブルのデータ整合性を保証
@@ -218,7 +217,7 @@ export async function POST(
     )
 
     // トランザクション処理: まずscenariosテーブルに保存
-    console.log('[POST /api/scenarios] scenariosテーブルに保存開始')
+    console.warn('[POST /api/scenarios] scenariosテーブルに保存開始')
     const scenarioInsert = {
       code: body.scenario_code,
       author_id: user.id,
@@ -227,7 +226,7 @@ export async function POST(
       total_golden_eggs: totalGoldenEggs,
       total_power_eggs: 0, // 解析結果に含まれていないためデフォルト値
     }
-    console.log('[POST /api/scenarios] scenarios挿入データ:', scenarioInsert)
+    console.warn('[POST /api/scenarios] scenarios挿入データ:', scenarioInsert)
 
     const { error: scenarioError } = await supabase.from('scenarios').insert(scenarioInsert)
 
@@ -242,7 +241,7 @@ export async function POST(
 
       // 重複キーエラー（PostgreSQLの23505エラーコード）の場合は409を返す
       if (scenarioError.code === '23505' || scenarioError.message?.includes('duplicate key')) {
-        console.log('[POST /api/scenarios] 重複キーエラー検出（データベース制約）')
+        console.warn('[POST /api/scenarios] 重複キーエラー検出（データベース制約）')
         return NextResponse.json(
           {
             success: false,
@@ -260,9 +259,9 @@ export async function POST(
         { status: 500 }
       )
     }
-    console.log('[POST /api/scenarios] scenarios保存成功')
+    console.warn('[POST /api/scenarios] scenarios保存成功')
 
-    console.log('[POST /api/scenarios] scenario_wavesテーブルに保存開始:', waveInserts)
+    console.warn('[POST /api/scenarios] scenario_wavesテーブルに保存開始:', waveInserts)
     const { error: wavesError } = await supabase
       .from('scenario_waves')
       .insert(waveInserts)
@@ -284,7 +283,7 @@ export async function POST(
         console.error('[POST /api/scenarios] ロールバック失敗（scenarios削除エラー）:', deleteError)
         // ロールバック失敗はログに記録するが、元のエラーを返す
       } else {
-        console.log('[POST /api/scenarios] ロールバック: scenarios削除完了')
+        console.warn('[POST /api/scenarios] ロールバック: scenarios削除完了')
       }
       return NextResponse.json(
         {
@@ -294,7 +293,7 @@ export async function POST(
         { status: 500 }
       )
     }
-    console.log('[POST /api/scenarios] scenario_waves保存成功')
+    console.warn('[POST /api/scenarios] scenario_waves保存成功')
 
     // scenario_weaponsテーブルに保存
     const weaponInserts = weaponIds.map((weaponId, index) => ({
@@ -302,7 +301,7 @@ export async function POST(
       weapon_id: weaponId,
       display_order: index + 1,
     }))
-    console.log('[POST /api/scenarios] scenario_weaponsテーブルに保存開始:', weaponInserts)
+    console.warn('[POST /api/scenarios] scenario_weaponsテーブルに保存開始:', weaponInserts)
 
     const { error: weaponsError } = await supabase
       .from('scenario_weapons')
@@ -337,7 +336,7 @@ export async function POST(
       }
       
       if (!deleteWavesError && !deleteScenariosError) {
-        console.log('[POST /api/scenarios] ロールバック: scenario_wavesとscenarios削除完了')
+        console.warn('[POST /api/scenarios] ロールバック: scenario_wavesとscenarios削除完了')
       }
       
       return NextResponse.json(
@@ -348,10 +347,10 @@ export async function POST(
         { status: 500 }
       )
     }
-    console.log('[POST /api/scenarios] scenario_weapons保存成功')
+    console.warn('[POST /api/scenarios] scenario_weapons保存成功')
 
     // 成功レスポンス
-    console.log('[POST /api/scenarios] 保存成功:', body.scenario_code)
+    console.warn('[POST /api/scenarios] 保存成功:', body.scenario_code)
     return NextResponse.json({
       success: true,
       data: {
