@@ -108,6 +108,15 @@ export default function ImageAnalyzer() {
     }
   }, [previewUrl])
 
+  // コンポーネントのアンマウント時に進行中のリクエストをキャンセル
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
