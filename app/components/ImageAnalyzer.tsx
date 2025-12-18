@@ -274,7 +274,6 @@ export default function ImageAnalyzer() {
     if (!editableData) return
 
     const updatedWaves = [...editableData.waves]
-    const wave = updatedWaves[waveIndex]
 
     updatedWaves[waveIndex] = {
       ...updatedWaves[waveIndex],
