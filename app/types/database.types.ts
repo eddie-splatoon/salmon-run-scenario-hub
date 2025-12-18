@@ -71,7 +71,7 @@ export interface Database {
         }
         Insert: {
           code: string
-          author_id?: string | null
+          author_id: string
           stage_id: number
           danger_rate: number
           total_golden_eggs?: number
