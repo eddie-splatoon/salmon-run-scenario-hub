@@ -122,12 +122,12 @@ export interface Database {
       scenario_weapons: {
         Row: {
           scenario_code: string
-          weapon_id: number | null
+          weapon_id: number
           display_order: number
         }
         Insert: {
           scenario_code: string
-          weapon_id: number | null
+          weapon_id: number
           display_order: number
         }
         Update: {
