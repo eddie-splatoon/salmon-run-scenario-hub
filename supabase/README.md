@@ -41,6 +41,54 @@ psql -h <your-db-host> -U postgres -d postgres -f migrations/002_enable_rls.sql
 psql -h <your-db-host> -U postgres -d postgres -f migrations/003_import_master_data.sql
 ```
 
+## テーブルの再作成
+
+テーブル構造が変更された場合、既存のテーブルを削除してから再作成する必要があります。
+
+### 注意事項
+
+⚠️ **警告**: 以下の手順を実行すると、既存のデータがすべて削除されます。本番環境で実行する場合は、事前にデータのバックアップを取得してください。
+
+### 手順
+
+1. [Supabase Dashboard](https://app.supabase.com/)にログイン
+2. プロジェクトを選択
+3. **SQL Editor**を開く
+4. 以下のSQLを実行して、既存のテーブルとRLSポリシーを削除：
+
+```sql
+-- RLSポリシーの削除
+DROP POLICY IF EXISTS "m_stages_select_all" ON m_stages;
+DROP POLICY IF EXISTS "m_weapons_select_all" ON m_weapons;
+DROP POLICY IF EXISTS "scenarios_select_all" ON scenarios;
+DROP POLICY IF EXISTS "scenarios_insert_authenticated" ON scenarios;
+DROP POLICY IF EXISTS "scenarios_update_own" ON scenarios;
+DROP POLICY IF EXISTS "scenarios_delete_own" ON scenarios;
+DROP POLICY IF EXISTS "scenario_waves_select_all" ON scenario_waves;
+DROP POLICY IF EXISTS "scenario_waves_insert_authenticated" ON scenario_waves;
+DROP POLICY IF EXISTS "scenario_waves_update_authenticated" ON scenario_waves;
+DROP POLICY IF EXISTS "scenario_waves_delete_authenticated" ON scenario_waves;
+DROP POLICY IF EXISTS "scenario_weapons_select_all" ON scenario_weapons;
+DROP POLICY IF EXISTS "scenario_weapons_insert_authenticated" ON scenario_weapons;
+DROP POLICY IF EXISTS "scenario_weapons_update_authenticated" ON scenario_weapons;
+DROP POLICY IF EXISTS "scenario_weapons_delete_authenticated" ON scenario_weapons;
+
+-- テーブルの削除（依存関係を考慮した順序）
+DROP TABLE IF EXISTS scenario_weapons CASCADE;
+DROP TABLE IF EXISTS scenario_waves CASCADE;
+DROP TABLE IF EXISTS scenarios CASCADE;
+DROP TABLE IF EXISTS m_weapons CASCADE;
+DROP TABLE IF EXISTS m_stages CASCADE;
+
+-- トリガー関数の削除
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+```
+
+5. 削除が完了したら、通常の実行手順に従って、以下の順序でSQLファイルを再実行：
+   - `001_create_tables.sql`
+   - `002_enable_rls.sql`
+   - `003_import_master_data.sql`
+
 ## 便利なクエリ
 
 ### テーブル一覧の取得
