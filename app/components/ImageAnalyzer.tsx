@@ -1,15 +1,37 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { ChangeEvent } from 'react'
-import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
+import type { ChangeEvent, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import type { AnalyzedScenario, AnalyzeResponse, WaveInfo } from '@/app/types/analyze'
+
+interface Stage {
+  id: number
+  name: string
+}
+
+// イベントの選択肢
+const EVENT_OPTIONS = [
+  { value: '', label: 'なし' },
+  { value: 'ハコビヤ襲来', label: 'ハコビヤ襲来' },
+  { value: 'キンシャケ探し', label: 'キンシャケ探し' },
+  { value: 'グリル発進', label: 'グリル発進' },
+  { value: 'ドスコイ大量発生', label: 'ドスコイ大量発生' },
+  { value: 'ラッシュ', label: 'ラッシュ' },
+  { value: '霧', label: '霧' },
+]
 
 export default function ImageAnalyzer() {
+  const router = useRouter()
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalyzedScenario | null>(null)
+  const [editableData, setEditableData] = useState<AnalyzedScenario | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [stages, setStages] = useState<Stage[]>([])
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // プレビューURLのクリーンアップ
@@ -28,6 +50,22 @@ export default function ImageAnalyzer() {
         abortControllerRef.current.abort()
       }
     }
+  }, [])
+
+  // ステージ一覧を取得
+  useEffect(() => {
+    const fetchStages = async () => {
+      try {
+        const response = await fetch('/api/stages')
+        const data = await response.json()
+        if (data.success && data.data) {
+          setStages(data.data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch stages:', err)
+      }
+    }
+    fetchStages()
   }, [])
 
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +139,21 @@ export default function ImageAnalyzer() {
       }
 
       if (data.data) {
-        setAnalysisResult(data.data)
+        // WAVE EXの場合、イベントを「オカシラ」に設定
+        const processedData = {
+          ...data.data,
+          waves: data.data.waves.map((wave) => {
+            if (wave.wave_number === 'EX') {
+              return {
+                ...wave,
+                event: 'オカシラ',
+              }
+            }
+            return wave
+          }),
+        }
+        setAnalysisResult(processedData)
+        setEditableData(processedData)
       }
     } catch (err) {
       // AbortErrorの場合はエラーとして扱わない
@@ -127,7 +179,90 @@ export default function ImageAnalyzer() {
     setSelectedImage(null)
     setPreviewUrl(null)
     setAnalysisResult(null)
+    setEditableData(null)
     setError(null)
+    setSuccessMessage(null)
+  }
+
+  const handleFieldChange = (field: keyof AnalyzedScenario, value: string | number | string[] | undefined) => {
+    if (!editableData) return
+
+    setEditableData({
+      ...editableData,
+      [field]: value,
+    })
+  }
+
+  const handleWaveChange = (waveIndex: number, field: keyof WaveInfo, value: string | number | boolean | null | undefined) => {
+    if (!editableData) return
+
+    const updatedWaves = [...editableData.waves]
+    const wave = updatedWaves[waveIndex]
+    const isExWave = wave.wave_number === 'EX'
+
+    // WAVE EXの場合、イベントは常に「オカシラ」
+    if (isExWave && field === 'event') {
+      value = 'オカシラ'
+    }
+
+    updatedWaves[waveIndex] = {
+      ...updatedWaves[waveIndex],
+      [field]: value,
+    }
+
+    setEditableData({
+      ...editableData,
+      waves: updatedWaves,
+    })
+  }
+
+  const handleWeaponChange = (weaponIndex: number, value: string) => {
+    if (!editableData) return
+
+    const updatedWeapons = [...editableData.weapons]
+    updatedWeapons[weaponIndex] = value
+
+    setEditableData({
+      ...editableData,
+      weapons: updatedWeapons,
+    })
+  }
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!editableData) return
+
+    setIsSaving(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editableData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || '保存に失敗しました')
+      }
+
+      setSuccessMessage('シナリオを保存しました')
+      
+      // ホームページにリダイレクト（詳細ページは別Issueで実装予定）
+      setTimeout(() => {
+        router.push('/')
+        router.refresh()
+      }, 1500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存中にエラーが発生しました')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -172,6 +307,13 @@ export default function ImageAnalyzer() {
         </div>
       )}
 
+      {/* 成功メッセージ */}
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+
       {/* 解析ボタン */}
       <div className="mb-6 flex gap-4">
         <button
@@ -192,97 +334,233 @@ export default function ImageAnalyzer() {
         )}
       </div>
 
-      {/* 解析結果 */}
-      {analysisResult && (
-        <div className="mt-6 p-6 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
-          <h3 className="text-xl font-bold mb-4 text-gray-100">解析結果</h3>
+      {/* 解析結果と編集フォーム */}
+      {editableData && (
+        <form onSubmit={handleSave} className="mt-6 p-6 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
+          <h3 className="text-xl font-bold mb-4 text-gray-100">解析結果の確認と編集</h3>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* 基本情報 */}
             <div>
-              <h4 className="font-semibold mb-2 text-gray-200">基本情報</h4>
-              <dl className="grid grid-cols-2 gap-2">
+              <h4 className="font-semibold mb-3 text-gray-200">基本情報</h4>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-gray-400 text-sm">シナリオコード</dt>
-                  <dd className="font-mono text-gray-100">{analysisResult.scenario_code}</dd>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    シナリオコード
+                  </label>
+                  <input
+                    type="text"
+                    value={editableData.scenario_code}
+                    onChange={(e) => handleFieldChange('scenario_code', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 font-mono"
+                    required
+                  />
                 </div>
                 <div>
-                  <dt className="text-gray-400 text-sm">ステージ</dt>
-                  <dd className="text-gray-100">{analysisResult.stage_name}</dd>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    ステージ
+                  </label>
+                  <select
+                    value={editableData.stage_name}
+                    onChange={(e) => handleFieldChange('stage_name', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                    required
+                  >
+                    <option value="">選択してください</option>
+                    {stages.map((stage) => (
+                      <option key={stage.id} value={stage.name}>
+                        {stage.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <dt className="text-gray-400 text-sm">キケン度</dt>
-                  <dd className="text-gray-100">{analysisResult.danger_rate}%</dd>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    キケン度
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="333"
+                    value={editableData.danger_rate ?? ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10)
+                      if (!isNaN(value)) {
+                        handleFieldChange('danger_rate', value)
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                    required
+                  />
                 </div>
-                {analysisResult.score && (
+                {editableData.score !== undefined && (
                   <div>
-                    <dt className="text-gray-400 text-sm">スコア</dt>
-                    <dd className="text-gray-100">{analysisResult.score}</dd>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      スコア
+                    </label>
+                    <input
+                      type="number"
+                      value={editableData.score ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                        if (value === undefined || !isNaN(value)) {
+                          handleFieldChange('score', value)
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                    />
                   </div>
                 )}
-              </dl>
+              </div>
             </div>
 
             {/* 武器 */}
             <div>
-              <h4 className="font-semibold mb-2 text-gray-200">武器</h4>
-              <ul className="list-disc list-inside text-gray-100">
-                {analysisResult.weapons.map((weapon, index) => (
-                  <li key={index}>{weapon}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* WAVE情報 */}
-            <div>
-              <h4 className="font-semibold mb-2 text-gray-200">WAVE情報</h4>
-              <div className="space-y-3">
-                {analysisResult.waves.map((wave, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-gray-700/50 rounded border border-gray-600"
-                  >
-                    <div className="font-semibold mb-2 text-gray-100">
-                      WAVE {wave.wave_number}
-                    </div>
-                    <dl className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <dt className="text-gray-400">潮位</dt>
-                        <dd className="text-gray-100">
-                          {wave.tide === 'low'
-                            ? '干潮'
-                            : wave.tide === 'high'
-                              ? '満潮'
-                              : '通常'}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-gray-400">イベント</dt>
-                        <dd className="text-gray-100">{wave.event || 'なし'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-gray-400">納品数</dt>
-                        <dd className="text-gray-100">{wave.delivered_count}</dd>
-                      </div>
-                      {wave.quota && (
-                        <div>
-                          <dt className="text-gray-400">ノルマ</dt>
-                          <dd className="text-gray-100">{wave.quota}</dd>
-                        </div>
-                      )}
-                      {wave.cleared !== undefined && (
-                        <div>
-                          <dt className="text-gray-400">クリア</dt>
-                          <dd className="text-gray-100">{wave.cleared ? '✓' : '✗'}</dd>
-                        </div>
-                      )}
-                    </dl>
+              <h4 className="font-semibold mb-3 text-gray-200">武器</h4>
+              <div className="space-y-2">
+                {editableData.weapons.map((weapon, index) => (
+                  <div key={index}>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      武器 {index + 1}
+                    </label>
+                    <input
+                      type="text"
+                      value={weapon}
+                      onChange={(e) => handleWeaponChange(index, e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                      required
+                    />
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* WAVE情報 */}
+            <div>
+              <h4 className="font-semibold mb-3 text-gray-200">WAVE情報</h4>
+              <div className="space-y-4">
+                {editableData.waves.map((wave, index) => {
+                  const isExWave = wave.wave_number === 'EX'
+                  return (
+                    <div
+                      key={index}
+                      className="p-4 bg-gray-700/50 rounded border border-gray-600"
+                    >
+                      <div className="font-semibold mb-3 text-gray-100">
+                        WAVE {wave.wave_number}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            潮位
+                          </label>
+                          <select
+                            value={wave.tide}
+                            onChange={(e) => handleWaveChange(index, 'tide', e.target.value as 'low' | 'normal' | 'high')}
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                            required
+                          >
+                            <option value="low">干潮</option>
+                            <option value="normal">通常</option>
+                            <option value="high">満潮</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            イベント
+                          </label>
+                          <select
+                            value={isExWave ? 'オカシラ' : (wave.event || '')}
+                            onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
+                            disabled={isExWave}
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {EVENT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {!isExWave && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">
+                                納品数
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={wave.delivered_count ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
+                                  if (!isNaN(value)) {
+                                    handleWaveChange(index, 'delivered_count', value)
+                                  }
+                                }}
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">
+                                ノルマ
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={wave.quota ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                                  if (value === undefined || !isNaN(value)) {
+                                    handleWaveChange(index, 'quota', value)
+                                  }
+                                }}
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                              />
+                            </div>
+                          </>
+                        )}
+                        {wave.cleared !== undefined && (
+                          <div className={isExWave ? '' : 'col-span-2'}>
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={wave.cleared}
+                                onChange={(e) => handleWaveChange(index, 'cleared', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
+                              />
+                              <span className="text-sm font-medium text-gray-400">クリア</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 保存ボタン */}
+            <div className="flex gap-4 pt-4 border-t border-gray-700">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '保存中...' : '保存する'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={isSaving}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                クリア
+              </button>
+            </div>
           </div>
-        </div>
+        </form>
       )}
     </div>
   )
