@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ChangeEvent } from 'react'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
 
 export default function ImageAnalyzer() {
@@ -10,7 +11,7 @@ export default function ImageAnalyzer() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzedScenario | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
       setSelectedImage(file)
