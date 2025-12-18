@@ -81,7 +81,7 @@ export interface Database {
         }
         Update: {
           code?: string
-          author_id?: string | null
+          author_id?: string
           stage_id?: number
           danger_rate?: number
           total_golden_eggs?: number
@@ -122,12 +122,12 @@ export interface Database {
       scenario_weapons: {
         Row: {
           scenario_code: string
-          weapon_id: number
+          weapon_id: number | null
           display_order: number
         }
         Insert: {
           scenario_code: string
-          weapon_id: number
+          weapon_id: number | null
           display_order: number
         }
         Update: {
