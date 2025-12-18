@@ -1,0 +1,158 @@
+# Cursor Rules for Salmon Run Scenario Hub
+
+このファイルは、CursorエディタのAIアシスタントがこのプロジェクトで作業する際のルールとガイドラインを定義します。
+
+## プロジェクト概要
+
+Salmon Run Scenario Hubは、Next.js 16 (App Router)、TypeScript、Tailwind CSS、Supabaseを使用したWebアプリケーションです。
+
+## 技術スタック
+
+- Next.js 16.0.10 (App Router)
+- TypeScript 5.3.0
+- Tailwind CSS 3.4.0
+- Supabase (Auth, Database)
+- Vitest 1.1.0 (テスト)
+- React Testing Library 14.1.2
+- ESLint 9.0.0
+- Docker
+
+## コーディング規約
+
+### TypeScript
+
+- 厳格モード（strict: true）を使用
+- `any`の使用は避ける
+- 型定義は明示的に記述
+- Supabaseの`Database`型を活用
+
+### ファイル命名
+
+- コンポーネント: PascalCase (例: `UserProfile.tsx`)
+- ユーティリティ: camelCase (例: `google-auth.ts`)
+- テスト: `*.test.ts` または `*.test.tsx`
+
+### インポート順序
+
+1. React / Next.js
+2. サードパーティライブラリ
+3. 内部モジュール（`@/`エイリアス）
+4. 型定義
+
+## Next.js 16の重要な変更点
+
+### 1. proxy.ts
+
+- `middleware.ts`ではなく`proxy.ts`を使用
+- 関数名は`proxy`（`middleware`ではない）
+
+### 2. 非同期cookies()
+
+```typescript
+// 正しい
+const cookieStore = await cookies()
+
+// 間違い
+const cookieStore = cookies()
+```
+
+### 3. Supabase SSR API
+
+```typescript
+// 新しいAPI（正しい）
+cookies: {
+  getAll() {
+    return cookieStore.getAll()
+  },
+  setAll(cookiesToSet) {
+    cookiesToSet.forEach(({ name, value, options }) =>
+      cookieStore.set(name, value, options)
+    )
+  },
+}
+
+// 古いAPI（非推奨）
+cookies: {
+  get(name: string) { ... },
+  set(name: string, value: string, options: CookieOptions) { ... },
+  remove(name: string, options: CookieOptions) { ... },
+}
+```
+
+## 認証パターン
+
+### クライアントコンポーネント
+
+```typescript
+'use client'
+import { signInWithGoogle } from '@/lib/auth/google-auth'
+```
+
+### サーバーコンポーネント
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+// awaitが必要
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+```
+
+## テスト
+
+- Vitestを使用（Jestではない）
+- テストファイルは`__tests__`ディレクトリに配置
+- `@testing-library/jest-dom`のマッチャーを使用
+- モックは`vi.mock()`を使用
+
+## エラーハンドリング
+
+```typescript
+try {
+  await someAsyncOperation()
+} catch (error) {
+  if (error instanceof Error) {
+    console.error(error.message)
+    // ユーザーに適切なエラーメッセージを表示
+  }
+}
+```
+
+## 環境変数
+
+- `.env.local`に設定（Gitにコミットしない）
+- `NEXT_PUBLIC_`プレフィックスが必要（クライアント側で使用）
+
+## 禁止事項
+
+- `middleware.ts`の使用（`proxy.ts`を使用）
+- 同期的な`cookies()`の使用（`await cookies()`を使用）
+- 古いSupabase SSR APIの使用（`getAll()` / `setAll()`を使用）
+- `any`型の使用（可能な限り避ける）
+
+## 推奨事項
+
+- 小さなコンポーネントに分割
+- サーバーコンポーネントを優先
+- 新機能には必ずテストを追加
+- 型安全性を重視
+- エラーハンドリングを実装
+
+## ファイル構成
+
+```
+app/                    # Next.js App Router
+lib/                    # 共有ライブラリ
+  auth/                 # 認証ロジック
+  supabase/             # Supabaseクライアント
+proxy.ts               # リクエストミドルウェア
+docs-wiki/             # ドキュメント（submodule）
+```
+
+## 参考ファイル
+
+- `CLAUDE.md` - Claude AIエージェント向け詳細情報
+- `GEMINI.md` - Gemini AIエージェント向け詳細情報
+- `README.md` - プロジェクトの概要
+- `docs-wiki/` - 詳細なドキュメント
+
