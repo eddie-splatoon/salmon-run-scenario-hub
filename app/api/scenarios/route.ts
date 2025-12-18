@@ -376,3 +376,192 @@ export async function POST(
   }
 }
 
+interface ScenarioListItem {
+  code: string
+  stage_id: number
+  stage_name: string
+  danger_rate: number
+  total_golden_eggs: number
+  created_at: string
+  weapons: Array<{
+    weapon_id: number
+    weapon_name: string
+    icon_url: string | null
+    display_order: number
+  }>
+}
+
+interface GetScenariosResponse {
+  success: boolean
+  data?: ScenarioListItem[]
+  error?: string
+}
+
+/**
+ * シナリオ一覧を取得するAPIエンドポイント（フィルター対応）
+ */
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<GetScenariosResponse>> {
+  try {
+    const { searchParams } = new URL(request.url)
+    const stageId = searchParams.get('stage_id')
+    const weaponIds = searchParams.get('weapon_ids')?.split(',').map(Number).filter(Boolean)
+    const minDangerRate = searchParams.get('min_danger_rate')
+
+    const supabase = await createClient()
+
+    // 基本クエリ: scenariosテーブルとm_stagesテーブルをJOIN
+    let query = supabase
+      .from('scenarios')
+      .select(`
+        code,
+        stage_id,
+        danger_rate,
+        total_golden_eggs,
+        created_at,
+        m_stages!inner(name)
+      `)
+      .order('created_at', { ascending: false })
+
+    // ステージフィルター
+    if (stageId) {
+      query = query.eq('stage_id', parseInt(stageId, 10))
+    }
+
+    // キケン度フィルター
+    if (minDangerRate) {
+      query = query.gte('danger_rate', parseInt(minDangerRate, 10))
+    }
+
+    const { data: scenarios, error: scenariosError } = await query
+
+    if (scenariosError) {
+      console.error('[GET /api/scenarios] シナリオ取得エラー:', scenariosError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `シナリオ一覧の取得に失敗しました: ${scenariosError.message}`,
+        },
+        { status: 500 }
+      )
+    }
+
+    if (!scenarios || scenarios.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+      })
+    }
+
+    // 型アサーション: Supabaseのクエリ結果の型を明示
+    type ScenarioWithStage = {
+      code: string
+      stage_id: number
+      danger_rate: number
+      total_golden_eggs: number
+      created_at: string
+      m_stages: { name: string }
+    }
+
+    const typedScenarios = scenarios as ScenarioWithStage[]
+
+    // シナリオコードのリストを取得
+    const scenarioCodes = typedScenarios.map((s) => s.code)
+
+    // 武器情報を取得
+    const { data: scenarioWeapons, error: weaponsError } = await supabase
+      .from('scenario_weapons')
+      .select(`
+        scenario_code,
+        weapon_id,
+        display_order,
+        m_weapons!inner(id, name, icon_url)
+      `)
+      .in('scenario_code', scenarioCodes)
+      .order('scenario_code')
+      .order('display_order')
+
+    if (weaponsError) {
+      console.error('[GET /api/scenarios] 武器情報取得エラー:', weaponsError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `武器情報の取得に失敗しました: ${weaponsError.message}`,
+        },
+        { status: 500 }
+      )
+    }
+
+    // 型アサーション: 武器情報の型を明示
+    type ScenarioWeaponWithWeapon = {
+      scenario_code: string
+      weapon_id: number
+      display_order: number
+      m_weapons: { id: number; name: string; icon_url: string | null }
+    }
+
+    const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
+
+    // 武器フィルター適用（武器IDが指定されている場合）
+    // 指定された武器IDをすべて含むシナリオのみを抽出
+    let filteredScenarioCodes = scenarioCodes
+    if (weaponIds && weaponIds.length > 0) {
+      // 各シナリオコードに対して、指定された武器IDをすべて含むかチェック
+      filteredScenarioCodes = scenarioCodes.filter((code) => {
+        const scenarioWeaponIds = typedScenarioWeapons
+          .filter((sw) => sw.scenario_code === code)
+          .map((sw) => sw.weapon_id)
+        // 指定された武器IDをすべて含むかチェック
+        return weaponIds.every((weaponId) => scenarioWeaponIds.includes(weaponId))
+      })
+    }
+
+    // 結果を整形
+    const result: ScenarioListItem[] = typedScenarios
+      .filter((s) => filteredScenarioCodes.includes(s.code))
+      .map((scenario) => {
+        const weapons = typedScenarioWeapons
+          .filter((sw) => sw.scenario_code === scenario.code)
+          .map((sw) => ({
+            weapon_id: sw.weapon_id,
+            weapon_name: sw.m_weapons.name,
+            icon_url: sw.m_weapons.icon_url,
+            display_order: sw.display_order,
+          }))
+          .sort((a, b) => a.display_order - b.display_order)
+
+        return {
+          code: scenario.code,
+          stage_id: scenario.stage_id,
+          stage_name: scenario.m_stages.name,
+          danger_rate: scenario.danger_rate,
+          total_golden_eggs: scenario.total_golden_eggs,
+          created_at: scenario.created_at,
+          weapons,
+        }
+      })
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+    })
+  } catch (error) {
+    console.error('[GET /api/scenarios] 予期しないエラー:', {
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? `予期しないエラーが発生しました: ${error.message}`
+            : 'シナリオ一覧の取得中にエラーが発生しました',
+      },
+      { status: 500 }
+    )
+  }
+}
+
