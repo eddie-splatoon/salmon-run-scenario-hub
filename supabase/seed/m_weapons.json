@@ -363,5 +363,15 @@
     "name": "クマサン印のローラー",
     "icon_url": null,
     "is_grizzco_weapon": true
+  },
+  {
+    "name": "緑ランダム",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "黄ランダム",
+    "icon_url": null,
+    "is_grizzco_weapon": false
   }
 ]
