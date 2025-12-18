@@ -160,13 +160,41 @@ export async function POST(
         )
       }
       weaponIds = validWeaponIds
+    } else {
+      // weapon_idsが提供されている場合、長さの検証
+      if (weaponIds.length !== body.weapons.length) {
+        console.error('[POST /api/scenarios] 武器IDと武器名の数が一致しません:', {
+          weapons_count: body.weapons.length,
+          weapon_ids_count: weaponIds.length,
+        })
+        return NextResponse.json(
+          {
+            success: false,
+            error: `武器IDの数（${weaponIds.length}）と武器名の数（${body.weapons.length}）が一致しません`,
+          },
+          { status: 400 }
+        )
+      }
+      // weapon_idsがnullや無効な値を含んでいないか検証
+      const invalidIds = weaponIds.filter((id) => id === null || id === undefined || typeof id !== 'number')
+      if (invalidIds.length > 0) {
+        console.error('[POST /api/scenarios] 無効な武器IDが含まれています:', invalidIds)
+        return NextResponse.json(
+          {
+            success: false,
+            error: '無効な武器IDが含まれています',
+          },
+          { status: 400 }
+        )
+      }
     }
     console.log('[POST /api/scenarios] 武器ID取得成功:', weaponIds)
 
     // scenario_wavesテーブル用のデータを準備（WAVE EXの処理を含む）
+    // WAVE EXはwave_number: 4として保存する（WAVE 1, 2, 3, EXの4つを全て保存）
     const waveInserts = body.waves.map((wave) => {
-      // wave_numberが'EX'の場合は3として扱う（データベースの制約に合わせる）
-      const waveNumber = wave.wave_number === 'EX' ? 3 : wave.wave_number
+      // wave_numberが'EX'の場合は4として扱う
+      const waveNumber = wave.wave_number === 'EX' ? 4 : wave.wave_number
       const isExWave = wave.wave_number === 'EX'
 
       return {
@@ -179,6 +207,8 @@ export async function POST(
         cleared: wave.cleared ?? false,
       }
     })
+    
+    console.log('[POST /api/scenarios] waveInserts:', waveInserts)
 
     // トータルゴールデンエッグ数を計算（WAVE EXの処理後のdelivered_countの合計）
     // これにより、scenariosテーブルとscenario_wavesテーブルのデータ整合性を保証
@@ -246,8 +276,16 @@ export async function POST(
         details: wavesError.details,
         hint: wavesError.hint,
       })
-      await supabase.from('scenarios').delete().eq('code', body.scenario_code)
-      console.log('[POST /api/scenarios] ロールバック: scenarios削除完了')
+      const { error: deleteError } = await supabase
+        .from('scenarios')
+        .delete()
+        .eq('code', body.scenario_code)
+      if (deleteError) {
+        console.error('[POST /api/scenarios] ロールバック失敗（scenarios削除エラー）:', deleteError)
+        // ロールバック失敗はログに記録するが、元のエラーを返す
+      } else {
+        console.log('[POST /api/scenarios] ロールバック: scenarios削除完了')
+      }
       return NextResponse.json(
         {
           success: false,
@@ -279,9 +317,29 @@ export async function POST(
         details: weaponsError.details,
         hint: weaponsError.hint,
       })
-      await supabase.from('scenario_waves').delete().eq('scenario_code', body.scenario_code)
-      await supabase.from('scenarios').delete().eq('code', body.scenario_code)
-      console.log('[POST /api/scenarios] ロールバック: scenario_wavesとscenarios削除完了')
+      
+      // scenario_wavesを削除
+      const { error: deleteWavesError } = await supabase
+        .from('scenario_waves')
+        .delete()
+        .eq('scenario_code', body.scenario_code)
+      if (deleteWavesError) {
+        console.error('[POST /api/scenarios] ロールバック失敗（scenario_waves削除エラー）:', deleteWavesError)
+      }
+      
+      // scenariosを削除
+      const { error: deleteScenariosError } = await supabase
+        .from('scenarios')
+        .delete()
+        .eq('code', body.scenario_code)
+      if (deleteScenariosError) {
+        console.error('[POST /api/scenarios] ロールバック失敗（scenarios削除エラー）:', deleteScenariosError)
+      }
+      
+      if (!deleteWavesError && !deleteScenariosError) {
+        console.log('[POST /api/scenarios] ロールバック: scenario_wavesとscenarios削除完了')
+      }
+      
       return NextResponse.json(
         {
           success: false,
