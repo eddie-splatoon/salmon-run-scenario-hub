@@ -17,7 +17,14 @@ npm install
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL_NAME=gemini-1.5-pro  # オプション: デフォルトは gemini-1.5-pro
 ```
+
+**注意**: 
+- `GEMINI_API_KEY`はGoogle AI Studio（https://aistudio.google.com/app/apikey）で取得できます。
+- `GEMINI_MODEL_NAME`は利用可能なモデル名を指定します（例: `gemini-1.5-pro`, `gemini-1.5-flash-002`）。
+  利用可能なモデルを確認するには: `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY"`
 
 ### 3. SupabaseでのGoogle認証設定
 
@@ -79,12 +86,24 @@ salmon-run-scenario-hub/
 │   ├── globals.css               # グローバルスタイル
 │   ├── layout.tsx                # ルートレイアウト
 │   └── page.tsx                  # ホームページ
+├── app/
+│   ├── api/
+│   │   └── analyze/
+│   │       └── route.ts          # 画像解析APIエンドポイント
+│   ├── components/
+│   │   └── ImageAnalyzer.tsx     # 画像アップロード・解析UIコンポーネント
+│   └── types/
+│       └── analyze.ts            # 画像解析APIの型定義
 ├── lib/
+│   ├── ai/
+│   │   └── prompt.ts             # Gemini API用のシステムプロンプト
 │   ├── auth/
 │   │   └── google-auth.ts        # Google認証ヘルパー関数
-│   └── supabase/
-│       ├── client.ts             # クライアント側Supabaseクライアント
-│       └── server.ts             # サーバー側Supabaseクライアント
+│   ├── supabase/
+│   │   ├── client.ts             # クライアント側Supabaseクライアント
+│   │   └── server.ts             # サーバー側Supabaseクライアント
+│   └── utils/
+│       └── master-lookup.ts      # マスタデータの名寄せユーティリティ
 ├── proxy.ts                      # 認証ミドルウェア（Next.js 16の新しい命名規則）
 ├── package.json
 ├── tsconfig.json
