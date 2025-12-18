@@ -10,6 +10,11 @@ interface Stage {
   name: string
 }
 
+interface Weapon {
+  id: number
+  name: string
+}
+
 // イベントの選択肢
 const EVENT_OPTIONS = [
   { value: '', label: 'なし' },
@@ -19,6 +24,14 @@ const EVENT_OPTIONS = [
   { value: 'ドスコイ大量発生', label: 'ドスコイ大量発生' },
   { value: 'ラッシュ', label: 'ラッシュ' },
   { value: '霧', label: '霧' },
+]
+
+// オカシラの選択肢（WAVE EX用）
+const OCCASULAR_OPTIONS = [
+  { value: 'ヨコヅナ', label: 'ヨコヅナ' },
+  { value: 'タツ', label: 'タツ' },
+  { value: 'ジョー', label: 'ジョー' },
+  { value: 'オカシラ連合', label: 'オカシラ連合' },
 ]
 
 export default function ImageAnalyzer() {
@@ -32,6 +45,7 @@ export default function ImageAnalyzer() {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
+  const [weapons, setWeapons] = useState<Weapon[]>([])
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // プレビューURLのクリーンアップ
@@ -66,6 +80,22 @@ export default function ImageAnalyzer() {
       }
     }
     fetchStages()
+  }, [])
+
+  // 武器一覧を取得
+  useEffect(() => {
+    const fetchWeapons = async () => {
+      try {
+        const response = await fetch('/api/weapons')
+        const data = await response.json()
+        if (data.success && data.data) {
+          setWeapons(data.data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch weapons:', err)
+      }
+    }
+    fetchWeapons()
   }, [])
 
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -139,14 +169,14 @@ export default function ImageAnalyzer() {
       }
 
       if (data.data) {
-        // WAVE EXの場合、イベントを「オカシラ」に設定
+        // WAVE EXの場合、イベントをデフォルトで「ヨコヅナ」に設定（解析結果がない場合）
         const processedData = {
           ...data.data,
           waves: data.data.waves.map((wave) => {
             if (wave.wave_number === 'EX') {
               return {
                 ...wave,
-                event: 'オカシラ',
+                event: wave.event || 'ヨコヅナ', // 解析結果がない場合はデフォルトで「ヨコヅナ」
               }
             }
             return wave
@@ -198,12 +228,6 @@ export default function ImageAnalyzer() {
 
     const updatedWaves = [...editableData.waves]
     const wave = updatedWaves[waveIndex]
-    const isExWave = wave.wave_number === 'EX'
-
-    // WAVE EXの場合、イベントは常に「オカシラ」
-    if (isExWave && field === 'event') {
-      value = 'オカシラ'
-    }
 
     updatedWaves[waveIndex] = {
       ...updatedWaves[waveIndex],
@@ -423,13 +447,19 @@ export default function ImageAnalyzer() {
                     <label className="block text-sm font-medium text-gray-400 mb-1">
                       武器 {index + 1}
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={weapon}
                       onChange={(e) => handleWeaponChange(index, e.target.value)}
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
                       required
-                    />
+                    >
+                      <option value="">選択してください</option>
+                      {weapons.map((w) => (
+                        <option key={w.id} value={w.name}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
@@ -467,20 +497,34 @@ export default function ImageAnalyzer() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-400 mb-1">
-                            イベント
+                            {isExWave ? 'オカシラ' : 'イベント'}
                           </label>
-                          <select
-                            value={isExWave ? 'オカシラ' : (wave.event || '')}
-                            onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
-                            disabled={isExWave}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {EVENT_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                          {isExWave ? (
+                            <select
+                              value={wave.event || 'ヨコヅナ'}
+                              onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
+                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                              required
+                            >
+                              {OCCASULAR_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              value={wave.event || ''}
+                              onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
+                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                            >
+                              {EVENT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         {!isExWave && (
                           <>
