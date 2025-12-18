@@ -256,7 +256,6 @@ export default function ImageAnalyzer() {
     if (!editableData) return
 
     const updatedWaves = [...editableData.waves]
-    const wave = updatedWaves[waveIndex]
 
     updatedWaves[waveIndex] = {
       ...updatedWaves[waveIndex],
@@ -290,7 +289,7 @@ export default function ImageAnalyzer() {
     setSuccessMessage(null)
 
     try {
-      console.log('[ImageAnalyzer] 保存開始:', editableData)
+      console.warn('[ImageAnalyzer] 保存開始:', editableData)
       const response = await fetch('/api/scenarios', {
         method: 'POST',
         headers: {
@@ -300,7 +299,7 @@ export default function ImageAnalyzer() {
       })
 
       const data = await response.json()
-      console.log('[ImageAnalyzer] レスポンス:', { status: response.status, data })
+      console.warn('[ImageAnalyzer] レスポンス:', { status: response.status, data })
 
       if (!response.ok || !data.success) {
         const errorMessage = data.error || '保存に失敗しました'
@@ -312,7 +311,7 @@ export default function ImageAnalyzer() {
         throw new Error(errorMessage)
       }
 
-      console.log('[ImageAnalyzer] 保存成功')
+      console.warn('[ImageAnalyzer] 保存成功')
       setSuccessMessage('シナリオを保存しました')
       
       // ホームページにリダイレクト（詳細ページは別Issueで実装予定）
