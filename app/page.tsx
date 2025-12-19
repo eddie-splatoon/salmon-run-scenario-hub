@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import ScenarioCard from './components/ScenarioCard'
-import Link from 'next/link'
 
 interface Weapon {
   weapon_id: number
@@ -119,23 +118,8 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 p-4 md:p-8">
+    <div className="bg-gray-900 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* ヘッダー */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center mb-4 text-gray-100">
-            Salmon Run Scenario Hub
-          </h1>
-          <div className="flex justify-center gap-4">
-            <Link
-              href="/analyze"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              画像解析
-            </Link>
-          </div>
-        </div>
-
         {/* フィルター */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-100 mb-4">フィルター</h2>
@@ -251,6 +235,6 @@ export default function Home() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }
