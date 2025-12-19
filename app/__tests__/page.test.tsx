@@ -79,8 +79,16 @@ describe('Home Page', () => {
   it('fetches scenarios on mount', async () => {
     render(<Home />)
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/scenarios')
-    })
+      // マスタデータ取得後にシナリオ一覧が取得される
+      expect(global.fetch).toHaveBeenCalledWith('/api/stages')
+      expect(global.fetch).toHaveBeenCalledWith('/api/weapons')
+      // シナリオ一覧はクエリパラメータ付きで呼ばれる可能性がある（空のクエリパラメータでも?が付く）
+      const scenarioCalls = vi.mocked(global.fetch).mock.calls.filter((call) => {
+        const url = typeof call[0] === 'string' ? call[0] : call[0].toString()
+        return url.includes('/api/scenarios')
+      })
+      expect(scenarioCalls.length).toBeGreaterThan(0)
+    }, { timeout: 3000 })
   })
 })
 
