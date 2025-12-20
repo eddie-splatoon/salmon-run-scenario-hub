@@ -29,6 +29,15 @@ vi.mock('@/lib/auth/google-auth', () => ({
   signOut: vi.fn(),
 }))
 
+// LogoIconコンポーネントをモック
+vi.mock('../../LogoIcon', () => ({
+  default: ({ size, className }: { size?: number; className?: string }) => (
+    <div data-testid="logo-icon" data-size={size} className={className}>
+      Logo
+    </div>
+  ),
+}))
+
 describe('Header', () => {
   const mockPush = vi.fn()
   const mockPathname = vi.fn(() => '/')
