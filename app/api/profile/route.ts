@@ -44,37 +44,41 @@ export async function PUT(
     }
 
     // バリデーション
-    if (body.name !== undefined) {
-      if (typeof body.name !== 'string') {
-        return NextResponse.json(
-          { success: false, error: 'ユーザー名は文字列である必要があります' },
-          { status: 400 }
-        )
-      }
-      if (body.name.trim().length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'ユーザー名を入力してください' },
-          { status: 400 }
-        )
-      }
-      if (body.name.length > 50) {
-        return NextResponse.json(
-          { success: false, error: 'ユーザー名は50文字以内で入力してください' },
-          { status: 400 }
-        )
-      }
+    if (body.name === undefined) {
+      return NextResponse.json(
+        { success: false, error: 'ユーザー名を指定してください' },
+        { status: 400 }
+      )
+    }
+
+    if (typeof body.name !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'ユーザー名は文字列である必要があります' },
+        { status: 400 }
+      )
+    }
+
+    const trimmedName = body.name.trim()
+    if (trimmedName.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'ユーザー名を入力してください' },
+        { status: 400 }
+      )
+    }
+
+    if (trimmedName.length > 50) {
+      return NextResponse.json(
+        { success: false, error: 'ユーザー名は50文字以内で入力してください' },
+        { status: 400 }
+      )
     }
 
     // プロフィールを更新
-    const updateData: { user_metadata?: { full_name?: string } } = {}
-    if (body.name !== undefined) {
-      updateData.user_metadata = {
-        ...user.user_metadata,
-        full_name: body.name.trim(),
-      }
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser(updateData)
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        full_name: trimmedName,
+      },
+    })
 
     if (updateError) {
       console.error('[PUT /api/profile] プロフィール更新エラー:', updateError)

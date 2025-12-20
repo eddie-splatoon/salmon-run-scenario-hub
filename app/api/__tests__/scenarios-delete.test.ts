@@ -64,7 +64,8 @@ describe('DELETE /api/scenarios/[id]', () => {
       ),
     }
 
-    // 最初の呼び出しはselect、2回目はdelete
+    // from()が呼ばれるたびに異なるクエリを返す
+    // 1回目はselectクエリ、2回目はdeleteクエリ
     let callCount = 0
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
@@ -87,6 +88,7 @@ describe('DELETE /api/scenarios/[id]', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
+    expect(deleteQuery.delete).toHaveBeenCalled()
     expect(deleteQuery.eq).toHaveBeenCalledWith('code', 'ABC123')
   })
 
@@ -243,12 +245,15 @@ describe('DELETE /api/scenarios/[id]', () => {
     }
 
     let callCount = 0
-    mockSupabase.from.mockImplementation(() => {
-      callCount++
-      if (callCount === 1) {
-        return selectQuery
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        callCount++
+        if (callCount === 1) {
+          return selectQuery
+        }
+        return deleteQuery
       }
-      return deleteQuery
+      return selectQuery
     })
 
     const request = new NextRequest('http://localhost:3000/api/scenarios/ABC123', {
