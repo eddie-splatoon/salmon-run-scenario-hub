@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Plus, Edit2, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface Stage {
@@ -49,11 +49,7 @@ export default function MastersAdminClient() {
   const [showAddStage, setShowAddStage] = useState(false)
   const [showAddWeapon, setShowAddWeapon] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [activeTab])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
