@@ -1,7 +1,6 @@
 'use client'
 
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
-import CssBaseline from '@mui/material/CssBaseline'
 import type { ReactNode } from 'react'
 
 const darkTheme = createTheme({
@@ -20,7 +19,6 @@ interface ThemeProviderProps {
 export default function ThemeProvider({ children }: ThemeProviderProps) {
   return (
     <MuiThemeProvider theme={darkTheme}>
-      <CssBaseline />
       {children}
     </MuiThemeProvider>
   )
