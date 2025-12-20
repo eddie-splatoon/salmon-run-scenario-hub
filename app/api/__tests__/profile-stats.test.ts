@@ -141,6 +141,7 @@ describe('GET /api/profile/stats', () => {
         })
       ) // 2回目は結果を返す
 
+    // カウンターを各テストケースでリセット
     let scenariosCallCount = 0
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
@@ -151,6 +152,7 @@ describe('GET /api/profile/stats', () => {
         if (scenariosCallCount === 2) {
           return scenariosQuery2
         }
+        // 3回目以降はscenariosQuery3を返す
         return scenariosQuery3
       }
       if (table === 'likes') {
@@ -234,6 +236,7 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
+    // カウンターを各テストケースでリセット（いいねがないので3回目は呼ばれない）
     let scenariosCallCount = 0
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
@@ -241,6 +244,7 @@ describe('GET /api/profile/stats', () => {
         if (scenariosCallCount === 1) {
           return scenariosQuery1
         }
+        // 2回目以降はscenariosQuery2を返す（3回目は呼ばれない）
         return scenariosQuery2
       }
       if (table === 'likes') {
