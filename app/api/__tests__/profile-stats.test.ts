@@ -20,6 +20,14 @@ describe('GET /api/profile/stats', () => {
     vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
   })
 
+  // Promiseを返すオブジェクトを作成（thenable）
+  const createQueryResult = (result: any) => {
+    return {
+      then: (resolve: (_value: any) => any) => resolve(result),
+      catch: (_reject: (_error: any) => any) => _reject,
+    }
+  }
+
   it('should return statistics data successfully', async () => {
     const mockUser = {
       id: 'user-123',
@@ -70,83 +78,91 @@ describe('GET /api/profile/stats', () => {
       },
     ]
 
-    // from()のチェーンをモック
-    const mockSelect = vi.fn().mockReturnThis()
-    const mockEq = vi.fn().mockReturnThis()
-    const mockIn = vi.fn().mockReturnThis()
-    const mockOrder = vi.fn().mockReturnThis()
+    // シナリオクエリ（投稿データ取得）
+    const scenariosQueryForPosts = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockScenarios,
+          error: null,
+        })
+      ),
+    }
 
-    mockSupabase.from.mockImplementation((table: string) => {
-      if (table === 'scenarios') {
-        const selectMock = vi.fn().mockImplementation((query?: string) => {
-          if (!query) {
-            // total_golden_eggs, stage_idのクエリ
-            return {
-              data: mockScenarios,
-              error: null,
-            }
-          }
-          if (query.includes('m_stages!inner')) {
-            // ステージ統計のクエリ
-            return {
-              data: mockStageStats,
-              error: null,
-            }
-          }
-          if (query.includes('m_stages!inner') && query.includes('code')) {
-            // いいねしたシナリオの詳細のクエリ
-            return {
-              data: mockLikedScenarios,
-              error: null,
-            }
-          }
-          return { data: null, error: null }
+    // シナリオクエリ（ステージ統計取得）
+    const scenariosQueryForStats = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockStageStats,
+          error: null,
         })
-        return {
-          select: selectMock,
-          eq: mockEq,
-          in: mockIn,
-          order: mockOrder,
-        }
-      }
-      if (table === 'likes') {
-        const selectMock = vi.fn().mockReturnValue({
-          eq: mockEq.mockReturnValue({
-            order: mockOrder.mockResolvedValue({
-              data: mockLikes,
-              error: null,
-            }),
-          }),
+      ),
+    }
+
+    // シナリオクエリ（いいねしたシナリオ詳細取得）
+    const scenariosQueryForLiked = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockLikedScenarios,
+          error: null,
         })
-        return {
-          select: selectMock,
-        }
-      }
-      if (table === 'scenario_weapons') {
-        const selectMock = vi.fn().mockResolvedValue({
+      ),
+    }
+
+    // いいねクエリ
+    const likesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockLikes,
+          error: null,
+        })
+      ),
+    }
+
+    // 武器クエリ
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+    }
+
+    // order()は2回呼ばれる（scenario_code, display_order）
+    weaponsQuery.order
+      .mockReturnValueOnce(weaponsQuery)
+      .mockReturnValue(
+        createQueryResult({
           data: mockWeapons,
           error: null,
         })
-        return {
-          select: selectMock,
-          in: mockIn,
-          order: mockOrder,
-        }
-      }
-      return {
-        select: mockSelect,
-        eq: mockEq,
-        in: mockIn,
-        order: mockOrder,
-      }
-    })
+      )
 
-    // eq()の戻り値を適切に設定
-    mockEq.mockImplementation(() => {
-      return {
-        data: mockScenarios,
-        error: null,
+    let scenariosCallCount = 0
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        scenariosCallCount++
+        // 1回目: 投稿データ取得（total_golden_eggs, stage_id）
+        if (scenariosCallCount === 1) {
+          return scenariosQueryForPosts
+        }
+        // 2回目: ステージ統計取得
+        if (scenariosCallCount === 2) {
+          return scenariosQueryForStats
+        }
+        // 3回目: いいねしたシナリオ詳細取得
+        return scenariosQueryForLiked
       }
+      if (table === 'likes') {
+        return likesQuery
+      }
+      if (table === 'scenario_weapons') {
+        return weaponsQuery
+      }
+      return scenariosQueryForPosts
     })
 
     const response = await GET()
@@ -185,16 +201,58 @@ describe('GET /api/profile/stats', () => {
       error: null,
     })
 
-    const mockSelect = vi.fn().mockReturnThis()
-    const mockEq = vi.fn().mockImplementation(() => ({
-      data: [],
-      error: null,
-    }))
+    // Promiseを返すオブジェクトを作成（thenable）
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
 
-    mockSupabase.from.mockReturnValue({
-      select: mockSelect.mockReturnValue({
-        eq: mockEq,
-      }),
+    const scenariosQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
+    const stageStatsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
+    const likesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
+    let scenariosCallCount = 0
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        scenariosCallCount++
+        if (scenariosCallCount === 1) {
+          return scenariosQuery
+        }
+        return stageStatsQuery
+      }
+      if (table === 'likes') {
+        return likesQuery
+      }
+      return scenariosQuery
     })
 
     const response = await GET()
@@ -209,4 +267,3 @@ describe('GET /api/profile/stats', () => {
     expect(data.data?.liked_scenarios).toEqual([])
   })
 })
-
