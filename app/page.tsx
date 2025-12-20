@@ -43,7 +43,19 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       return []
     }
 
-    const scenarioCodes = scenarios.map((s: any) => s.code)
+    // 型アサーション: Supabaseのクエリ結果の型を明示
+    type ScenarioWithStage = {
+      code: string
+      stage_id: number
+      danger_rate: number
+      total_golden_eggs: number
+      created_at: string
+      m_stages: { name: string }
+    }
+
+    const typedScenarios = scenarios as ScenarioWithStage[]
+
+    const scenarioCodes = typedScenarios.map((s) => s.code)
 
     // シナリオが存在しない場合は早期リターン
     if (scenarioCodes.length === 0) {
@@ -67,15 +79,6 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       console.error('武器情報取得エラー:', weaponsError)
       // 武器情報が取得できなくても、シナリオ情報は返す（武器は空配列になる）
     }
-
-    const typedScenarios = scenarios as Array<{
-      code: string
-      stage_id: number
-      danger_rate: number
-      total_golden_eggs: number
-      created_at: string
-      m_stages: { name: string }
-    }>
 
     const typedScenarioWeapons = (scenarioWeapons || []) as Array<{
       scenario_code: string

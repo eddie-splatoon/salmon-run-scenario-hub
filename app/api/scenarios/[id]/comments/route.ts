@@ -119,7 +119,7 @@ export async function POST(
     let body: CreateCommentRequest
     try {
       body = await request.json()
-    } catch (parseError) {
+    } catch {
       return NextResponse.json(
         { success: false, error: 'リクエストボディの解析に失敗しました' },
         { status: 400 }
