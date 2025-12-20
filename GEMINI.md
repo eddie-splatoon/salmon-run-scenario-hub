@@ -331,7 +331,7 @@ npm run test -- --run
 
 - **README.md**: プロジェクトの概要とセットアップ
 - **docs-wiki/**: 詳細なドキュメント（GitHub Wikiに同期）
-- **PR_DESCRIPTION.md**: プルリクエストの説明テンプレート
+- **docs/pr-descriptions/**: プルリクエストの説明ファイル（各Issue対応のPR説明）
 
 ## 参考リソース
 
