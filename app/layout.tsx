@@ -6,7 +6,11 @@ import Footer from "./components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Salmon Run Scenario Hub",
-  description: "Salmon Run Scenario Hub",
+  description: "リザルト画像をアップするだけで、AIが自動解析してサーモンランのシナリオコードを生成・共有できるサービス",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
