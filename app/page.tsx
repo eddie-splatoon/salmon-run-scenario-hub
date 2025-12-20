@@ -1,7 +1,7 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import ScenarioCard from './components/ScenarioCard'
+import { Upload, Search, ArrowRight } from 'lucide-react'
 
 interface Weapon {
   weapon_id: number
@@ -20,221 +20,220 @@ interface ScenarioListItem {
   weapons: Weapon[]
 }
 
-interface Stage {
-  id: number
-  name: string
-}
+async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]> {
+  try {
+    const supabase = await createClient()
 
-interface WeaponMaster {
-  id: number
-  name: string
-  icon_url: string | null
-}
+    const { data: scenarios, error: scenariosError } = await supabase
+      .from('scenarios')
+      .select(`
+        code,
+        stage_id,
+        danger_rate,
+        total_golden_eggs,
+        created_at,
+        m_stages!inner(name)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-export default function Home() {
-  const [scenarios, setScenarios] = useState<ScenarioListItem[]>([])
-  const [stages, setStages] = useState<Stage[]>([])
-  const [weapons, setWeapons] = useState<WeaponMaster[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // フィルター状態
-  const [selectedStageId, setSelectedStageId] = useState<string>('')
-  const [selectedWeaponIds, setSelectedWeaponIds] = useState<number[]>([])
-  const [minDangerRate, setMinDangerRate] = useState<string>('')
-
-  // マスタデータの取得
-  useEffect(() => {
-    const fetchMasterData = async () => {
-      try {
-        const [stagesRes, weaponsRes] = await Promise.all([
-          fetch('/api/stages'),
-          fetch('/api/weapons'),
-        ])
-
-        if (!stagesRes.ok || !weaponsRes.ok) {
-          throw new Error('マスタデータの取得に失敗しました')
-        }
-
-        const stagesData = await stagesRes.json()
-        const weaponsData = await weaponsRes.json()
-
-        if (stagesData.success) {
-          setStages(stagesData.data || [])
-        }
-        if (weaponsData.success) {
-          setWeapons(weaponsData.data || [])
-        }
-      } catch (err) {
-        console.error('マスタデータ取得エラー:', err)
-        setError(err instanceof Error ? err.message : 'マスタデータの取得に失敗しました')
-      }
+    if (scenariosError || !scenarios) {
+      console.error('シナリオ取得エラー:', scenariosError)
+      return []
     }
 
-    fetchMasterData()
-  }, [])
+    const scenarioCodes = scenarios.map((s: any) => s.code)
 
-  // シナリオ一覧の取得
-  useEffect(() => {
-    const fetchScenarios = async () => {
-      setLoading(true)
-      setError(null)
+    const { data: scenarioWeapons } = await supabase
+      .from('scenario_weapons')
+      .select(`
+        scenario_code,
+        weapon_id,
+        display_order,
+        m_weapons!inner(id, name, icon_url)
+      `)
+      .in('scenario_code', scenarioCodes)
+      .order('scenario_code')
+      .order('display_order')
 
-      try {
-        const params = new URLSearchParams()
-        if (selectedStageId) {
-          params.append('stage_id', selectedStageId)
-        }
-        if (selectedWeaponIds.length > 0) {
-          params.append('weapon_ids', selectedWeaponIds.join(','))
-        }
-        if (minDangerRate) {
-          params.append('min_danger_rate', minDangerRate)
-        }
+    const typedScenarios = scenarios as Array<{
+      code: string
+      stage_id: number
+      danger_rate: number
+      total_golden_eggs: number
+      created_at: string
+      m_stages: { name: string }
+    }>
 
-        const response = await fetch(`/api/scenarios?${params.toString()}`)
-        const data = await response.json()
+    const typedScenarioWeapons = (scenarioWeapons || []) as Array<{
+      scenario_code: string
+      weapon_id: number
+      display_order: number
+      m_weapons: { id: number; name: string; icon_url: string | null }
+    }>
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'シナリオ一覧の取得に失敗しました')
-        }
+    return typedScenarios.map((scenario) => {
+      const weapons = typedScenarioWeapons
+        .filter((sw) => sw.scenario_code === scenario.code)
+        .map((sw) => ({
+          weapon_id: sw.weapon_id,
+          weapon_name: sw.m_weapons.name,
+          icon_url: sw.m_weapons.icon_url,
+          display_order: sw.display_order,
+        }))
+        .sort((a, b) => a.display_order - b.display_order)
 
-        setScenarios(data.data || [])
-      } catch (err) {
-        console.error('シナリオ一覧取得エラー:', err)
-        setError(err instanceof Error ? err.message : 'シナリオ一覧の取得に失敗しました')
-      } finally {
-        setLoading(false)
+      return {
+        code: scenario.code,
+        stage_id: scenario.stage_id,
+        stage_name: scenario.m_stages.name,
+        danger_rate: scenario.danger_rate,
+        total_golden_eggs: scenario.total_golden_eggs,
+        created_at: scenario.created_at,
+        weapons,
       }
-    }
-
-    fetchScenarios()
-  }, [selectedStageId, selectedWeaponIds, minDangerRate])
-
-  const handleWeaponToggle = (weaponId: number) => {
-    setSelectedWeaponIds((prev) =>
-      prev.includes(weaponId) ? prev.filter((id) => id !== weaponId) : [...prev, weaponId]
-    )
+    })
+  } catch (error) {
+    console.error('最新シナリオ取得エラー:', error)
+    return []
   }
+}
+
+export default async function Home() {
+  const latestScenarios = await getLatestScenarios(6)
 
   return (
-    <div className="bg-gray-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* フィルター */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-100 mb-4">フィルター</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* ステージフィルター */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">ステージ</label>
-              <select
-                value={selectedStageId}
-                onChange={(e) => setSelectedStageId(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+    <div className="bg-gray-900">
+      {/* ヒーローセクション */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-yellow-500 py-20 md:py-32">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTYwIDBIMFY2MEg2MFYwWiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBIMjBWMjBIMFYwWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              リザルト画像をアップするだけ
+              <br />
+              <span className="text-yellow-200">シナリオコードを共有</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-orange-50 mb-8 leading-relaxed">
+              AIが自動で解析して、サーモンランのシナリオコードを生成します
+              <br />
+              みんなで共有して、最強のシナリオを見つけよう
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link
+                href="/analyze"
+                className="group inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 font-bold text-lg rounded-lg shadow-lg hover:bg-yellow-50 transition-all transform hover:scale-105 hover:shadow-xl"
               >
-                <option value="">すべて</option>
-                {stages.map((stage) => (
-                  <option key={stage.id} value={stage.id.toString()}>
-                    {stage.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* キケン度フィルター */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                キケン度（最小値）
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="333"
-                value={minDangerRate}
-                onChange={(e) => setMinDangerRate(e.target.value)}
-                placeholder="0"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-              />
-            </div>
-
-            {/* 武器フィルター（選択中の武器数を表示） */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                武器（{selectedWeaponIds.length}個選択中）
-              </label>
-              <div className="max-h-32 overflow-y-auto bg-gray-700 rounded p-2">
-                {weapons.length === 0 ? (
-                  <p className="text-sm text-gray-500">読み込み中...</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {weapons.map((weapon) => (
-                      <button
-                        key={weapon.id}
-                        type="button"
-                        onClick={() => handleWeaponToggle(weapon.id)}
-                        className={`px-2 py-1 rounded text-xs transition-colors ${
-                          selectedWeaponIds.includes(weapon.id)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                        }`}
-                        title={weapon.name}
-                      >
-                        {weapon.icon_url ? (
-                          <img
-                            src={weapon.icon_url}
-                            alt={weapon.name}
-                            className="w-6 h-6 object-contain"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              if (target.parentElement) {
-                                target.parentElement.textContent = weapon.name.substring(0, 2)
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span>{weapon.name.substring(0, 2)}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                <Upload className="mr-2 h-5 w-5" />
+                AI解析を試す
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/#latest"
+                className="inline-flex items-center justify-center px-8 py-4 bg-orange-700/80 text-white font-semibold text-lg rounded-lg shadow-lg hover:bg-orange-700 transition-all border-2 border-white/20"
+              >
+                <Search className="mr-2 h-5 w-5" />
+                最新シナリオを見る
+              </Link>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* シナリオ一覧 */}
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400">読み込み中...</p>
+      {/* 3ステップガイド */}
+      <section className="py-16 md:py-24 bg-gray-800">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-100 mb-12">
+            使い方は簡単、たった3ステップ
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* ステップ1 */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 hover:border-orange-500 transition-colors">
+              <div className="flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4 mx-auto">
+                <span className="text-2xl font-bold text-white">1</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3 text-center">
+                スクリーンショットを撮る
+              </h3>
+              <p className="text-gray-400 text-center">
+                サーモンランのリザルト画面のスクリーンショットを撮影します
+              </p>
+            </div>
+
+            {/* ステップ2 */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 hover:border-orange-500 transition-colors">
+              <div className="flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4 mx-auto">
+                <span className="text-2xl font-bold text-white">2</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3 text-center">
+                AIが自動解析
+              </h3>
+              <p className="text-gray-400 text-center">
+                アップロードした画像をAIが解析し、シナリオコードを自動生成します
+              </p>
+            </div>
+
+            {/* ステップ3 */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 hover:border-orange-500 transition-colors">
+              <div className="flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4 mx-auto">
+                <span className="text-2xl font-bold text-white">3</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-3 text-center">
+                みんなで共有
+              </h3>
+              <p className="text-gray-400 text-center">
+                生成されたシナリオコードを共有して、他のプレイヤーと情報交換できます
+              </p>
+            </div>
           </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-400">エラー: {error}</p>
+        </div>
+      </section>
+
+      {/* 最新シナリオのプレビュー */}
+      <section id="latest" className="py-16 md:py-24 bg-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-100">
+              最新のシナリオ
+            </h2>
+            <Link
+              href="/?filter=true"
+              className="inline-flex items-center text-orange-400 hover:text-orange-300 font-semibold transition-colors"
+            >
+              すべて見る
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
           </div>
-        ) : scenarios.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">シナリオが見つかりませんでした</p>
-            <p className="text-gray-500 text-sm mt-2">
-              フィルター条件を変更して再度検索してください
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {scenarios.map((scenario) => (
-              <ScenarioCard
-                key={scenario.code}
-                code={scenario.code}
-                stageName={scenario.stage_name}
-                dangerRate={scenario.danger_rate}
-                totalGoldenEggs={scenario.total_golden_eggs}
-                weapons={scenario.weapons}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+
+          {latestScenarios.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400 text-lg">まだシナリオがありません</p>
+              <p className="text-gray-500 text-sm mt-2">
+                最初のシナリオを投稿してみましょう！
+              </p>
+              <Link
+                href="/analyze"
+                className="inline-block mt-4 px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                AI解析を試す
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {latestScenarios.map((scenario) => (
+                <ScenarioCard
+                  key={scenario.code}
+                  code={scenario.code}
+                  stageName={scenario.stage_name}
+                  dangerRate={scenario.danger_rate}
+                  totalGoldenEggs={scenario.total_golden_eggs}
+                  weapons={scenario.weapons}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }
