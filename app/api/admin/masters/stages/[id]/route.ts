@@ -57,8 +57,17 @@ export async function PUT(
     const { name, image_url } = body
 
     const supabase = await createClient()
+    
+    // バリデーション: nameが空文字列の場合はエラー
+    if (name !== undefined && name === '') {
+      return NextResponse.json(
+        { success: false, error: 'name cannot be empty' },
+        { status: 400 }
+      )
+    }
+
     const updateData: { name?: string; image_url?: string | null } = {}
-    if (name) {
+    if (name !== undefined) {
       updateData.name = name
     }
     if (image_url !== undefined) {

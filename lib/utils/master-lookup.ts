@@ -41,6 +41,9 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
   }
 
   // 最も長い部分一致を探す
+  let bestMatch: { id: number; name: string } | null = null
+  let bestMatchLength = 0
+
   for (const stage of partialMatches) {
     const typedStage = stage as { id: number; name: string } | null
     if (
@@ -49,11 +52,16 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
       typeof typedStage.id === 'number' &&
       (typedStage.name.includes(normalizedInput) || normalizedInput.includes(typedStage.name))
     ) {
-      return typedStage.id
+      // 一致部分の長さを計算（より長い一致を優先）
+      const matchLength = Math.min(typedStage.name.length, normalizedInput.length)
+      if (matchLength > bestMatchLength) {
+        bestMatch = typedStage
+        bestMatchLength = matchLength
+      }
     }
   }
 
-  return null
+  return bestMatch ? bestMatch.id : null
 }
 
 /**
@@ -97,6 +105,9 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
   }
 
   // 最も長い部分一致を探す
+  let bestMatch: { id: number; name: string } | null = null
+  let bestMatchLength = 0
+
   for (const weapon of partialMatches) {
     const typedWeapon = weapon as { id: number; name: string } | null
     if (
@@ -105,11 +116,16 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
       typeof typedWeapon.id === 'number' &&
       (typedWeapon.name.includes(normalizedInput) || normalizedInput.includes(typedWeapon.name))
     ) {
-      return typedWeapon.id
+      // 一致部分の長さを計算（より長い一致を優先）
+      const matchLength = Math.min(typedWeapon.name.length, normalizedInput.length)
+      if (matchLength > bestMatchLength) {
+        bestMatch = typedWeapon
+        bestMatchLength = matchLength
+      }
     }
   }
 
-  return null
+  return bestMatch ? bestMatch.id : null
 }
 
 /**
