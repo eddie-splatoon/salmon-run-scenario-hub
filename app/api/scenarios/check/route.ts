@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 interface CheckScenarioResponse {
   success: boolean
   exists?: boolean
+  scenario_code?: string
   error?: string
 }
 
@@ -48,6 +49,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       exists,
+      scenario_code: exists ? scenarioCode : undefined,
     })
   } catch (error) {
     console.error('[GET /api/scenarios/check] 予期しないエラー:', error)

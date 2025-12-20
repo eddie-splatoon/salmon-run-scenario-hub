@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { AnalyzedScenario, AnalyzeResponse, WaveInfo } from '@/app/types/analyze'
 
 interface Stage {
@@ -45,6 +46,7 @@ export default function ImageAnalyzer() {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
+  const [duplicateScenarioCode, setDuplicateScenarioCode] = useState<string | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
   const [weapons, setWeapons] = useState<Weapon[]>([])
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -120,6 +122,19 @@ export default function ImageAnalyzer() {
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // 画像ファイルかどうかをチェック
+      if (!file.type.startsWith('image/')) {
+        setError('画像ファイルを選択してください')
+        return
+      }
+
+      // ファイルサイズのチェック（10MB制限）
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        setError('画像ファイルのサイズが大きすぎます（最大10MB）')
+        return
+      }
+
       // 進行中のリクエストをキャンセル
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -135,6 +150,7 @@ export default function ImageAnalyzer() {
       setSelectedImage(file)
       setAnalysisResult(null)
       setError(null)
+      setDuplicateWarning(null)
 
       // プレビュー用のURLを生成
       const url = URL.createObjectURL(file)
@@ -235,6 +251,7 @@ export default function ImageAnalyzer() {
     setError(null)
     setSuccessMessage(null)
     setDuplicateWarning(null)
+    setDuplicateScenarioCode(null)
   }
 
   const checkDuplicate = async (scenarioCode: string) => {
@@ -243,13 +260,17 @@ export default function ImageAnalyzer() {
       const data = await response.json()
 
       if (data.success && data.exists) {
-        setDuplicateWarning(`このシナリオコード "${scenarioCode}" は既に登録されています。保存しようとするとエラーになります。`)
+        setDuplicateWarning(`このシナリオコード "${scenarioCode}" は既に投稿されています。`)
+        setDuplicateScenarioCode(data.scenario_code || scenarioCode)
       } else {
         setDuplicateWarning(null)
+        setDuplicateScenarioCode(null)
       }
     } catch (err) {
       console.error('Failed to check duplicate:', err)
       // 重複チェックのエラーは警告として表示しない（保存時にエラーが表示される）
+      setDuplicateWarning(null)
+      setDuplicateScenarioCode(null)
     }
   }
 
@@ -264,6 +285,7 @@ export default function ImageAnalyzer() {
     // シナリオコードが変更された場合は重複チェック
     if (field === 'scenario_code') {
       setDuplicateWarning(null) // 一旦警告をクリア
+      setDuplicateScenarioCode(null)
       if (typeof value === 'string' && value.trim()) {
         checkDuplicate(value.trim())
       }
@@ -376,6 +398,28 @@ export default function ImageAnalyzer() {
               alt="プレビュー"
               className="max-w-full h-auto border border-gray-700 rounded-lg shadow-lg"
             />
+            {isAnalyzing && (
+              <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center rounded-lg">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-200 font-semibold">クマサンが解析中...</p>
+                  <p className="text-gray-400 text-sm mt-2">しばらくお待ちください</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 解析中のスケルトン表示 */}
+      {isAnalyzing && !previewUrl && (
+        <div className="mb-6">
+          <div className="w-full h-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg animate-pulse flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-200 font-semibold">クマサンが解析中...</p>
+              <p className="text-gray-400 text-sm mt-2">しばらくお待ちください</p>
+            </div>
           </div>
         </div>
       )}
@@ -399,7 +443,17 @@ export default function ImageAnalyzer() {
         <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-700 text-yellow-200 rounded-lg">
           <div className="flex items-start gap-2">
             <span className="text-yellow-400">⚠️</span>
-            <span>{duplicateWarning}</span>
+            <div className="flex-1">
+              <p>{duplicateWarning}</p>
+              {duplicateScenarioCode && (
+                <Link
+                  href={`/scenarios/${duplicateScenarioCode}`}
+                  className="mt-2 inline-block text-blue-400 hover:text-blue-300 underline"
+                >
+                  既存のシナリオを確認する →
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -408,9 +462,12 @@ export default function ImageAnalyzer() {
       <div className="mb-6 flex gap-4">
         <button
           onClick={handleAnalyze}
-          disabled={!selectedImage || isAnalyzing}
-          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!selectedImage || isAnalyzing || isSaving}
+          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
+          {isAnalyzing && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          )}
           {isAnalyzing ? '解析中...' : '解析する'}
         </button>
         {(selectedImage || analysisResult) && (
@@ -604,13 +661,18 @@ export default function ImageAnalyzer() {
                                 value={wave.delivered_count ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
-                                  if (!isNaN(value)) {
+                                  if (!isNaN(value) && value >= 0) {
                                     handleWaveChange(index, 'delivered_count', value)
                                   }
                                 }}
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
                                 required
                               />
+                              {wave.quota !== undefined && wave.delivered_count !== undefined && wave.delivered_count < wave.quota && (
+                                <p className="mt-1 text-sm text-yellow-400">
+                                  ⚠️ 納品数がノルマ未満です
+                                </p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-400 mb-1">
@@ -622,12 +684,17 @@ export default function ImageAnalyzer() {
                                 value={wave.quota ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10)
-                                  if (value === undefined || !isNaN(value)) {
+                                  if (value === undefined || (!isNaN(value) && value >= 1)) {
                                     handleWaveChange(index, 'quota', value)
                                   }
                                 }}
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
                               />
+                              {wave.quota !== undefined && wave.delivered_count !== undefined && wave.delivered_count < wave.quota && (
+                                <p className="mt-1 text-sm text-yellow-400">
+                                  ⚠️ 納品数がノルマ未満です
+                                </p>
+                              )}
                             </div>
                           </>
                         )}
@@ -655,7 +722,7 @@ export default function ImageAnalyzer() {
             <div className="flex gap-4 pt-4 border-t border-gray-700">
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || (duplicateWarning !== null && duplicateScenarioCode !== null)}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? '保存中...' : '保存する'}
