@@ -230,3 +230,99 @@ export async function GET(
   }
 }
 
+interface DeleteScenarioResponse {
+  success: boolean
+  error?: string
+}
+
+/**
+ * シナリオを削除するAPIエンドポイント
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<DeleteScenarioResponse>> {
+  try {
+    const { id: scenarioCode } = await params
+    const supabase = await createClient()
+
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
+    // シナリオの存在確認と所有者確認
+    const { data: scenario, error: scenarioError } = await supabase
+      .from('scenarios')
+      .select('code, author_id')
+      .eq('code', scenarioCode)
+      .single()
+
+    if (scenarioError || !scenario) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'シナリオが見つかりません',
+        },
+        { status: 404 }
+      )
+    }
+
+    // 所有者確認（RLSでも保護されているが、明示的にチェック）
+    if (scenario.author_id !== user.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'このシナリオを削除する権限がありません',
+        },
+        { status: 403 }
+      )
+    }
+
+    // シナリオを削除（CASCADEにより関連データも自動削除される）
+    const { error: deleteError } = await supabase
+      .from('scenarios')
+      .delete()
+      .eq('code', scenarioCode)
+
+    if (deleteError) {
+      console.error('[DELETE /api/scenarios/[id]] 削除エラー:', deleteError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `シナリオの削除に失敗しました: ${deleteError.message}`,
+        },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+    })
+  } catch (error) {
+    console.error('[DELETE /api/scenarios/[id]] 予期しないエラー:', {
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? `予期しないエラーが発生しました: ${error.message}`
+            : 'シナリオの削除中にエラーが発生しました',
+      },
+      { status: 500 }
+    )
+  }
+}
+
