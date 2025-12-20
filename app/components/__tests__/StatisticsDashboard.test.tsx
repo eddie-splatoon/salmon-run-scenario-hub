@@ -80,8 +80,10 @@ describe('StatisticsDashboard', () => {
   it('should display liked scenarios', () => {
     render(<StatisticsDashboard initialData={mockStatisticsData} />)
 
-    expect(screen.getByTestId('scenario-card')).toBeInTheDocument()
+    const scenarioCards = screen.getAllByTestId('scenario-card')
+    expect(scenarioCards).toHaveLength(2)
     expect(screen.getByText('CODE1 - ステージ1')).toBeInTheDocument()
+    expect(screen.getByText('CODE2 - ステージ2')).toBeInTheDocument()
   })
 
   it('should show loading state when fetching data', async () => {
@@ -121,7 +123,8 @@ describe('StatisticsDashboard', () => {
     render(<StatisticsDashboard initialData={emptyData} />)
 
     expect(screen.getByText('平均金イクラ数')).toBeInTheDocument()
-    expect(screen.getByText('0')).toBeInTheDocument()
+    // 0というテキストは複数箇所にあるので、親要素で確認
+    expect(screen.getByText('平均金イクラ数').parentElement?.textContent).toContain('0')
     expect(screen.getByText('投稿がありません')).toBeInTheDocument()
     expect(screen.getByText('まだお気に入りのシナリオがありません')).toBeInTheDocument()
   })
