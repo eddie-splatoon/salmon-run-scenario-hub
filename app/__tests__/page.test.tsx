@@ -29,6 +29,8 @@ vi.mock('lucide-react', () => ({
   Upload: () => <span data-testid="upload-icon">Upload</span>,
   Search: () => <span data-testid="search-icon">Search</span>,
   ArrowRight: () => <span data-testid="arrow-right-icon">ArrowRight</span>,
+  TrendingUp: () => <span data-testid="trending-up-icon">TrendingUp</span>,
+  Filter: () => <span data-testid="filter-icon">Filter</span>,
 }))
 
 describe('Home Page (Landing Page)', () => {
@@ -39,12 +41,15 @@ describe('Home Page (Landing Page)', () => {
       order: vi.fn(() => builder),
       limit: vi.fn(() => builder),
       in: vi.fn(() => builder),
+      gte: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
     }
     return builder
   }
 
   const mockQueryBuilder = createMockQueryBuilder()
   const mockWeaponQueryBuilder = createMockQueryBuilder()
+  const mockLikesQueryBuilder = createMockQueryBuilder()
 
   const mockSupabase = {
     from: vi.fn((table: string) => {
@@ -52,6 +57,8 @@ describe('Home Page (Landing Page)', () => {
         return mockQueryBuilder
       } else if (table === 'scenario_weapons') {
         return mockWeaponQueryBuilder
+      } else if (table === 'likes') {
+        return mockLikesQueryBuilder
       }
       return createMockQueryBuilder()
     }),
@@ -78,6 +85,14 @@ describe('Home Page (Landing Page)', () => {
       data: [],
       error: null,
     }))
+
+    // デフォルトのモック設定 - いいね取得（トレンド用）
+    mockLikesQueryBuilder.from = vi.fn(() => mockLikesQueryBuilder)
+    mockLikesQueryBuilder.select = vi.fn(() => Promise.resolve({
+      data: [],
+      error: null,
+    }))
+    mockLikesQueryBuilder.gte = vi.fn(() => mockLikesQueryBuilder)
 
     vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
   })
