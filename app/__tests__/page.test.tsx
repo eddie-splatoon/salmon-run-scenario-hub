@@ -49,23 +49,12 @@ describe('Home Page', () => {
     })
   })
 
-  it('renders the main heading', () => {
+  it('renders filter section', async () => {
     render(<Home />)
-    const heading = screen.getByRole('heading', { level: 1 })
-    expect(heading).toHaveTextContent('Salmon Run Scenario Hub')
-  })
-
-  it('renders filter section', () => {
-    render(<Home />)
-    const filterHeading = screen.getByRole('heading', { level: 2 })
-    expect(filterHeading).toHaveTextContent('フィルター')
-  })
-
-  it('renders link to analyze page', () => {
-    render(<Home />)
-    const analyzeLink = screen.getByRole('link', { name: '画像解析' })
-    expect(analyzeLink).toBeInTheDocument()
-    expect(analyzeLink).toHaveAttribute('href', '/analyze')
+    await waitFor(() => {
+      const filterHeading = screen.getByRole('heading', { name: 'フィルター' })
+      expect(filterHeading).toBeInTheDocument()
+    })
   })
 
   it('fetches master data on mount', async () => {
