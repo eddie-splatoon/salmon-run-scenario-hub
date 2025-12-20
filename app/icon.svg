@@ -1,0 +1,102 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- ダーク背景 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+    </linearGradient>
+    <!-- ゴールデンエッグのグラデーション（中心が明るい白みがかった黄色、外側がオレンジ） -->
+    <radialGradient id="goldenEggGradient" cx="40%" cy="35%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="20%" style="stop-color:#FEF3C7;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FCD34D;stop-opacity:1" />
+      <stop offset="80%" style="stop-color:#FB923C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F97316;stop-opacity:1" />
+    </radialGradient>
+    <!-- シャケのグラデーション（明るいオレンジから濃いオレンジ） -->
+    <linearGradient id="salmonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FB923C;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#F97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EA580C;stop-opacity:1" />
+    </linearGradient>
+    <!-- オレンジのグロー効果 -->
+    <radialGradient id="orangeGlow" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#FB923C;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#FB923C;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- ダーク背景 -->
+  <rect width="64" height="64" rx="12" fill="url(#bgGradient)"/>
+  
+  <!-- 全体的なオレンジのグロー（背景光） -->
+  <ellipse cx="32" cy="28" rx="28" ry="24" fill="url(#orangeGlow)" opacity="0.4"/>
+  
+  <!-- デジタルネットワーク/回路パターン（背景） -->
+  <g stroke="#FB923C" stroke-width="1" fill="none" opacity="0.6">
+    <!-- ノード（白い円形の点） -->
+    <circle cx="16" cy="20" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="24" cy="16" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="32" cy="18" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="40" cy="20" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="48" cy="22" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="20" cy="28" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="28" cy="30" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="36" cy="28" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="44" cy="30" r="1.5" fill="#FFFFFF" opacity="0.9"/>
+    <!-- ノードを結ぶ線 -->
+    <line x1="16" y1="20" x2="24" y2="16"/>
+    <line x1="24" y1="16" x2="32" y2="18"/>
+    <line x1="32" y1="18" x2="40" y2="20"/>
+    <line x1="40" y1="20" x2="48" y2="22"/>
+    <line x1="20" y1="28" x2="28" y2="30"/>
+    <line x1="28" y1="30" x2="36" y2="28"/>
+    <line x1="36" y1="28" x2="44" y2="30"/>
+    <line x1="24" y1="16" x2="20" y2="28"/>
+    <line x1="32" y1="18" x2="28" y2="30"/>
+    <line x1="40" y1="20" x2="36" y2="28"/>
+  </g>
+  
+  <!-- ゴールデンエッグ（中央やや左寄り） -->
+  <ellipse cx="24" cy="28" rx="12" ry="14" fill="url(#goldenEggGradient)" opacity="0.95"/>
+  <!-- ゴールデンエッグの複数の白いハイライト -->
+  <ellipse cx="20" cy="24" rx="3" ry="4" fill="#FFFFFF" opacity="0.95"/>
+  <ellipse cx="22" cy="26" rx="2" ry="3" fill="#FFFFFF" opacity="0.8"/>
+  <ellipse cx="26" cy="25" rx="2.5" ry="3.5" fill="#FFFFFF" opacity="0.7"/>
+  <ellipse cx="28" cy="28" rx="1.5" ry="2" fill="#FFFFFF" opacity="0.9"/>
+  
+  <!-- シャケ（ゴールデンエッグの右隣、左を向いている） -->
+  <!-- シャケの体 -->
+  <ellipse cx="42" cy="28" rx="10" ry="8" fill="url(#salmonGradient)" opacity="0.95"/>
+  <!-- シャケの頭部（左向き） -->
+  <ellipse cx="36" cy="28" rx="6" ry="7" fill="url(#salmonGradient)" opacity="0.95"/>
+  <!-- シャケの尾びれ（扇状、縞模様） -->
+  <path d="M48 28 L52 24 L52 32 Z" fill="url(#salmonGradient)" opacity="0.95"/>
+  <path d="M50 26 L51 24 L51 28 Z" fill="#F97316" opacity="0.8"/>
+  <path d="M50 30 L51 28 L51 32 Z" fill="#F97316" opacity="0.8"/>
+  <!-- シャケの背びれ（扇状、縞模様） -->
+  <path d="M40 22 Q42 20, 44 22" stroke="url(#salmonGradient)" stroke-width="2.5" fill="none" opacity="0.95"/>
+  <path d="M41 21 Q42 20, 43 21" stroke="#F97316" stroke-width="1.5" fill="none" opacity="0.8"/>
+  <!-- シャケの腹びれ -->
+  <path d="M40 34 Q42 36, 44 34" stroke="url(#salmonGradient)" stroke-width="2" fill="none" opacity="0.95"/>
+  <!-- シャケの目（小さな黒い目） -->
+  <circle cx="34" cy="27" r="1.5" fill="#1F2937"/>
+  <circle cx="34.5" cy="26.5" r="0.5" fill="#FFFFFF" opacity="0.9"/>
+  <!-- シャケの口（微笑んでいるような線） -->
+  <path d="M32 29 Q34 30, 35 29" stroke="#EA580C" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- 装飾的な波線（下部） -->
+  <path d="M12 50 Q20 48, 28 50 Q36 52, 44 50 Q52 48, 60 50" 
+        stroke="#FB923C" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round" 
+        opacity="0.7"/>
+  <path d="M10 54 Q18 52, 26 54 Q34 56, 42 54 Q50 52, 58 54" 
+        stroke="#FCD34D" 
+        stroke-width="2" 
+        fill="none" 
+        stroke-linecap="round" 
+        opacity="0.6"/>
+</svg>
+
