@@ -17,6 +17,12 @@ export default function Footer() {
           {/* リンク */}
           <nav className="flex flex-wrap items-center justify-center gap-6 text-sm">
             <Link
+              href="/guide"
+              className="text-gray-400 hover:text-orange-500 transition-colors"
+            >
+              ガイド
+            </Link>
+            <Link
               href="/terms"
               className="text-gray-400 hover:text-orange-500 transition-colors"
             >
