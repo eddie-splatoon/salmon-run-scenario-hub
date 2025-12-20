@@ -60,6 +60,7 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       .in('scenario_code', scenarioCodes)
       .order('scenario_code')
       .order('display_order')
+      .limit(limit * 4) // 各シナリオに最大4つの武器があるため
 
     if (weaponsError) {
       console.error('武器情報取得エラー:', weaponsError)
