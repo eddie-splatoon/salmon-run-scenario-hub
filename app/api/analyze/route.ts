@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextRequest, NextResponse } from 'next/server'
 import { ANALYSIS_PROMPT } from '@/lib/ai/prompt'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
+import { createClient } from '@/lib/supabase/server'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
 
 // デフォルトモデル名（環境変数で上書き可能）
@@ -17,6 +18,64 @@ async function imageToBase64(image: File | Blob): Promise<string> {
   const arrayBuffer = await image.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
   return buffer.toString('base64')
+}
+
+/**
+ * 未知のステージを保存する
+ */
+async function saveUnknownStage(stageName: string): Promise<void> {
+  try {
+    const supabase = await createClient()
+    
+    // 既に未解決の同じ名前のレコードがあるかチェック
+    const { data: existing } = await supabase
+      .from('unknown_stages')
+      .select('id')
+      .eq('name', stageName)
+      .is('resolved_at', null)
+      .maybeSingle()
+
+    if (!existing) {
+      // 新しい未知データとして保存
+      await supabase
+        .from('unknown_stages')
+        .insert({
+          name: stageName,
+        } as any)
+    }
+  } catch (error) {
+    // エラーはログに記録するが、解析処理は続行する
+    console.error('Failed to save unknown stage:', error)
+  }
+}
+
+/**
+ * 未知の武器を保存する
+ */
+async function saveUnknownWeapon(weaponName: string): Promise<void> {
+  try {
+    const supabase = await createClient()
+    
+    // 既に未解決の同じ名前のレコードがあるかチェック
+    const { data: existing } = await supabase
+      .from('unknown_weapons')
+      .select('id')
+      .eq('name', weaponName)
+      .is('resolved_at', null)
+      .maybeSingle()
+
+    if (!existing) {
+      // 新しい未知データとして保存
+      await supabase
+        .from('unknown_weapons')
+        .insert({
+          name: weaponName,
+        } as any)
+    }
+  } catch (error) {
+    // エラーはログに記録するが、解析処理は続行する
+    console.error('Failed to save unknown weapon:', error)
+  }
 }
 
 /**
@@ -91,10 +150,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
     const stageId = await lookupStageId(analyzedData.stage_name)
     if (!stageId) {
       console.warn(`Stage not found: ${analyzedData.stage_name}`)
+      // 未知のステージを保存
+      await saveUnknownStage(analyzedData.stage_name)
     }
 
     // 名寄せ: 武器名をIDに変換（オプション、後で使用する可能性があるため）
     const weaponIds = await lookupWeaponIds(analyzedData.weapons)
+    
+    // 未知の武器を保存
+    const unknownWeapons = analyzedData.weapons.filter(
+      (_, index) => weaponIds[index] === null
+    )
+    for (const weaponName of unknownWeapons) {
+      await saveUnknownWeapon(weaponName)
+    }
 
     // レスポンスを返す（マスタIDも含める）
     return NextResponse.json({
