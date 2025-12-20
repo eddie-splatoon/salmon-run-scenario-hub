@@ -96,7 +96,11 @@ export default function MastersAdminClient() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleDeleteStage = async (id: number) => {
     if (!confirm('このステージを削除しますか？')) {
