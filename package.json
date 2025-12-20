@@ -6,8 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "volta run npm -- run lint:eslint",
+    "lint:eslint": "eslint .",
+    "lint:fix": "volta run npm -- run lint:fix:eslint",
+    "lint:fix:eslint": "eslint . --fix",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
