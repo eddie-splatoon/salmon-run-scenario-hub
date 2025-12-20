@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         name,
         icon_url: icon_url || null,
         is_grizzco_weapon: is_grizzco_weapon || false,
-      } as any)
+      } as never)
       .select()
       .single()
 
