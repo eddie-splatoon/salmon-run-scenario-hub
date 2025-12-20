@@ -192,5 +192,6 @@ describe('Home Page (Landing Page)', () => {
     expect(mockSupabase.from).toHaveBeenCalledWith('scenarios')
     expect(mockQueryBuilder.limit).toHaveBeenCalledWith(6)
     expect(mockSupabase.from).toHaveBeenCalledWith('scenario_weapons')
+    expect(mockWeaponQueryBuilder.limit).toHaveBeenCalledWith(24) // 6シナリオ × 4武器 = 24
   })
 })
