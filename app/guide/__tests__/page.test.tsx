@@ -46,6 +46,7 @@ vi.mock('lucide-react', () => ({
   CheckCircle2: () => <span data-testid="check-circle-icon">CheckCircle2</span>,
   ArrowRight: () => <span data-testid="arrow-right-icon">ArrowRight</span>,
   Image: () => <span data-testid="image-icon">Image</span>,
+  ChevronDown: () => <span data-testid="chevron-down-icon">ChevronDown</span>,
 }))
 
 describe('GuidePage', () => {
