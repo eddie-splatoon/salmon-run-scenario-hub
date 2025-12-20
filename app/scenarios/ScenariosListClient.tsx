@@ -3,16 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Autocomplete,
+  TextField,
   Chip,
   ToggleButton,
   ToggleButtonGroup,
   Slider,
   Box,
   Typography,
+  Button,
+  Paper,
 } from '@mui/material'
 import { Grid, List, Filter } from 'lucide-react'
 import ScenarioCard from '@/app/components/ScenarioCard'
@@ -100,16 +100,6 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
     setSelectedStageId(stageId)
   }
 
-  const handleWeaponToggle = (weaponId: number) => {
-    setSelectedWeaponIds((prev) => {
-      if (prev.includes(weaponId)) {
-        return prev.filter((id) => id !== weaponId)
-      } else {
-        return [...prev, weaponId]
-      }
-    })
-  }
-
   const handleDangerRateChange = (_event: Event, newValue: number | number[]) => {
     setMinDangerRate(Array.isArray(newValue) ? newValue[0] : newValue)
   }
@@ -140,97 +130,161 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* ステージフィルタ */}
-            <FormControl fullWidth>
-              <InputLabel id="stage-select-label" className="text-gray-300">
-                ステージ
-              </InputLabel>
-              <Select
-                labelId="stage-select-label"
-                value={selectedStageId}
-                onChange={(e) => handleStageChange(e.target.value as number | '')}
-                label="ステージ"
-                className="bg-gray-700 text-gray-100"
-                sx={{
+            <Autocomplete
+              options={stages}
+              getOptionLabel={(option) => option.name || ''}
+              value={stages.find((s) => s.id === selectedStageId) || null}
+              onChange={(_event, newValue) => {
+                handleStageChange(newValue?.id || '')
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="ステージ"
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: '#374151',
+                      color: '#e5e7eb',
+                      '& fieldset': {
+                        borderColor: '#4b5563',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#f97316',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#f97316',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: '#9ca3af',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#f97316',
+                    },
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-popupIndicator': {
                   color: '#e5e7eb',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#4b5563',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#f97316',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#f97316',
-                  },
-                  '& .MuiSvgIcon-root': {
+                },
+                '& .MuiAutocomplete-clearIndicator': {
+                  color: '#e5e7eb',
+                },
+              }}
+              PaperComponent={({ children, ...other }) => (
+                <Paper
+                  {...other}
+                  sx={{
+                    backgroundColor: '#1f2937',
                     color: '#e5e7eb',
-                  },
-                }}
-              >
-                <MenuItem value="">
-                  <em>すべて</em>
-                </MenuItem>
-                {stages.map((stage) => (
-                  <MenuItem key={stage.id} value={stage.id}>
-                    {stage.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                    '& .MuiAutocomplete-option': {
+                      '&:hover': {
+                        backgroundColor: '#374151',
+                      },
+                      '&[aria-selected="true"]': {
+                        backgroundColor: '#f97316',
+                        '&:hover': {
+                          backgroundColor: '#ea580c',
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {children}
+                </Paper>
+              )}
+            />
 
             {/* 武器フィルタ */}
-            <FormControl fullWidth>
-              <InputLabel id="weapon-select-label" className="text-gray-300">
-                武器
-              </InputLabel>
-              <Select
-                labelId="weapon-select-label"
-                multiple
-                value={selectedWeaponIds}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setSelectedWeaponIds(typeof value === 'string' ? [] : value)
-                }}
-                label="武器"
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as number[]).map((weaponId) => {
-                      const weapon = weapons.find((w) => w.id === weaponId)
-                      return weapon ? (
-                        <Chip
-                          key={weaponId}
-                          label={weapon.name}
-                          size="small"
-                          onDelete={() => handleWeaponToggle(weaponId)}
-                          onMouseDown={(e) => e.stopPropagation()}
-                        />
-                      ) : null
-                    })}
-                  </Box>
-                )}
-                className="bg-gray-700 text-gray-100"
-                sx={{
+            <Autocomplete
+              multiple
+              options={weapons}
+              getOptionLabel={(option) => option.name || ''}
+              value={weapons.filter((w) => selectedWeaponIds.includes(w.id))}
+              onChange={(_event, newValue) => {
+                setSelectedWeaponIds(newValue.map((w) => w.id))
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={option.id}
+                    label={option.name}
+                    size="small"
+                    sx={{
+                      backgroundColor: '#f97316',
+                      color: '#ffffff',
+                      '& .MuiChip-deleteIcon': {
+                        color: '#ffffff',
+                        '&:hover': {
+                          color: '#fbbf24',
+                        },
+                      },
+                    }}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="武器"
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: '#374151',
+                      color: '#e5e7eb',
+                      '& fieldset': {
+                        borderColor: '#4b5563',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#f97316',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#f97316',
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: '#9ca3af',
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: '#f97316',
+                    },
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-popupIndicator': {
                   color: '#e5e7eb',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#4b5563',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#f97316',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#f97316',
-                  },
-                  '& .MuiSvgIcon-root': {
+                },
+                '& .MuiAutocomplete-clearIndicator': {
+                  color: '#e5e7eb',
+                },
+              }}
+              PaperComponent={({ children, ...other }) => (
+                <Paper
+                  {...other}
+                  sx={{
+                    backgroundColor: '#1f2937',
                     color: '#e5e7eb',
-                  },
-                }}
-              >
-                {weapons.map((weapon) => (
-                  <MenuItem key={weapon.id} value={weapon.id}>
-                    {weapon.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                    '& .MuiAutocomplete-option': {
+                      '&:hover': {
+                        backgroundColor: '#374151',
+                      },
+                      '&[aria-selected="true"]': {
+                        backgroundColor: '#f97316',
+                        '&:hover': {
+                          backgroundColor: '#ea580c',
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {children}
+                </Paper>
+              )}
+            />
 
             {/* キケン度フィルタ */}
             <Box>
@@ -258,12 +312,20 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
 
           {/* フィルタクリアボタン */}
           {(selectedStageId || selectedWeaponIds.length > 0 || minDangerRate > 0) && (
-            <button
+            <Button
               onClick={clearFilters}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold rounded-lg transition-colors"
+              variant="outlined"
+              sx={{
+                color: '#e5e7eb',
+                borderColor: '#4b5563',
+                '&:hover': {
+                  borderColor: '#f97316',
+                  backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                },
+              }}
             >
               フィルタをクリア
-            </button>
+            </Button>
           )}
         </div>
 
