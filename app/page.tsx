@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ScenarioCard from './components/ScenarioCard'
 import LogoIcon from './components/LogoIcon'
-import { Upload, Search, ArrowRight } from 'lucide-react'
+import { Upload, Search, ArrowRight, TrendingUp, Filter } from 'lucide-react'
 
 interface Weapon {
   weapon_id: number
@@ -114,8 +114,144 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
   }
 }
 
+interface TrendingScenario extends ScenarioListItem {
+  like_count: number
+}
+
+async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario[]> {
+  try {
+    const supabase = await createClient()
+
+    // 今週の開始日時を計算（月曜日の00:00:00）
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // 月曜日を0とする
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - diff)
+    weekStart.setHours(0, 0, 0, 0)
+
+    // 今週のいいねを取得
+    const { data: weeklyLikes, error: likesError } = await supabase
+      .from('likes')
+      .select('scenario_code')
+      .gte('created_at', weekStart.toISOString())
+
+    if (likesError) {
+      console.error('いいね取得エラー:', likesError)
+      return []
+    }
+
+    // シナリオコードごとにいいね数を集計
+    const likeCounts = new Map<string, number>()
+    weeklyLikes?.forEach((like) => {
+      const count = likeCounts.get(like.scenario_code) || 0
+      likeCounts.set(like.scenario_code, count + 1)
+    })
+
+    // いいね数でソートして上位を取得
+    const sortedCodes = Array.from(likeCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([code]) => code)
+
+    if (sortedCodes.length === 0) {
+      return []
+    }
+
+    // シナリオ情報を取得
+    const { data: scenarios, error: scenariosError } = await supabase
+      .from('scenarios')
+      .select(`
+        code,
+        stage_id,
+        danger_rate,
+        total_golden_eggs,
+        created_at,
+        m_stages!inner(name)
+      `)
+      .in('code', sortedCodes)
+
+    if (scenariosError || !scenarios) {
+      console.error('シナリオ取得エラー:', scenariosError)
+      return []
+    }
+
+    // 型アサーション
+    type ScenarioWithStage = {
+      code: string
+      stage_id: number
+      danger_rate: number
+      total_golden_eggs: number
+      created_at: string
+      m_stages: { name: string }
+    }
+
+    const typedScenarios = scenarios as ScenarioWithStage[]
+    const scenarioCodes = typedScenarios.map((s) => s.code)
+
+    // 武器情報を取得
+    const { data: scenarioWeapons, error: weaponsError } = await supabase
+      .from('scenario_weapons')
+      .select(`
+        scenario_code,
+        weapon_id,
+        display_order,
+        m_weapons!inner(id, name, icon_url)
+      `)
+      .in('scenario_code', scenarioCodes)
+      .order('scenario_code')
+      .order('display_order')
+
+    if (weaponsError) {
+      console.error('武器情報取得エラー:', weaponsError)
+    }
+
+    const typedScenarioWeapons = (scenarioWeapons || []) as Array<{
+      scenario_code: string
+      weapon_id: number
+      display_order: number
+      m_weapons: { id: number; name: string; icon_url: string | null }
+    }>
+
+    // いいね数の順序を保持して結果を整形
+    const result: TrendingScenario[] = sortedCodes
+      .map((code) => {
+        const scenario = typedScenarios.find((s) => s.code === code)
+        if (!scenario) return null
+
+        const weapons = typedScenarioWeapons
+          .filter((sw) => sw.scenario_code === code)
+          .map((sw) => ({
+            weapon_id: sw.weapon_id,
+            weapon_name: sw.m_weapons.name,
+            icon_url: sw.m_weapons.icon_url,
+            display_order: sw.display_order,
+          }))
+          .sort((a, b) => a.display_order - b.display_order)
+
+        return {
+          code: scenario.code,
+          stage_id: scenario.stage_id,
+          stage_name: scenario.m_stages.name,
+          danger_rate: scenario.danger_rate,
+          total_golden_eggs: scenario.total_golden_eggs,
+          created_at: scenario.created_at,
+          weapons,
+          like_count: likeCounts.get(code) || 0,
+        }
+      })
+      .filter((s): s is TrendingScenario => s !== null)
+
+    return result
+  } catch (error) {
+    console.error('トレンドシナリオ取得エラー:', error)
+    return []
+  }
+}
+
 export default async function Home() {
   const latestScenarios = await getLatestScenarios(6)
+  const trendingScenarios = await getTrendingScenarios(6)
 
   return (
     <div className="bg-gray-900">
@@ -203,6 +339,66 @@ export default async function Home() {
                 生成されたシナリオコードを共有して、他のプレイヤーと情報交換できます
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 今週のトレンド */}
+      {trendingScenarios.length > 0 && (
+        <section className="py-16 md:py-24 bg-gray-800">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <TrendingUp className="h-8 w-8 text-orange-500" />
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-100">
+                  今週のトレンド
+                </h2>
+              </div>
+            </div>
+            <p className="text-gray-400 mb-6">
+              今週いいねが多かったシナリオ
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingScenarios.map((scenario) => (
+                <div key={scenario.code} className="relative">
+                  <ScenarioCard
+                    code={scenario.code}
+                    stageName={scenario.stage_name}
+                    dangerRate={scenario.danger_rate}
+                    totalGoldenEggs={scenario.total_golden_eggs}
+                    weapons={scenario.weapons}
+                  />
+                  <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>{scenario.like_count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* クイックフィルタ */}
+      <section className="py-8 bg-gray-900 border-t border-gray-700">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Filter className="h-5 w-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-300">クイックフィルタ</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/?filter=grizzco"
+              className="inline-flex items-center px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition-colors border border-gray-700 hover:border-orange-500"
+            >
+              <span>#クマサン印あり</span>
+            </Link>
+            <Link
+              href="/?filter=max_danger"
+              className="inline-flex items-center px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition-colors border border-gray-700 hover:border-orange-500"
+            >
+              <span>#カンスト向け</span>
+            </Link>
           </div>
         </div>
       </section>
