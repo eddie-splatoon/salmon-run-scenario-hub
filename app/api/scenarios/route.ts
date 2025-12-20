@@ -296,11 +296,27 @@ export async function POST(
     console.warn('[POST /api/scenarios] scenario_waves保存成功')
 
     // scenario_weaponsテーブルに保存
-    const weaponInserts = weaponIds.map((weaponId, index) => ({
-      scenario_code: body.scenario_code,
-      weapon_id: weaponId,
-      display_order: index + 1,
-    }))
+    // 同じ武器IDが複数ある場合、重複を排除して最初の出現位置のみを保存
+    // (scenario_code, weapon_id)が主キーのため、同じ武器IDを複数回挿入できない
+    const seenWeaponIds = new Map<number, number>() // weapon_id -> display_order
+    const weaponInserts: Array<{
+      scenario_code: string
+      weapon_id: number
+      display_order: number
+    }> = []
+
+    weaponIds.forEach((weaponId, index) => {
+      // まだ見ていない武器IDの場合のみ追加
+      if (!seenWeaponIds.has(weaponId)) {
+        seenWeaponIds.set(weaponId, index + 1)
+        weaponInserts.push({
+          scenario_code: body.scenario_code,
+          weapon_id: weaponId,
+          display_order: index + 1,
+        })
+      }
+    })
+
     console.warn('[POST /api/scenarios] scenario_weaponsテーブルに保存開始:', weaponInserts)
 
     const { error: weaponsError } = await supabase
