@@ -71,10 +71,9 @@ export async function PUT(
     if (is_grizzco_weapon !== undefined) {
       updateData.is_grizzco_weapon = is_grizzco_weapon
     }
-    // @ts-expect-error - Supabase型定義が新しいテーブルを認識していないため
     const { data, error } = await supabase
       .from('m_weapons')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', id)
       .select()
       .single()

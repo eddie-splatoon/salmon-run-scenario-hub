@@ -64,10 +64,9 @@ export async function PUT(
     if (image_url !== undefined) {
       updateData.image_url = image_url || null
     }
-    // @ts-expect-error - Supabase型定義が新しいテーブルを認識していないため
     const { data, error } = await supabase
       .from('m_stages')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', id)
       .select()
       .single()

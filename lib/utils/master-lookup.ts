@@ -17,7 +17,7 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
     .maybeSingle()
 
   if (exactMatch && typeof exactMatch === 'object' && 'id' in exactMatch) {
-    return exactMatch.id as number
+    return (exactMatch as { id: number }).id
   }
 
   // 2. エイリアステーブルで検索
@@ -27,8 +27,8 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
     .eq('alias', normalizedInput)
     .maybeSingle()
 
-  if (aliasMatch && 'stage_id' in aliasMatch) {
-    return aliasMatch.stage_id as number
+  if (aliasMatch && typeof aliasMatch === 'object' && 'stage_id' in aliasMatch) {
+    return (aliasMatch as { stage_id: number }).stage_id
   }
 
   // 3. 部分一致で検索（名寄せのため）
@@ -42,16 +42,14 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
 
   // 最も長い部分一致を探す
   for (const stage of partialMatches) {
+    const typedStage = stage as { id: number; name: string } | null
     if (
-      stage &&
-      typeof stage === 'object' &&
-      'name' in stage &&
-      'id' in stage &&
-      typeof stage.name === 'string' &&
-      typeof stage.id === 'number' &&
-      (stage.name.includes(normalizedInput) || normalizedInput.includes(stage.name))
+      typedStage &&
+      typeof typedStage.name === 'string' &&
+      typeof typedStage.id === 'number' &&
+      (typedStage.name.includes(normalizedInput) || normalizedInput.includes(typedStage.name))
     ) {
-      return stage.id
+      return typedStage.id
     }
   }
 
@@ -75,7 +73,7 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
     .maybeSingle()
 
   if (exactMatch && typeof exactMatch === 'object' && 'id' in exactMatch) {
-    return exactMatch.id as number
+    return (exactMatch as { id: number }).id
   }
 
   // 2. エイリアステーブルで検索
@@ -85,8 +83,8 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
     .eq('alias', normalizedInput)
     .maybeSingle()
 
-  if (aliasMatch && 'weapon_id' in aliasMatch) {
-    return aliasMatch.weapon_id as number
+  if (aliasMatch && typeof aliasMatch === 'object' && 'weapon_id' in aliasMatch) {
+    return (aliasMatch as { weapon_id: number }).weapon_id
   }
 
   // 3. 部分一致で検索（名寄せのため）
@@ -100,16 +98,14 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
 
   // 最も長い部分一致を探す
   for (const weapon of partialMatches) {
+    const typedWeapon = weapon as { id: number; name: string } | null
     if (
-      weapon &&
-      typeof weapon === 'object' &&
-      'name' in weapon &&
-      'id' in weapon &&
-      typeof weapon.name === 'string' &&
-      typeof weapon.id === 'number' &&
-      (weapon.name.includes(normalizedInput) || normalizedInput.includes(weapon.name))
+      typedWeapon &&
+      typeof typedWeapon.name === 'string' &&
+      typeof typedWeapon.id === 'number' &&
+      (typedWeapon.name.includes(normalizedInput) || normalizedInput.includes(typedWeapon.name))
     ) {
-      return weapon.id
+      return typedWeapon.id
     }
   }
 
