@@ -207,6 +207,12 @@ sequenceDiagram
 Closes #12
 ```
 
+**注意**: Pull Request説明ファイルは`docs/pr-descriptions/`ディレクトリに格納されています。`gh pr create`コマンドで`--body-file`オプションを使用する際は、以下のようにパスを指定してください：
+
+```bash
+gh pr create --title "タイトル" --body-file docs/pr-descriptions/PR_DESCRIPTION_ISSUE*.md --base main
+```
+
 ### 6. AIエージェント向けドキュメントの更新
 
 - GEMINIやClaudeが変更内容を適切にトレースできるよう、必要に応じて以下のファイルを修正すること：
@@ -236,6 +242,8 @@ lib/                    # 共有ライブラリ
   auth/                 # 認証ロジック
   supabase/             # Supabaseクライアント
 proxy.ts               # リクエストミドルウェア
+docs/                  # ドキュメント
+  pr-descriptions/     # Pull Request説明ファイル
 docs-wiki/             # ドキュメント（submodule）
 ```
 
@@ -244,5 +252,6 @@ docs-wiki/             # ドキュメント（submodule）
 - `CLAUDE.md` - Claude AIエージェント向け詳細情報
 - `GEMINI.md` - Gemini AIエージェント向け詳細情報
 - `README.md` - プロジェクトの概要
+- `docs/pr-descriptions/` - Pull Request説明ファイル
 - `docs-wiki/` - 詳細なドキュメント
 
