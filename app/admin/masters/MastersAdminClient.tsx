@@ -78,12 +78,16 @@ export default function MastersAdminClient() {
         const stagesData = await stagesResponse.json()
         if (stagesData.success) {
           setUnknownStages(stagesData.data)
+        } else {
+          setError(stagesData.error || '未知のステージデータの取得に失敗しました')
         }
 
         const weaponsResponse = await fetch('/api/admin/unknown?type=weapons')
         const weaponsData = await weaponsResponse.json()
         if (weaponsData.success) {
           setUnknownWeapons(weaponsData.data)
+        } else {
+          setError(weaponsData.error || '未知の武器データの取得に失敗しました')
         }
       }
     } catch (err) {

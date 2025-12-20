@@ -57,12 +57,21 @@ export async function PUT(
     const { name, icon_url, is_grizzco_weapon } = body
 
     const supabase = await createClient()
+    
+    // バリデーション: nameが空文字列の場合はエラー
+    if (name !== undefined && name === '') {
+      return NextResponse.json(
+        { success: false, error: 'name cannot be empty' },
+        { status: 400 }
+      )
+    }
+
     const updateData: {
       name?: string
       icon_url?: string | null
       is_grizzco_weapon?: boolean
     } = {}
-    if (name) {
+    if (name !== undefined) {
       updateData.name = name
     }
     if (icon_url !== undefined) {
