@@ -36,13 +36,15 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
     .from('m_stages')
     .select('id, name')
 
-  if (!partialMatches) {
+  if (!partialMatches || !Array.isArray(partialMatches)) {
     return null
   }
 
   // 最も長い部分一致を探す
   for (const stage of partialMatches) {
     if (
+      stage &&
+      typeof stage === 'object' &&
       'name' in stage &&
       'id' in stage &&
       typeof stage.name === 'string' &&
@@ -92,13 +94,15 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
     .from('m_weapons')
     .select('id, name')
 
-  if (!partialMatches) {
+  if (!partialMatches || !Array.isArray(partialMatches)) {
     return null
   }
 
   // 最も長い部分一致を探す
   for (const weapon of partialMatches) {
     if (
+      weapon &&
+      typeof weapon === 'object' &&
       'name' in weapon &&
       'id' in weapon &&
       typeof weapon.name === 'string' &&
