@@ -1,9 +1,24 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import {
+  TextField,
+  Autocomplete,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Alert,
+  AlertTitle,
+  Paper,
+  Box,
+  Typography,
+  CircularProgress,
+  Grid,
+} from '@mui/material'
+import { Upload, Clear, Save } from '@mui/icons-material'
 import type { AnalyzedScenario, AnalyzeResponse, WaveInfo } from '@/app/types/analyze'
 
 interface Stage {
@@ -367,168 +382,281 @@ export default function ImageAnalyzer() {
     }
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const muiTextFieldSx = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: '#374151',
+      color: '#e5e7eb',
+      '& fieldset': {
+        borderColor: '#4b5563',
+      },
+      '&:hover fieldset': {
+        borderColor: '#f97316',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#f97316',
+      },
+    },
+    '& .MuiInputLabel-root': {
+      color: '#9ca3af',
+    },
+    '& .MuiInputLabel-root.Mui-focused': {
+      color: '#f97316',
+    },
+  }
+
+  const muiAutocompleteSx = {
+    '& .MuiAutocomplete-popupIndicator': {
+      color: '#e5e7eb',
+    },
+    '& .MuiAutocomplete-clearIndicator': {
+      color: '#e5e7eb',
+    },
+  }
+
+  const muiPaperSx = {
+    backgroundColor: '#1f2937',
+    color: '#e5e7eb',
+    '& .MuiAutocomplete-option': {
+      '&:hover': {
+        backgroundColor: '#374151',
+      },
+      '&[aria-selected="true"]': {
+        backgroundColor: '#f97316',
+        '&:hover': {
+          backgroundColor: '#ea580c',
+        },
+      },
+    },
+  }
+
   return (
-    <div className="w-full max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6 text-gray-100">画像解析</h2>
+    <Box sx={{ width: '100%', maxWidth: '1024px', mx: 'auto', p: 3 }}>
+      <Typography variant="h4" component="h2" sx={{ mb: 3, color: '#e5e7eb', fontWeight: 'bold' }}>
+        画像解析
+      </Typography>
 
       {/* 画像アップロード */}
-      <div className="mb-6">
-        <label
-          htmlFor="image-upload"
-          className="block mb-2 text-sm font-medium text-gray-300"
-        >
-          サーモンランの結果画像を選択
-        </label>
+      <Box sx={{ mb: 3 }}>
         <input
-          id="image-upload"
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleImageSelect}
-          className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+          style={{ display: 'none' }}
           disabled={isAnalyzing}
         />
-      </div>
+        <Button
+          variant="contained"
+          component="label"
+          startIcon={<Upload />}
+          onClick={handleFileButtonClick}
+          disabled={isAnalyzing}
+          sx={{
+            backgroundColor: '#3b82f6',
+            '&:hover': {
+              backgroundColor: '#2563eb',
+            },
+          }}
+        >
+          サーモンランの結果画像を選択
+        </Button>
+      </Box>
 
       {/* プレビュー */}
       {previewUrl && (
-        <div className="mb-6">
-          <div className="relative inline-block">
-            <img
-              src={previewUrl}
-              alt="プレビュー"
-              className="max-w-full h-auto border border-gray-700 rounded-lg shadow-lg"
-            />
-            {isAnalyzing && (
-              <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center rounded-lg">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-200 font-semibold">クマサンが解析中...</p>
-                  <p className="text-gray-400 text-sm mt-2">しばらくお待ちください</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <Box sx={{ mb: 3, position: 'relative', display: 'inline-block' }}>
+          <img
+            src={previewUrl}
+            alt="プレビュー"
+            style={{ maxWidth: '100%', height: 'auto', border: '1px solid #374151', borderRadius: '8px' }}
+          />
+          {isAnalyzing && (
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(17, 24, 39, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px',
+              }}
+            >
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress sx={{ mb: 2, color: '#3b82f6' }} />
+                <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold' }}>クマサンが解析中...</Typography>
+                <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem', mt: 1 }}>
+                  しばらくお待ちください
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
       )}
 
       {/* 解析中のスケルトン表示 */}
       {isAnalyzing && !previewUrl && (
-        <div className="mb-6">
-          <div className="w-full h-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg animate-pulse flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-200 font-semibold">クマサンが解析中...</p>
-              <p className="text-gray-400 text-sm mt-2">しばらくお待ちください</p>
-            </div>
-          </div>
-        </div>
+        <Box
+          sx={{
+            mb: 3,
+            width: '100%',
+            height: '256px',
+            backgroundColor: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress sx={{ mb: 2, color: '#3b82f6' }} />
+            <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold' }}>クマサンが解析中...</Typography>
+            <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem', mt: 1 }}>
+              しばらくお待ちください
+            </Typography>
+          </Box>
+        </Box>
       )}
 
       {/* エラー表示 */}
       {error && (
-        <div className="mb-4 p-4 bg-red-900/30 border border-red-700 text-red-200 rounded-lg">
+        <Alert severity="error" sx={{ mb: 2, backgroundColor: 'rgba(127, 29, 29, 0.3)', color: '#fca5a5' }}>
+          <AlertTitle>エラー</AlertTitle>
           {error}
-        </div>
+        </Alert>
       )}
 
       {/* 成功メッセージ */}
       {successMessage && (
-        <div className="mb-4 p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg">
+        <Alert severity="success" sx={{ mb: 2, backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#86efac' }}>
           {successMessage}
-        </div>
+        </Alert>
       )}
 
       {/* 重複警告 */}
       {duplicateWarning && (
-        <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-700 text-yellow-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <span className="text-yellow-400">⚠️</span>
-            <div className="flex-1">
-              <p>{duplicateWarning}</p>
-              {duplicateScenarioCode && (
-                <Link
-                  href={`/scenarios/${duplicateScenarioCode}`}
-                  className="mt-2 inline-block text-blue-400 hover:text-blue-300 underline"
-                >
-                  既存のシナリオを確認する →
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, backgroundColor: 'rgba(113, 63, 18, 0.3)', color: '#fde047' }}
+        >
+          <AlertTitle>警告</AlertTitle>
+          {duplicateWarning}
+          {duplicateScenarioCode && (
+            <Box sx={{ mt: 1 }}>
+              <Link
+                href={`/scenarios/${duplicateScenarioCode}`}
+                style={{ color: '#60a5fa', textDecoration: 'underline' }}
+              >
+                既存のシナリオを確認する →
+              </Link>
+            </Box>
+          )}
+        </Alert>
       )}
 
       {/* 解析ボタン */}
-      <div className="mb-6 flex gap-4">
-        <button
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Button
+          variant="contained"
           onClick={handleAnalyze}
           disabled={!selectedImage || isAnalyzing || isSaving}
-          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          startIcon={isAnalyzing ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : null}
+          sx={{
+            backgroundColor: '#3b82f6',
+            '&:hover': {
+              backgroundColor: '#2563eb',
+            },
+          }}
         >
-          {isAnalyzing && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          )}
           {isAnalyzing ? '解析中...' : '解析する'}
-        </button>
+        </Button>
         {(selectedImage || analysisResult) && (
-          <button
+          <Button
+            variant="outlined"
             onClick={handleClear}
             disabled={isAnalyzing}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            startIcon={<Clear />}
+            sx={{
+              color: '#e5e7eb',
+              borderColor: '#4b5563',
+              '&:hover': {
+                borderColor: '#6b7280',
+                backgroundColor: 'rgba(75, 85, 99, 0.1)',
+              },
+            }}
           >
             クリア
-          </button>
+          </Button>
         )}
-      </div>
+      </Box>
 
       {/* 解析結果と編集フォーム */}
       {editableData && (
-        <form onSubmit={handleSave} className="mt-6 p-6 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
-          <h3 className="text-xl font-bold mb-4 text-gray-100">解析結果の確認と編集</h3>
+        <Paper
+          component="form"
+          onSubmit={handleSave}
+          sx={{
+            mt: 3,
+            p: 3,
+            backgroundColor: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
+          }}
+        >
+          <Typography variant="h5" component="h3" sx={{ mb: 3, color: '#e5e7eb', fontWeight: 'bold' }}>
+            解析結果の確認と編集
+          </Typography>
 
-          <div className="space-y-6">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* 基本情報 */}
-            <div>
-              <h4 className="font-semibold mb-3 text-gray-200">基本情報</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    シナリオコード
-                  </label>
-                  <input
-                    type="text"
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+                基本情報
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="シナリオコード"
                     value={editableData.scenario_code}
                     onChange={(e) => handleFieldChange('scenario_code', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 font-mono"
                     required
+                    sx={muiTextFieldSx}
+                    inputProps={{ style: { fontFamily: 'monospace' } }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    ステージ
-                  </label>
-                  <select
-                    value={editableData.stage_name}
-                    onChange={(e) => handleFieldChange('stage_name', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-                    required
-                  >
-                    <option value="">選択してください</option>
-                    {stages.map((stage) => (
-                      <option key={stage.id} value={stage.name}>
-                        {stage.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    キケン度
-                  </label>
-                  <input
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Autocomplete
+                    options={stages}
+                    getOptionLabel={(option) => option.name || ''}
+                    value={stages.find((s) => s.name === editableData.stage_name) || null}
+                    onChange={(_event, newValue) => {
+                      handleFieldChange('stage_name', newValue?.name || '')
+                    }}
+                    renderInput={(params) => (
+                      <TextField {...params} label="ステージ" required sx={muiTextFieldSx} />
+                    )}
+                    sx={muiAutocompleteSx}
+                    PaperComponent={({ children, ...other }) => (
+                      <Paper {...other} sx={muiPaperSx}>
+                        {children}
+                      </Paper>
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="キケン度"
                     type="number"
-                    min="0"
-                    max="333"
+                    inputProps={{ min: 0, max: 333 }}
                     value={editableData.danger_rate ?? ''}
                     onChange={(e) => {
                       const value = parseInt(e.target.value, 10)
@@ -536,16 +664,15 @@ export default function ImageAnalyzer() {
                         handleFieldChange('danger_rate', value)
                       }
                     }}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
                     required
+                    sx={muiTextFieldSx}
                   />
-                </div>
+                </Grid>
                 {editableData.score !== undefined && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      スコア
-                    </label>
-                    <input
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="スコア"
                       type="number"
                       value={editableData.score ?? ''}
                       onChange={(e) => {
@@ -554,110 +681,136 @@ export default function ImageAnalyzer() {
                           handleFieldChange('score', value)
                         }
                       }}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                      sx={muiTextFieldSx}
                     />
-                  </div>
+                  </Grid>
                 )}
-              </div>
-            </div>
+              </Grid>
+            </Box>
 
             {/* 武器 */}
-            <div>
-              <h4 className="font-semibold mb-3 text-gray-200">武器</h4>
-              <div className="space-y-2">
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+                武器
+              </Typography>
+              <Grid container spacing={2}>
                 {editableData.weapons.map((weapon, index) => (
-                  <div key={index}>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      武器 {index + 1}
-                    </label>
-                    <select
-                      value={weapon}
-                      onChange={(e) => handleWeaponChange(index, e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-                      required
-                    >
-                      <option value="">選択してください</option>
-                      {weapons.map((w) => (
-                        <option key={w.id} value={w.name}>
-                          {w.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Grid item xs={12} sm={6} key={index}>
+                    <Autocomplete
+                      options={weapons}
+                      getOptionLabel={(option) => option.name || ''}
+                      value={weapons.find((w) => w.name === weapon) || null}
+                      onChange={(_event, newValue) => {
+                        handleWeaponChange(index, newValue?.name || '')
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label={`武器 ${index + 1}`} required sx={muiTextFieldSx} />
+                      )}
+                      sx={muiAutocompleteSx}
+                      PaperComponent={({ children, ...other }) => (
+                        <Paper {...other} sx={muiPaperSx}>
+                          {children}
+                        </Paper>
+                      )}
+                    />
+                  </Grid>
                 ))}
-              </div>
-            </div>
+              </Grid>
+            </Box>
 
             {/* WAVE情報 */}
-            <div>
-              <h4 className="font-semibold mb-3 text-gray-200">WAVE情報</h4>
-              <div className="space-y-4">
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+                WAVE情報
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {editableData.waves.map((wave, index) => {
                   const isExWave = wave.wave_number === 'EX'
+                  const tideOptions = [
+                    { value: 'low', label: '干潮' },
+                    { value: 'normal', label: '通常' },
+                    { value: 'high', label: '満潮' },
+                  ]
                   return (
-                    <div
+                    <Paper
                       key={index}
-                      className="p-4 bg-gray-700/50 rounded border border-gray-600"
+                      sx={{
+                        p: 2,
+                        backgroundColor: 'rgba(55, 65, 81, 0.5)',
+                        border: '1px solid #4b5563',
+                        borderRadius: '8px',
+                      }}
                     >
-                      <div className="font-semibold mb-3 text-gray-100">
+                      <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
                         WAVE {wave.wave_number}
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">
-                            潮位
-                          </label>
-                          <select
-                            value={wave.tide}
-                            onChange={(e) => handleWaveChange(index, 'tide', e.target.value as 'low' | 'normal' | 'high')}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-                            required
-                          >
-                            <option value="low">干潮</option>
-                            <option value="normal">通常</option>
-                            <option value="high">満潮</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">
-                            {isExWave ? 'オカシラ' : 'イベント'}
-                          </label>
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Autocomplete
+                            options={tideOptions}
+                            getOptionLabel={(option) => option.label}
+                            value={tideOptions.find((t) => t.value === wave.tide) || null}
+                            onChange={(_event, newValue) => {
+                              handleWaveChange(index, 'tide', (newValue?.value || 'low') as 'low' | 'normal' | 'high')
+                            }}
+                            renderInput={(params) => (
+                              <TextField {...params} label="潮位" required sx={muiTextFieldSx} />
+                            )}
+                            sx={muiAutocompleteSx}
+                            PaperComponent={({ children, ...other }) => (
+                              <Paper {...other} sx={muiPaperSx}>
+                                {children}
+                              </Paper>
+                            )}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
                           {isExWave ? (
-                            <select
-                              value={wave.event || 'ヨコヅナ'}
-                              onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-                              required
-                            >
-                              {OCCASULAR_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
+                            <Autocomplete
+                              options={OCCASULAR_OPTIONS}
+                              getOptionLabel={(option) => option.label}
+                              value={OCCASULAR_OPTIONS.find((o) => o.value === (wave.event || 'ヨコヅナ')) || OCCASULAR_OPTIONS[0]}
+                              onChange={(_event, newValue) => {
+                                handleWaveChange(index, 'event', newValue?.value || null)
+                              }}
+                              renderInput={(params) => (
+                                <TextField {...params} label="オカシラ" required sx={muiTextFieldSx} />
+                              )}
+                              sx={muiAutocompleteSx}
+                              PaperComponent={({ children, ...other }) => (
+                                <Paper {...other} sx={muiPaperSx}>
+                                  {children}
+                                </Paper>
+                              )}
+                            />
                           ) : (
-                            <select
-                              value={wave.event || ''}
-                              onChange={(e) => handleWaveChange(index, 'event', e.target.value || null)}
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
-                            >
-                              {EVENT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
+                            <Autocomplete
+                              options={EVENT_OPTIONS}
+                              getOptionLabel={(option) => option.label}
+                              value={EVENT_OPTIONS.find((o) => o.value === (wave.event || '')) || EVENT_OPTIONS[0]}
+                              onChange={(_event, newValue) => {
+                                handleWaveChange(index, 'event', newValue?.value || null)
+                              }}
+                              renderInput={(params) => (
+                                <TextField {...params} label="イベント" sx={muiTextFieldSx} />
+                              )}
+                              sx={muiAutocompleteSx}
+                              PaperComponent={({ children, ...other }) => (
+                                <Paper {...other} sx={muiPaperSx}>
+                                  {children}
+                                </Paper>
+                              )}
+                            />
                           )}
-                        </div>
+                        </Grid>
                         {!isExWave && (
                           <>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-400 mb-1">
-                                納品数
-                              </label>
-                              <input
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                fullWidth
+                                label="納品数"
                                 type="number"
-                                min="0"
+                                inputProps={{ min: 0 }}
                                 value={wave.delivered_count ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
@@ -665,22 +818,26 @@ export default function ImageAnalyzer() {
                                     handleWaveChange(index, 'delivered_count', value)
                                   }
                                 }}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
                                 required
+                                sx={muiTextFieldSx}
+                                helperText={
+                                  wave.quota !== undefined &&
+                                  wave.delivered_count !== undefined &&
+                                  wave.delivered_count < wave.quota
+                                    ? '⚠️ 納品数がノルマ未満です'
+                                    : ''
+                                }
+                                FormHelperTextProps={{
+                                  sx: { color: '#fbbf24' },
+                                }}
                               />
-                              {wave.quota !== undefined && wave.delivered_count !== undefined && wave.delivered_count < wave.quota && (
-                                <p className="mt-1 text-sm text-yellow-400">
-                                  ⚠️ 納品数がノルマ未満です
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-400 mb-1">
-                                ノルマ
-                              </label>
-                              <input
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                fullWidth
+                                label="ノルマ"
                                 type="number"
-                                min="1"
+                                inputProps={{ min: 1 }}
                                 value={wave.quota ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10)
@@ -688,58 +845,93 @@ export default function ImageAnalyzer() {
                                     handleWaveChange(index, 'quota', value)
                                   }
                                 }}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100"
+                                sx={muiTextFieldSx}
+                                helperText={
+                                  wave.quota !== undefined &&
+                                  wave.delivered_count !== undefined &&
+                                  wave.delivered_count < wave.quota
+                                    ? '⚠️ 納品数がノルマ未満です'
+                                    : ''
+                                }
+                                FormHelperTextProps={{
+                                  sx: { color: '#fbbf24' },
+                                }}
                               />
-                              {wave.quota !== undefined && wave.delivered_count !== undefined && wave.delivered_count < wave.quota && (
-                                <p className="mt-1 text-sm text-yellow-400">
-                                  ⚠️ 納品数がノルマ未満です
-                                </p>
-                              )}
-                            </div>
+                            </Grid>
                           </>
                         )}
                         {wave.cleared !== undefined && (
-                          <div className={isExWave ? '' : 'col-span-2'}>
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={wave.cleared}
-                                onChange={(e) => handleWaveChange(index, 'cleared', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
-                              />
-                              <span className="text-sm font-medium text-gray-400">クリア</span>
-                            </label>
-                          </div>
+                          <Grid item xs={12} sm={isExWave ? 12 : 12}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={wave.cleared}
+                                  onChange={(e) => handleWaveChange(index, 'cleared', e.target.checked)}
+                                  sx={{
+                                    color: '#f97316',
+                                    '&.Mui-checked': {
+                                      color: '#f97316',
+                                    },
+                                  }}
+                                />
+                              }
+                              label="クリア"
+                              sx={{ color: '#9ca3af' }}
+                            />
+                          </Grid>
                         )}
-                      </div>
-                    </div>
+                      </Grid>
+                    </Paper>
                   )
                 })}
-              </div>
-            </div>
+              </Box>
+            </Box>
 
             {/* 保存ボタン */}
-            <div className="flex gap-4 pt-4 border-t border-gray-700">
-              <button
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                pt: 2,
+                borderTop: '1px solid #374151',
+              }}
+            >
+              <Button
                 type="submit"
+                variant="contained"
                 disabled={isSaving || (duplicateWarning !== null && duplicateScenarioCode !== null)}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                startIcon={isSaving ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : <Save />}
+                sx={{
+                  backgroundColor: '#16a34a',
+                  '&:hover': {
+                    backgroundColor: '#15803d',
+                  },
+                }}
               >
                 {isSaving ? '保存中...' : '保存する'}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outlined"
                 onClick={handleClear}
                 disabled={isSaving}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                startIcon={<Clear />}
+                sx={{
+                  color: '#e5e7eb',
+                  borderColor: '#4b5563',
+                  '&:hover': {
+                    borderColor: '#6b7280',
+                    backgroundColor: 'rgba(75, 85, 99, 0.1)',
+                  },
+                }}
               >
                 クリア
-              </button>
-            </div>
-          </div>
-        </form>
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
       )}
-    </div>
+    </Box>
   )
 }
 
