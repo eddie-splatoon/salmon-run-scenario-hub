@@ -42,3 +42,6 @@ coverage
 # vitest
 .vitest
 
+
+# Backup files from merge conflicts
+*.orig
