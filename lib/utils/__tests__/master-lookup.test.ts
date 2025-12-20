@@ -8,27 +8,38 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 describe('master-lookup', () => {
-  const mockSupabase = {
-    from: vi.fn(),
-    select: vi.fn(),
-    eq: vi.fn(),
-    maybeSingle: vi.fn(),
+  let mockSupabase: {
+    from: ReturnType<typeof vi.fn>
+    select: ReturnType<typeof vi.fn>
+    eq: ReturnType<typeof vi.fn>
+    maybeSingle: ReturnType<typeof vi.fn>
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
+
+    mockSupabase = {
+      from: vi.fn(),
+      select: vi.fn(),
+      eq: vi.fn(),
+      maybeSingle: vi.fn(),
+    }
+
     ;(createClient as ReturnType<typeof vi.fn>).mockResolvedValue(mockSupabase)
   })
 
   describe('lookupStageId', () => {
     it('完全一致でステージIDを返す', async () => {
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockReturnValue(mockSupabase)
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: { id: 1 },
-        error: null,
-      })
+      const exactMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null,
+        }),
+      }
+
+      mockSupabase.from.mockReturnValueOnce(exactMatchChain)
 
       const result = await lookupStageId('ムニ・エール海洋発電所')
       expect(result).toBe(1)
@@ -36,51 +47,107 @@ describe('master-lookup', () => {
 
     it('エイリアスでステージIDを返す', async () => {
       // 完全一致なし
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockReturnValue(mockSupabase)
-      mockSupabase.maybeSingle
-        .mockResolvedValueOnce({ data: null, error: null }) // 完全一致なし
-        .mockResolvedValueOnce({ data: { stage_id: 1 }, error: null }) // エイリアス一致
+      const exactMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }
+
+      // エイリアス一致
+      const aliasMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { stage_id: 1 },
+          error: null,
+        }),
+      }
+
+      mockSupabase.from
+        .mockReturnValueOnce(exactMatchChain) // 完全一致
+        .mockReturnValueOnce(aliasMatchChain) // エイリアス
 
       const result = await lookupStageId('ムニエル')
       expect(result).toBe(1)
     })
 
     it('部分一致でステージIDを返す', async () => {
-      // 完全一致なし、エイリアスなし
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockReturnValue(mockSupabase)
-      mockSupabase.maybeSingle
-        .mockResolvedValueOnce({ data: null, error: null }) // 完全一致なし
-        .mockResolvedValueOnce({ data: null, error: null }) // エイリアスなし
+      // 完全一致なし
+      const exactMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }
 
-      // 部分一致用のデータ
-      mockSupabase.select.mockResolvedValueOnce({
-        data: [
-          { id: 1, name: 'ムニ・エール海洋発電所' },
-          { id: 2, name: '難破船ドン・ブラコ' },
-        ],
-        error: null,
-      })
+      // エイリアスなし
+      const aliasMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }
+
+      // 部分一致用のデータ（selectの後に直接データを返す）
+      const partialMatchChain = {
+        select: vi.fn().mockResolvedValue({
+          data: [
+            { id: 1, name: 'ムニ・エール海洋発電所' },
+            { id: 2, name: '難破船ドン・ブラコ' },
+          ],
+          error: null,
+        }),
+      }
+
+      mockSupabase.from
+        .mockReturnValueOnce(exactMatchChain) // 完全一致
+        .mockReturnValueOnce(aliasMatchChain) // エイリアス
+        .mockReturnValueOnce(partialMatchChain) // 部分一致（selectが直接データを返す）
 
       const result = await lookupStageId('ムニエル')
       expect(result).toBe(1)
     })
 
     it('マッチしない場合はnullを返す', async () => {
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockReturnValue(mockSupabase)
-      mockSupabase.maybeSingle
-        .mockResolvedValueOnce({ data: null, error: null }) // 完全一致なし
-        .mockResolvedValueOnce({ data: null, error: null }) // エイリアスなし
+      // 完全一致なし
+      const exactMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }
 
-      mockSupabase.select.mockResolvedValueOnce({
-        data: [{ id: 1, name: 'ムニ・エール海洋発電所' }],
-        error: null,
-      })
+      // エイリアスなし
+      const aliasMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }
+
+      // 部分一致用のデータ（マッチしない）
+      const partialMatchChain = {
+        select: vi.fn().mockResolvedValue({
+          data: [{ id: 1, name: 'ムニ・エール海洋発電所' }],
+          error: null,
+        }),
+      }
+
+      mockSupabase.from
+        .mockReturnValueOnce(exactMatchChain) // 完全一致
+        .mockReturnValueOnce(aliasMatchChain) // エイリアス
+        .mockReturnValueOnce(partialMatchChain) // 部分一致（selectが直接データを返す）
 
       const result = await lookupStageId('存在しないステージ')
       expect(result).toBeNull()
@@ -89,13 +156,16 @@ describe('master-lookup', () => {
 
   describe('lookupWeaponId', () => {
     it('完全一致で武器IDを返す', async () => {
-      mockSupabase.from.mockReturnValue(mockSupabase)
-      mockSupabase.select.mockReturnValue(mockSupabase)
-      mockSupabase.eq.mockReturnValue(mockSupabase)
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: { id: 1 },
-        error: null,
-      })
+      const exactMatchChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { id: 1 },
+          error: null,
+        }),
+      }
+
+      mockSupabase.from.mockReturnValueOnce(exactMatchChain)
 
       const result = await lookupWeaponId('スプラシューター')
       expect(result).toBe(1)
