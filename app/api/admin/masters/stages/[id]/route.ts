@@ -57,12 +57,16 @@ export async function PUT(
     const { name, image_url } = body
 
     const supabase = await createClient()
+    const updateData: { name?: string; image_url?: string | null } = {}
+    if (name) {
+      updateData.name = name
+    }
+    if (image_url !== undefined) {
+      updateData.image_url = image_url || null
+    }
     const { data, error } = await supabase
       .from('m_stages')
-      .update({
-        ...(name && { name }),
-        ...(image_url !== undefined && { image_url }),
-      } as any)
+      .update(updateData as any)
       .eq('id', id)
       .select()
       .single()

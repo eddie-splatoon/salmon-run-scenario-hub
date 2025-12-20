@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET, POST } from '../masters/stages/route'
 import { PUT, DELETE } from '../masters/stages/[id]/route'
 import { createClient } from '@/lib/supabase/server'
@@ -80,7 +81,7 @@ describe('POST /api/admin/masters/stages', () => {
 
     mockSupabase.from.mockReturnValue(stagesQuery)
 
-    const request = new Request('http://localhost:3000/api/admin/masters/stages', {
+    const request = new NextRequest('http://localhost:3000/api/admin/masters/stages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: '新ステージ' }),
@@ -95,7 +96,7 @@ describe('POST /api/admin/masters/stages', () => {
   })
 
   it('should return error when name is missing', async () => {
-    const request = new Request('http://localhost:3000/api/admin/masters/stages', {
+    const request = new NextRequest('http://localhost:3000/api/admin/masters/stages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -134,7 +135,7 @@ describe('PUT /api/admin/masters/stages/[id]', () => {
 
     mockSupabase.from.mockReturnValue(stagesQuery)
 
-    const request = new Request('http://localhost:3000/api/admin/masters/stages/1', {
+    const request = new NextRequest('http://localhost:3000/api/admin/masters/stages/1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: '更新されたステージ', image_url: 'https://example.com/image.jpg' }),
@@ -170,7 +171,7 @@ describe('DELETE /api/admin/masters/stages/[id]', () => {
 
     mockSupabase.from.mockReturnValue(stagesQuery)
 
-    const request = new Request('http://localhost:3000/api/admin/masters/stages/1', {
+    const request = new NextRequest('http://localhost:3000/api/admin/masters/stages/1', {
       method: 'DELETE',
     })
 

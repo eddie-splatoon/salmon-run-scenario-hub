@@ -57,13 +57,23 @@ export async function PUT(
     const { name, icon_url, is_grizzco_weapon } = body
 
     const supabase = await createClient()
+    const updateData: {
+      name?: string
+      icon_url?: string | null
+      is_grizzco_weapon?: boolean
+    } = {}
+    if (name) {
+      updateData.name = name
+    }
+    if (icon_url !== undefined) {
+      updateData.icon_url = icon_url || null
+    }
+    if (is_grizzco_weapon !== undefined) {
+      updateData.is_grizzco_weapon = is_grizzco_weapon
+    }
     const { data, error } = await supabase
       .from('m_weapons')
-      .update({
-        ...(name && { name }),
-        ...(icon_url !== undefined && { icon_url }),
-        ...(is_grizzco_weapon !== undefined && { is_grizzco_weapon }),
-      } as any)
+      .update(updateData as any)
       .eq('id', id)
       .select()
       .single()
