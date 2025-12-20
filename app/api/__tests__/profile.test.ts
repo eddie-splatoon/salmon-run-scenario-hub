@@ -49,7 +49,7 @@ describe('PUT /api/profile', () => {
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
     expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({
-      user_metadata: {
+      data: {
         full_name: 'Updated Name',
       },
     })
