@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js'
 import { Menu, X, User as UserIcon, LogOut, LogIn } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils/cn'
+import LogoIcon from '../LogoIcon'
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -63,9 +64,12 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* ロゴ */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-orange-500">Salmon Run</span>
-            <span className="text-lg text-gray-300">Scenario Hub</span>
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+            <LogoIcon size={32} className="flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:space-x-2">
+              <span className="text-xl sm:text-2xl font-bold text-orange-500">Salmon Run</span>
+              <span className="text-sm sm:text-lg text-gray-300">Scenario Hub</span>
+            </div>
           </Link>
 
           {/* デスクトップメニュー */}
