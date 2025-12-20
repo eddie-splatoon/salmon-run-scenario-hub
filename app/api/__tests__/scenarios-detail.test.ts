@@ -92,25 +92,6 @@ describe('GET /api/scenarios/[id]', () => {
       ),
     }
 
-    const likesQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnValue(
-        createQueryResult({
-          data: null,
-          error: { code: 'PGRST116' }, // 行が見つからない
-        })
-      ),
-    }
-
-    const countQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnValue({
-        count: 5,
-        error: null,
-      }),
-    }
-
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') return scenarioQuery
       if (table === 'scenario_waves') return wavesQuery
@@ -118,8 +99,17 @@ describe('GET /api/scenarios/[id]', () => {
       if (table === 'likes') {
         // count用とselect用で異なるオブジェクトを返す
         const query = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
+          select: vi.fn(),
+          eq: vi.fn(),
+          single: vi.fn(),
+        }
+        // count用のメソッドチェーン（select('*', { count: 'exact', head: true }).eq()でcountを返す）
+        const countEq = {
+          then: (resolve: (value: any) => any) => resolve({ count: 5, error: null }),
+          catch: () => {},
+        }
+        // select().eq().eq().single()用のチェーン
+        const secondEq = {
           single: vi.fn().mockReturnValue(
             createQueryResult({
               data: null,
@@ -127,21 +117,33 @@ describe('GET /api/scenarios/[id]', () => {
             })
           ),
         }
-        // count用のメソッドチェーン
-        query.select.mockReturnValueOnce({
-          eq: vi.fn().mockReturnValue({
-            count: 5,
-            error: null,
-          }),
+        const firstEq = {
+          eq: vi.fn().mockReturnValue(secondEq),
+        }
+        const selectResult = {
+          eq: vi.fn().mockReturnValue(firstEq),
+        }
+        // select()が呼ばれたときに、引数に応じて適切な値を返す
+        query.select.mockImplementation((columns?: string, options?: any) => {
+          // count用（select('*', { count: 'exact', head: true })）
+          if (options && options.count === 'exact') {
+            return {
+              eq: vi.fn().mockReturnValue(countEq),
+            }
+          }
+          // select().eq().eq().single()用
+          return selectResult
         })
         return query
       }
       if (table === 'comments') {
+        const countEq = {
+          then: (resolve: (value: any) => any) => resolve({ count: 3, error: null }),
+          catch: () => {},
+        }
         return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnValue({
-            count: 3,
-            error: null,
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue(countEq),
           }),
         }
       }
@@ -152,6 +154,9 @@ describe('GET /api/scenarios/[id]', () => {
     const response = await GET(request, { params: Promise.resolve({ id: 'ABC123' }) })
     const data = await response.json()
 
+    if (!data.success) {
+      console.error('API Error:', data.error)
+    }
     expect(data.success).toBe(true)
     expect(data.data).toBeDefined()
     expect(data.data.code).toBe('ABC123')
@@ -219,54 +224,46 @@ describe('POST /api/scenarios/[id]/likes', () => {
       ),
     }
 
-    const likesQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnValue(
-        Promise.resolve({
-          data: null,
-          error: { code: 'PGRST116' }, // 行が見つからない
-        })
-      ),
-      insert: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-    }
-
-    likesQuery.insert.mockReturnValue(
-      Promise.resolve({
-        error: null,
-      })
-    )
-
-    const countQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnValue({
-        count: 1,
-        error: null,
-      }),
-    }
-
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') return scenarioQuery
       if (table === 'likes') {
         const query = {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
+          select: vi.fn(),
+          eq: vi.fn(),
+          single: vi.fn(),
+          insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+          delete: vi.fn().mockReturnThis(),
+        }
+        // count用のメソッドチェーン（select('*', { count: 'exact', head: true }).eq()でcountを返す）
+        const countEq = {
+          then: (resolve: (value: any) => any) => resolve({ count: 1, error: null }),
+          catch: () => {},
+        }
+        // select().eq().eq().single()用のチェーン
+        const secondEq = {
           single: vi.fn().mockReturnValue(
             Promise.resolve({
               data: null,
               error: { code: 'PGRST116' },
             })
           ),
-          insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
-          delete: vi.fn().mockReturnThis(),
         }
-        // count用
-        query.select.mockReturnValueOnce({
-          eq: vi.fn().mockReturnValue({
-            count: 1,
-            error: null,
-          }),
+        const firstEq = {
+          eq: vi.fn().mockReturnValue(secondEq),
+        }
+        const selectResult = {
+          eq: vi.fn().mockReturnValue(firstEq),
+        }
+        // select()が呼ばれたときに、引数に応じて適切な値を返す
+        query.select.mockImplementation((columns?: string, options?: any) => {
+          // count用（select('*', { count: 'exact', head: true })）
+          if (options && options.count === 'exact') {
+            return {
+              eq: vi.fn().mockReturnValue(countEq),
+            }
+          }
+          // select().eq().eq().single()用
+          return selectResult
         })
         return query
       }
