@@ -10,6 +10,30 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+// Accordionコンポーネントをモック
+vi.mock('../components/ui/Accordion', () => ({
+  Accordion: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div data-testid="accordion" {...props}>
+      {children}
+    </div>
+  ),
+  AccordionItem: ({ children, value, ...props }: { children: React.ReactNode; value: string }) => (
+    <div data-testid={`accordion-item-${value}`} {...props}>
+      {children}
+    </div>
+  ),
+  AccordionTrigger: ({ children, ...props }: { children: React.ReactNode }) => (
+    <button data-testid="accordion-trigger" {...props}>
+      {children}
+    </button>
+  ),
+  AccordionContent: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div data-testid="accordion-content" {...props}>
+      {children}
+    </div>
+  ),
+}))
+
 // lucide-reactのアイコンをモック
 vi.mock('lucide-react', () => ({
   Camera: () => <span data-testid="camera-icon">Camera</span>,
@@ -77,12 +101,13 @@ describe('GuidePage', () => {
 
   it('renders all step numbers in quick start', () => {
     render(<GuidePage />)
-    const step1 = screen.getByText('1')
-    const step2 = screen.getByText('2')
-    const step3 = screen.getByText('3')
-    expect(step1).toBeInTheDocument()
-    expect(step2).toBeInTheDocument()
-    expect(step3).toBeInTheDocument()
+    // ステップ番号は複数箇所に存在する可能性があるため、getAllByTextを使用
+    const step1s = screen.getAllByText('1')
+    const step2s = screen.getAllByText('2')
+    const step3s = screen.getAllByText('3')
+    expect(step1s.length).toBeGreaterThan(0)
+    expect(step2s.length).toBeGreaterThan(0)
+    expect(step3s.length).toBeGreaterThan(0)
   })
 
   it('renders step titles in quick start', () => {
