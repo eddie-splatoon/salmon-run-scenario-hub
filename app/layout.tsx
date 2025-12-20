@@ -4,17 +4,7 @@ import "./globals.css";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import { Toaster } from "sonner";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#f97316',
-    },
-  },
-});
+import ThemeProvider from "./components/providers/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Salmon Run Scenario Hub",
@@ -33,8 +23,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="flex min-h-screen flex-col bg-gray-900 text-gray-100">
-        <ThemeProvider theme={darkTheme}>
-          <CssBaseline />
+        <ThemeProvider>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
