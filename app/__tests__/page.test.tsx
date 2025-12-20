@@ -1,83 +1,196 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import React from 'react'
 import Home from '../page'
+import { createClient } from '@/lib/supabase/server'
 
-// fetchをモック
-global.fetch = vi.fn()
+// Supabaseサーバークライアントをモック
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(),
+}))
 
-describe('Home Page', () => {
+// Next.jsのcookiesをモック
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(() => ({
+    getAll: vi.fn(() => []),
+    set: vi.fn(),
+  })),
+}))
+
+// Next.jsのLinkコンポーネントをモック
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}))
+
+// lucide-reactのアイコンをモック
+vi.mock('lucide-react', () => ({
+  Upload: () => <span data-testid="upload-icon">Upload</span>,
+  Search: () => <span data-testid="search-icon">Search</span>,
+  ArrowRight: () => <span data-testid="arrow-right-icon">ArrowRight</span>,
+}))
+
+describe('Home Page (Landing Page)', () => {
+  const createMockQueryBuilder = () => {
+    const builder = {
+      from: vi.fn(() => builder),
+      select: vi.fn(() => builder),
+      order: vi.fn(() => builder),
+      limit: vi.fn(() => builder),
+      in: vi.fn(() => builder),
+    }
+    return builder
+  }
+
+  const mockQueryBuilder = createMockQueryBuilder()
+  const mockWeaponQueryBuilder = createMockQueryBuilder()
+
+  const mockSupabase = {
+    from: vi.fn((table: string) => {
+      if (table === 'scenarios') {
+        return mockQueryBuilder
+      } else if (table === 'scenario_weapons') {
+        return mockWeaponQueryBuilder
+      }
+      return createMockQueryBuilder()
+    }),
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
-    // デフォルトのモックレスポンスを設定
-    vi.mocked(global.fetch).mockImplementation((url: string | URL) => {
-      if (typeof url === 'string') {
-        if (url.includes('/api/stages')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              success: true,
-              data: [
-                { id: 1, name: 'アラマキ砦' },
-                { id: 2, name: 'シェケナダム' },
-              ],
-            }),
-          } as Response)
-        }
-        if (url.includes('/api/weapons')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              success: true,
-              data: [
-                { id: 1, name: 'スプラシューター', icon_url: 'https://example.com/weapon1.png' },
-                { id: 2, name: 'スプラローラー', icon_url: 'https://example.com/weapon2.png' },
-              ],
-            }),
-          } as Response)
-        }
-        if (url.includes('/api/scenarios')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({
-              success: true,
-              data: [],
-            }),
-          } as Response)
-        }
-      }
-      return Promise.reject(new Error('Unknown URL'))
-    })
+    
+    // デフォルトのモック設定 - シナリオ取得
+    mockQueryBuilder.from = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.order = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.limit = vi.fn(() => Promise.resolve({
+      data: [],
+      error: null,
+    }))
+
+    // デフォルトのモック設定 - 武器取得
+    mockWeaponQueryBuilder.from = vi.fn(() => mockWeaponQueryBuilder)
+    mockWeaponQueryBuilder.select = vi.fn(() => mockWeaponQueryBuilder)
+    mockWeaponQueryBuilder.in = vi.fn(() => mockWeaponQueryBuilder)
+    mockWeaponQueryBuilder.order = vi.fn(() => mockWeaponQueryBuilder)
+    mockWeaponQueryBuilder.limit = vi.fn(() => Promise.resolve({
+      data: [],
+      error: null,
+    }))
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
   })
 
-  it('renders filter section', async () => {
-    render(<Home />)
-    await waitFor(() => {
-      const filterHeading = screen.getByRole('heading', { name: 'フィルター' })
-      expect(filterHeading).toBeInTheDocument()
-    })
+  it('renders hero section with main heading', async () => {
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // ヒーローセクションのメイン見出しを確認
+    const mainHeading = screen.getByText(/リザルト画像をアップするだけ/)
+    expect(mainHeading).toBeInTheDocument()
+    
+    // サブ見出しは複数ある可能性があるので、最初のものを取得
+    const subHeadings = screen.getAllByText(/シナリオコードを共有/)
+    expect(subHeadings.length).toBeGreaterThan(0)
   })
 
-  it('fetches master data on mount', async () => {
-    render(<Home />)
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/stages')
-      expect(global.fetch).toHaveBeenCalledWith('/api/weapons')
-    })
+  it('renders CTA buttons in hero section', async () => {
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // 「AI解析を試す」ボタンを確認（複数ある可能性があるので最初のものを取得）
+    const analyzeButtons = screen.getAllByRole('link', { name: /AI解析を試す/i })
+    expect(analyzeButtons.length).toBeGreaterThan(0)
+    expect(analyzeButtons[0]).toHaveAttribute('href', '/analyze')
+    
+    // 「最新シナリオを見る」ボタンを確認
+    const latestButton = screen.getByRole('link', { name: /最新シナリオを見る/i })
+    expect(latestButton).toBeInTheDocument()
   })
 
-  it('fetches scenarios on mount', async () => {
-    render(<Home />)
-    await waitFor(() => {
-      // マスタデータ取得後にシナリオ一覧が取得される
-      expect(global.fetch).toHaveBeenCalledWith('/api/stages')
-      expect(global.fetch).toHaveBeenCalledWith('/api/weapons')
-      // シナリオ一覧はクエリパラメータ付きで呼ばれる可能性がある（空のクエリパラメータでも?が付く）
-      const scenarioCalls = vi.mocked(global.fetch).mock.calls.filter((call) => {
-        const url = typeof call[0] === 'string' ? call[0] : call[0].toString()
-        return url.includes('/api/scenarios')
-      })
-      expect(scenarioCalls.length).toBeGreaterThan(0)
-    }, { timeout: 3000 })
+  it('renders 3-step guide section', async () => {
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // 3ステップガイドの見出しを確認
+    const guideHeading = screen.getByText(/使い方は簡単、たった3ステップ/)
+    expect(guideHeading).toBeInTheDocument()
+    
+    // 各ステップのタイトルを確認
+    expect(screen.getByText(/スクリーンショットを撮る/)).toBeInTheDocument()
+    expect(screen.getByText(/AIが自動解析/)).toBeInTheDocument()
+    // 「みんなで共有」は複数箇所に表示される可能性があるので、getAllByTextを使用
+    const shareTexts = screen.getAllByText(/みんなで共有/)
+    expect(shareTexts.length).toBeGreaterThan(0)
+  })
+
+  it('renders latest scenarios section', async () => {
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // 最新シナリオセクションの見出しを確認
+    const latestHeading = screen.getByText(/最新のシナリオ/)
+    expect(latestHeading).toBeInTheDocument()
+  })
+
+  it('displays empty state when no scenarios exist', async () => {
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // 空状態のメッセージを確認
+    const emptyMessage = screen.getByText(/まだシナリオがありません/)
+    expect(emptyMessage).toBeInTheDocument()
+    
+    // 空状態のCTAボタンを確認（複数あるので最初のものを取得）
+    const emptyCTAs = screen.getAllByRole('link', { name: /AI解析を試す/i })
+    expect(emptyCTAs.length).toBeGreaterThan(0)
+  })
+
+  it('fetches latest scenarios from database', async () => {
+    const mockScenarios = [
+      {
+        code: 'ABC123',
+        stage_id: 1,
+        danger_rate: 200,
+        total_golden_eggs: 100,
+        created_at: '2024-01-01T00:00:00Z',
+        m_stages: { name: 'アラマキ砦' },
+      },
+    ]
+
+    const mockWeapons = [
+      {
+        scenario_code: 'ABC123',
+        weapon_id: 1,
+        display_order: 1,
+        m_weapons: {
+          id: 1,
+          name: 'スプラシューター',
+          icon_url: 'https://example.com/weapon1.png',
+        },
+      },
+    ]
+
+    // シナリオ取得のモック
+    mockQueryBuilder.limit = vi.fn().mockResolvedValue({
+      data: mockScenarios,
+      error: null,
+    })
+
+    // 武器取得のモック
+    mockWeaponQueryBuilder.limit = vi.fn().mockResolvedValue({
+      data: mockWeapons,
+      error: null,
+    })
+
+    const HomeComponent = await Home()
+    render(HomeComponent)
+    
+    // Supabaseクライアントが呼ばれたことを確認
+    expect(createClient).toHaveBeenCalled()
+    expect(mockSupabase.from).toHaveBeenCalledWith('scenarios')
+    expect(mockQueryBuilder.limit).toHaveBeenCalledWith(6)
+    expect(mockSupabase.from).toHaveBeenCalledWith('scenario_weapons')
   })
 })
-
