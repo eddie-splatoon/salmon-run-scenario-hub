@@ -634,6 +634,7 @@ export default function ImageAnalyzer() {
                 基本情報
               </Typography>
               <Grid container spacing={2}>
+                {/* 1行目: シナリオコード、ステージ */}
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -665,6 +666,7 @@ export default function ImageAnalyzer() {
                     )}
                   />
                 </Grid>
+                {/* 2行目: キケン度、スコア */}
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
