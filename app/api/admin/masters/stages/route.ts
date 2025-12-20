@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         image_url: image_url || null,
-      } as any)
+      } as never)
       .select()
       .single()
 

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .insert({
         stage_id,
         alias,
-      } as any)
+      } as never)
       .select()
       .single()
 

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .insert({
         weapon_id,
         alias,
-      } as any)
+      } as never)
       .select()
       .single()
 
