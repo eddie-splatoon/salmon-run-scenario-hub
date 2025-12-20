@@ -1,26 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import React from 'react'
 import StatisticsDashboard from '../StatisticsDashboard'
 
 // Rechartsをモック
 vi.mock('recharts', () => ({
-  PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
-  Pie: ({ children }: { children: React.ReactNode }) => <div data-testid="pie">{children}</div>,
-  Cell: ({ fill }: { fill: string }) => <div data-testid="cell" style={{ fill }} />,
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  Legend: () => <div data-testid="legend">Legend</div>,
-  Tooltip: () => <div data-testid="tooltip">Tooltip</div>,
+  PieChart: ({ children }: { children: React.ReactNode }) => React.createElement('div', { 'data-testid': 'pie-chart' }, children),
+  Pie: ({ children }: { children: React.ReactNode }) => React.createElement('div', { 'data-testid': 'pie' }, children),
+  Cell: ({ fill }: { fill: string }) => React.createElement('div', { 'data-testid': 'cell', style: { fill } }),
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', { 'data-testid': 'responsive-container' }, children),
+  Legend: () => React.createElement('div', { 'data-testid': 'legend' }, 'Legend'),
+  Tooltip: () => React.createElement('div', { 'data-testid': 'tooltip' }, 'Tooltip'),
 }))
 
 // ScenarioCardをモック
 vi.mock('../ScenarioCard', () => ({
-  default: ({ code, stageName }: { code: string; stageName: string }) => (
-    <div data-testid="scenario-card">
-      {code} - {stageName}
-    </div>
-  ),
+  default: ({ code, stageName }: { code: string; stageName: string }) =>
+    React.createElement('div', { 'data-testid': 'scenario-card' }, `${code} - ${stageName}`),
 }))
 
 describe('StatisticsDashboard', () => {
