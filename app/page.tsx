@@ -360,19 +360,16 @@ export default async function Home() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {trendingScenarios.map((scenario) => (
-                <div key={scenario.code} className="relative">
-                  <ScenarioCard
-                    code={scenario.code}
-                    stageName={scenario.stage_name}
-                    dangerRate={scenario.danger_rate}
-                    totalGoldenEggs={scenario.total_golden_eggs}
-                    weapons={scenario.weapons}
-                  />
-                  <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>{scenario.like_count}</span>
-                  </div>
-                </div>
+                <ScenarioCard
+                  key={scenario.code}
+                  code={scenario.code}
+                  stageName={scenario.stage_name}
+                  dangerRate={scenario.danger_rate}
+                  totalGoldenEggs={scenario.total_golden_eggs}
+                  weapons={scenario.weapons}
+                  showTrending={true}
+                  trendingCount={scenario.like_count}
+                />
               ))}
             </div>
           </div>
@@ -411,7 +408,7 @@ export default async function Home() {
               最新のシナリオ
             </h2>
             <Link
-              href="/?filter=true"
+              href="/scenarios"
               className="inline-flex items-center text-orange-400 hover:text-orange-300 font-semibold transition-colors"
             >
               すべて見る

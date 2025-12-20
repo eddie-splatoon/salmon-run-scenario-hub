@@ -326,6 +326,7 @@ export default async function ProfilePage() {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー',
+        avatar_url: user.user_metadata?.avatar_url || null,
       }}
       initialScenarios={scenarios}
       initialStatisticsData={statisticsData}

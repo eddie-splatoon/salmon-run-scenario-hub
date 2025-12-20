@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 
 interface UpdateProfileRequest {
   name?: string
+  avatar_url?: string
 }
 
 interface UpdateProfileResponse {
@@ -74,10 +75,16 @@ export async function PUT(
     }
 
     // プロフィールを更新
+    const updateData: { full_name?: string; avatar_url?: string } = {}
+    if (body.name !== undefined) {
+      updateData.full_name = trimmedName
+    }
+    if (body.avatar_url !== undefined) {
+      updateData.avatar_url = body.avatar_url
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        full_name: trimmedName,
-      },
+      data: updateData,
     })
 
     if (updateError) {
