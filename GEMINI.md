@@ -15,6 +15,8 @@
 - **バックエンド**: Supabase
 - **テスト**: Vitest 1.1.0, React Testing Library 14.1.2
 - **Lint**: ESLint 9.0.0, eslint-config-next 16.0.10
+- **通知**: sonner (toast通知)
+- **アイコン**: Lucide React
 - **コンテナ**: Docker
 - **CI/CD**: GitHub Actions
 
@@ -26,11 +28,18 @@
 salmon-run-scenario-hub/
 ├── app/                    # Next.js App Router（ページとルート）
 │   ├── auth/              # 認証フロー
+│   ├── api/               # APIルート
+│   │   └── scenarios/     # シナリオ関連API
+│   │       └── [id]/      # シナリオ詳細API
+│   ├── scenarios/         # シナリオページ
+│   │   └── [id]/          # シナリオ詳細ページ
 │   ├── types/             # 型定義
 │   └── ...
 ├── lib/                    # 共有ライブラリ
 │   ├── auth/              # 認証ロジック
 │   └── supabase/          # Supabaseクライアント
+├── supabase/              # データベースマイグレーション
+│   └── migrations/        # マイグレーションファイル
 ├── proxy.ts               # リクエストミドルウェア
 └── docs-wiki/             # ドキュメント（submodule）
 ```
@@ -41,6 +50,15 @@ salmon-run-scenario-hub/
 2. Google認証を開始（`signInWithGoogle()`）
 3. Google認証後、`/auth/callback`にリダイレクト
 4. セッションを確立し、ホームページにリダイレクト
+
+### シナリオ詳細ページとソーシャル機能
+
+1. ユーザーがシナリオカードをクリック
+2. `/scenarios/[id]`に遷移
+3. サーバーコンポーネントでシナリオ詳細を取得
+4. クライアントコンポーネントでいいね・コメント機能を提供
+5. いいねボタンクリックで即座にカウント更新
+6. コメント投稿でリアルタイムに一覧に反映
 
 ## コーディングパターン
 
@@ -95,6 +113,24 @@ export async function GET() {
 }
 ```
 
+### Dynamic Route Handler
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params  // awaitが必要
+  const supabase = await createClient()
+  
+  // データ取得処理
+  return NextResponse.json({ data })
+}
+```
+
 ## 重要な実装詳細
 
 ### 1. Next.js 16の変更
@@ -128,6 +164,23 @@ export async function createClient() {
   )
 }
 ```
+
+### 3. データベーステーブル
+
+#### likes テーブル
+- `id`: 主キー（SERIAL）
+- `scenario_code`: シナリオコード（scenarios参照）
+- `user_id`: ユーザーID（auth.users参照）
+- `created_at`: 作成日時
+- ユニーク制約: `(scenario_code, user_id)`
+
+#### comments テーブル
+- `id`: 主キー（SERIAL）
+- `scenario_code`: シナリオコード（scenarios参照）
+- `user_id`: ユーザーID（auth.users参照）
+- `content`: コメント内容（1-1000文字）
+- `created_at`: 作成日時
+- `updated_at`: 更新日時
 
 ### 3. テストパターン
 
@@ -250,6 +303,13 @@ try {
 - サーバーコンポーネントを優先
 - クライアントコンポーネントは必要最小限
 - 画像最適化（Next.js Image）
+
+### 5. ソーシャル機能
+
+- **いいね機能**: `likes`テーブルで管理、トグル式（追加/削除）
+- **コメント機能**: `comments`テーブルで管理、リアルタイム更新
+- **Toast通知**: sonnerを使用してユーザーフィードバックを提供
+- **認証チェック**: いいね・コメントは認証済みユーザーのみ可能
 
 ## CI/CD
 

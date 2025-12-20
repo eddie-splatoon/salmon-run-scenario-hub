@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 interface Weapon {
   weapon_id: number
   weapon_name: string
@@ -23,7 +25,8 @@ export default function ScenarioCard({
   weapons,
 }: ScenarioCardProps) {
   return (
-    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
+    <Link href={`/scenarios/${code}`}>
+      <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors cursor-pointer">
       {/* シナリオコードと合計納品数 */}
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
@@ -80,7 +83,8 @@ export default function ScenarioCard({
             </div>
           ))}
       </div>
-    </div>
+      </div>
+    </Link>
   )
 }
 
