@@ -44,6 +44,11 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
 
     const scenarioCodes = scenarios.map((s: any) => s.code)
 
+    // シナリオが存在しない場合は早期リターン
+    if (scenarioCodes.length === 0) {
+      return []
+    }
+
     const { data: scenarioWeapons } = await supabase
       .from('scenario_weapons')
       .select(`
