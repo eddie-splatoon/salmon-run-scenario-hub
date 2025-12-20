@@ -49,7 +49,7 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       return []
     }
 
-    const { data: scenarioWeapons } = await supabase
+    const { data: scenarioWeapons, error: weaponsError } = await supabase
       .from('scenario_weapons')
       .select(`
         scenario_code,
@@ -60,6 +60,11 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       .in('scenario_code', scenarioCodes)
       .order('scenario_code')
       .order('display_order')
+
+    if (weaponsError) {
+      console.error('武器情報取得エラー:', weaponsError)
+      // 武器情報が取得できなくても、シナリオ情報は返す（武器は空配列になる）
+    }
 
     const typedScenarios = scenarios as Array<{
       code: string
