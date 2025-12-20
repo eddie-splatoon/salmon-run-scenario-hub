@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // @vercel/ogをモック
 vi.mock('@vercel/og', () => ({
-  ImageResponse: vi.fn((element, options) => {
+  ImageResponse: vi.fn((_element, _options) => {
     return new Response('Mock Image', {
       headers: {
         'Content-Type': 'image/png',
