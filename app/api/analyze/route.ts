@@ -109,13 +109,37 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
     console.error('Error analyzing image:', error)
     
     // より詳細なエラーメッセージを提供
-    let errorMessage = 'Unknown error occurred'
+    let errorMessage = '画像の解析中にエラーが発生しました。しばらく時間をおいてから再度お試しください。'
+    let statusCode = 500
+    
     if (error instanceof Error) {
-      errorMessage = error.message
+      const errorMsg = error.message
       
-      // モデルが見つからない場合の詳細なメッセージ
-      if (error.message.includes('not found') || error.message.includes('404')) {
-        errorMessage = `モデルが見つかりません。環境変数GEMINI_MODEL_NAMEで正しいモデル名を指定してください。利用可能なモデルを確認するには: curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY"`
+      // レート制限エラー（429 Too Many Requests）
+      if (
+        errorMsg.includes('429') ||
+        errorMsg.includes('Too Many Requests') ||
+        errorMsg.includes('quota') ||
+        errorMsg.includes('Quota exceeded') ||
+        errorMsg.includes('You exceeded your current quota')
+      ) {
+        errorMessage = 'リクエスト数の上限に達しました。しばらく時間をおいてから再度お試しください。'
+        statusCode = 429
+      }
+      // モデルが見つからない場合
+      else if (errorMsg.includes('not found') || errorMsg.includes('404')) {
+        errorMessage = 'モデルが見つかりません。環境変数GEMINI_MODEL_NAMEで正しいモデル名を指定してください。'
+        statusCode = 404
+      }
+      // 認証エラー
+      else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('API key')) {
+        errorMessage = 'APIキーの認証に失敗しました。設定を確認してください。'
+        statusCode = 401
+      }
+      // その他のエラー
+      else {
+        // 技術的なエラーメッセージはログに記録するが、ユーザーには一般的なメッセージを返す
+        console.error('Technical error details:', errorMsg)
       }
     }
     
@@ -124,7 +148,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
         success: false,
         error: errorMessage,
       },
-      { status: 500 }
+      { status: statusCode }
     )
   }
 }
