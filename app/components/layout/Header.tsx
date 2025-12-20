@@ -127,6 +127,15 @@ export default function Header() {
                       <span className="truncate">{user.email}</span>
                     </DropdownMenu.Item>
                     <DropdownMenu.Separator className="my-1 h-px bg-gray-700" />
+                    <Link href="/profile" className="w-full">
+                      <DropdownMenu.Item
+                        className="flex cursor-pointer items-center space-x-2 rounded-md px-3 py-2 text-sm text-gray-300 outline-none hover:bg-gray-700 hover:text-white focus:bg-gray-700 focus:text-white"
+                      >
+                        <UserIcon className="h-4 w-4" />
+                        <span>マイページ</span>
+                      </DropdownMenu.Item>
+                    </Link>
+                    <DropdownMenu.Separator className="my-1 h-px bg-gray-700" />
                     <DropdownMenu.Item
                       className="flex cursor-pointer items-center space-x-2 rounded-md px-3 py-2 text-sm text-gray-300 outline-none hover:bg-gray-700 hover:text-white focus:bg-gray-700 focus:text-white"
                       onSelect={handleSignOut}
@@ -193,6 +202,14 @@ export default function Header() {
               ) : user ? (
                 <>
                   <div className="px-3 py-2 text-sm text-gray-400">{user.email}</div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center space-x-2 px-3 py-2 text-left text-base font-medium text-gray-300 hover:bg-gray-800 hover:text-white rounded-md transition-colors"
+                  >
+                    <UserIcon className="h-5 w-5" />
+                    <span>マイページ</span>
+                  </Link>
                   <button
                     onClick={() => {
                       handleSignOut()
