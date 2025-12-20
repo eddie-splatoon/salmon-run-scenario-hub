@@ -276,8 +276,16 @@ export async function DELETE(
       )
     }
 
+    // 型アサーション
+    type ScenarioWithAuthorId = {
+      code: string
+      author_id: string
+    }
+
+    const typedScenario = scenario as ScenarioWithAuthorId
+
     // 所有者確認（RLSでも保護されているが、明示的にチェック）
-    if (scenario.author_id !== user.id) {
+    if (typedScenario.author_id !== user.id) {
       return NextResponse.json(
         {
           success: false,
