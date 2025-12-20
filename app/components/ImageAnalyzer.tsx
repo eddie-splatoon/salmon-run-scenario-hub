@@ -389,9 +389,11 @@ export default function ImageAnalyzer() {
   }
 
   const muiTextFieldSx = {
+    width: '100%',
     '& .MuiOutlinedInput-root': {
       backgroundColor: '#374151',
       color: '#e5e7eb',
+      width: '100%',
       '& fieldset': {
         borderColor: '#4b5563',
       },
@@ -400,6 +402,9 @@ export default function ImageAnalyzer() {
       },
       '&.Mui-focused fieldset': {
         borderColor: '#f97316',
+      },
+      '& .MuiOutlinedInput-input': {
+        width: '100%',
       },
     },
     '& .MuiInputLabel-root': {
@@ -411,11 +416,19 @@ export default function ImageAnalyzer() {
   }
 
   const muiAutocompleteSx = {
+    width: '100%',
     '& .MuiAutocomplete-popupIndicator': {
       color: '#e5e7eb',
     },
     '& .MuiAutocomplete-clearIndicator': {
       color: '#e5e7eb',
+    },
+    '& .MuiAutocomplete-inputRoot': {
+      width: '100%',
+      '& .MuiAutocomplete-input': {
+        width: '100% !important',
+        minWidth: '0 !important',
+      },
     },
   }
 
@@ -436,7 +449,7 @@ export default function ImageAnalyzer() {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '1024px', mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', maxWidth: '1400px', mx: 'auto', p: 3 }}>
       <Typography variant="h4" component="h2" sx={{ mb: 3, color: '#e5e7eb', fontWeight: 'bold' }}>
         画像解析
       </Typography>
@@ -621,7 +634,7 @@ export default function ImageAnalyzer() {
                 基本情報
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="シナリオコード"
@@ -632,8 +645,9 @@ export default function ImageAnalyzer() {
                     inputProps={{ style: { fontFamily: 'monospace' } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} md={6}>
                   <Autocomplete
+                    fullWidth
                     options={stages}
                     getOptionLabel={(option) => option.name || ''}
                     value={stages.find((s) => s.name === editableData.stage_name) || null}
@@ -641,7 +655,7 @@ export default function ImageAnalyzer() {
                       handleFieldChange('stage_name', newValue?.name || '')
                     }}
                     renderInput={(params) => (
-                      <TextField {...params} label="ステージ" required sx={muiTextFieldSx} />
+                      <TextField {...params} label="ステージ" required sx={muiTextFieldSx} fullWidth />
                     )}
                     sx={muiAutocompleteSx}
                     PaperComponent={({ children, ...other }) => (
@@ -651,7 +665,7 @@ export default function ImageAnalyzer() {
                     )}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="キケン度"
@@ -669,7 +683,7 @@ export default function ImageAnalyzer() {
                   />
                 </Grid>
                 {editableData.score !== undefined && (
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
                       label="スコア"
@@ -697,6 +711,7 @@ export default function ImageAnalyzer() {
                 {editableData.weapons.map((weapon, index) => (
                   <Grid item xs={12} sm={6} key={index}>
                     <Autocomplete
+                      fullWidth
                       options={weapons}
                       getOptionLabel={(option) => option.name || ''}
                       value={weapons.find((w) => w.name === weapon) || null}
@@ -704,7 +719,7 @@ export default function ImageAnalyzer() {
                         handleWeaponChange(index, newValue?.name || '')
                       }}
                       renderInput={(params) => (
-                        <TextField {...params} label={`武器 ${index + 1}`} required sx={muiTextFieldSx} />
+                        <TextField {...params} label={`武器 ${index + 1}`} required sx={muiTextFieldSx} fullWidth />
                       )}
                       sx={muiAutocompleteSx}
                       PaperComponent={({ children, ...other }) => (
@@ -745,8 +760,9 @@ export default function ImageAnalyzer() {
                         WAVE {wave.wave_number}
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={12} md={6}>
                           <Autocomplete
+                            fullWidth
                             options={tideOptions}
                             getOptionLabel={(option) => option.label}
                             value={tideOptions.find((t) => t.value === wave.tide) || null}
@@ -754,7 +770,7 @@ export default function ImageAnalyzer() {
                               handleWaveChange(index, 'tide', (newValue?.value || 'low') as 'low' | 'normal' | 'high')
                             }}
                             renderInput={(params) => (
-                              <TextField {...params} label="潮位" required sx={muiTextFieldSx} />
+                              <TextField {...params} label="潮位" required sx={muiTextFieldSx} fullWidth />
                             )}
                             sx={muiAutocompleteSx}
                             PaperComponent={({ children, ...other }) => (
@@ -764,9 +780,10 @@ export default function ImageAnalyzer() {
                             )}
                           />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={12} md={6}>
                           {isExWave ? (
                             <Autocomplete
+                              fullWidth
                               options={OCCASULAR_OPTIONS}
                               getOptionLabel={(option) => option.label}
                               value={OCCASULAR_OPTIONS.find((o) => o.value === (wave.event || 'ヨコヅナ')) || OCCASULAR_OPTIONS[0]}
@@ -774,7 +791,7 @@ export default function ImageAnalyzer() {
                                 handleWaveChange(index, 'event', newValue?.value || null)
                               }}
                               renderInput={(params) => (
-                                <TextField {...params} label="オカシラ" required sx={muiTextFieldSx} />
+                                <TextField {...params} label="オカシラ" required sx={muiTextFieldSx} fullWidth />
                               )}
                               sx={muiAutocompleteSx}
                               PaperComponent={({ children, ...other }) => (
@@ -785,6 +802,7 @@ export default function ImageAnalyzer() {
                             />
                           ) : (
                             <Autocomplete
+                              fullWidth
                               options={EVENT_OPTIONS}
                               getOptionLabel={(option) => option.label}
                               value={EVENT_OPTIONS.find((o) => o.value === (wave.event || '')) || EVENT_OPTIONS[0]}
@@ -792,7 +810,7 @@ export default function ImageAnalyzer() {
                                 handleWaveChange(index, 'event', newValue?.value || null)
                               }}
                               renderInput={(params) => (
-                                <TextField {...params} label="イベント" sx={muiTextFieldSx} />
+                                <TextField {...params} label="イベント" sx={muiTextFieldSx} fullWidth />
                               )}
                               sx={muiAutocompleteSx}
                               PaperComponent={({ children, ...other }) => (
@@ -805,7 +823,7 @@ export default function ImageAnalyzer() {
                         </Grid>
                         {!isExWave && (
                           <>
-                            <Grid item xs={12} sm={6}>
+                            <Grid item xs={12} md={6}>
                               <TextField
                                 fullWidth
                                 label="納品数"
@@ -832,7 +850,7 @@ export default function ImageAnalyzer() {
                                 }}
                               />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid item xs={12} md={6}>
                               <TextField
                                 fullWidth
                                 label="ノルマ"
@@ -861,7 +879,7 @@ export default function ImageAnalyzer() {
                           </>
                         )}
                         {wave.cleared !== undefined && (
-                          <Grid item xs={12} sm={isExWave ? 12 : 12}>
+                          <Grid item xs={12}>
                             <FormControlLabel
                               control={
                                 <Checkbox
