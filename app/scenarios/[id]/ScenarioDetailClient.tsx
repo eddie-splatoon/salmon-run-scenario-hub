@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import type { FormEvent } from 'react'
 import { Copy, Heart, MessageCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -54,12 +55,7 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [isLoadingComments, setIsLoadingComments] = useState(false)
 
-  // コメントを読み込む
-  useEffect(() => {
-    loadComments()
-  }, [])
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     setIsLoadingComments(true)
     try {
       const response = await fetch(`/api/scenarios/${scenario.code}/comments`)
@@ -72,7 +68,12 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
     } finally {
       setIsLoadingComments(false)
     }
-  }
+  }, [scenario.code])
+
+  // コメントを読み込む
+  useEffect(() => {
+    loadComments()
+  }, [loadComments])
 
   const handleCopyCode = async () => {
     try {
@@ -112,7 +113,7 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
     }
   }
 
-  const handleSubmitComment = async (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: FormEvent) => {
     e.preventDefault()
 
     if (!commentContent.trim() || isSubmittingComment) return
