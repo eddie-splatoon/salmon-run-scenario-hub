@@ -36,7 +36,7 @@ export async function PUT(
     let body: UpdateProfileRequest
     try {
       body = await request.json()
-    } catch (parseError) {
+    } catch (_parseError) {
       return NextResponse.json(
         { success: false, error: 'リクエストボディの解析に失敗しました' },
         { status: 400 }
