@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import ScenarioDetailClient from './ScenarioDetailClient'
 
@@ -176,6 +177,54 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
   } catch (error) {
     console.error('シナリオ詳細取得エラー:', error)
     return null
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id: scenarioCode } = await params
+  const scenario = await getScenarioDetail(scenarioCode)
+
+  if (!scenario) {
+    return {
+      title: 'シナリオが見つかりません',
+    }
+  }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://salmon-run-scenario-hub.vercel.app'
+  const ogImageUrl = `${baseUrl}/api/og/scenario/${scenarioCode}`
+
+  const weaponNames = scenario.weapons
+    .slice(0, 4)
+    .map((w) => w.weapon_name)
+    .join(' / ')
+
+  return {
+    title: `${scenario.stage_name} - ${scenario.total_golden_eggs}金イクラ | Salmon Run Scenario Hub`,
+    description: `${scenario.stage_name}で${scenario.total_golden_eggs}金イクラ達成。危険度${scenario.danger_rate}%。武器: ${weaponNames}`,
+    openGraph: {
+      title: `${scenario.stage_name} - ${scenario.total_golden_eggs}金イクラ`,
+      description: `危険度${scenario.danger_rate}% | 武器: ${weaponNames}`,
+      type: 'website',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${scenario.stage_name} - ${scenario.total_golden_eggs}金イクラ`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${scenario.stage_name} - ${scenario.total_golden_eggs}金イクラ`,
+      description: `危険度${scenario.danger_rate}% | 武器: ${weaponNames}`,
+      images: [ogImageUrl],
+    },
   }
 }
 
