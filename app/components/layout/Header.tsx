@@ -122,6 +122,17 @@ export default function Header() {
             >
               解析
             </Link>
+            <Link
+              href="/guide"
+              className={cn(
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                isActive('/guide')
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              )}
+            >
+              ガイド
+            </Link>
 
             {/* ユーザーメニュー */}
             {loading ? (
@@ -235,6 +246,18 @@ export default function Header() {
                 )}
               >
                 解析
+              </Link>
+              <Link
+                href="/guide"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  'px-3 py-2 rounded-md text-base font-medium transition-colors',
+                  isActive('/guide')
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                ガイド
               </Link>
               {loading ? (
                 <div className="px-3 py-2">
