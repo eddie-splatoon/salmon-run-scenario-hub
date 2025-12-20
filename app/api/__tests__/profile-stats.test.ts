@@ -78,8 +78,8 @@ describe('GET /api/profile/stats', () => {
       },
     ]
 
-    // シナリオクエリ（投稿データ取得）
-    const scenariosQueryForPosts = {
+    // 1回目: scenarios - 投稿データ取得（total_golden_eggs, stage_id）
+    const scenariosQuery1 = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnValue(
         createQueryResult({
@@ -89,8 +89,8 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
-    // シナリオクエリ（ステージ統計取得）
-    const scenariosQueryForStats = {
+    // 2回目: scenarios - ステージ統計取得（stage_id, m_stages!inner(name)）
+    const scenariosQuery2 = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnValue(
         createQueryResult({
@@ -100,8 +100,8 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
-    // シナリオクエリ（いいねしたシナリオ詳細取得）
-    const scenariosQueryForLiked = {
+    // 3回目: scenarios - いいねしたシナリオ詳細取得
+    const scenariosQuery3 = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnValue(
@@ -112,7 +112,7 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
-    // いいねクエリ
+    // likes - いいねデータ取得
     const likesQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -124,7 +124,7 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
-    // 武器クエリ
+    // scenario_weapons - 武器情報取得（orderが2回呼ばれる）
     const weaponsQuery = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
@@ -133,28 +133,25 @@ describe('GET /api/profile/stats', () => {
 
     // order()は2回呼ばれる（scenario_code, display_order）
     weaponsQuery.order
-      .mockReturnValueOnce(weaponsQuery)
+      .mockReturnValueOnce(weaponsQuery) // 1回目はthisを返す
       .mockReturnValue(
         createQueryResult({
           data: mockWeapons,
           error: null,
         })
-      )
+      ) // 2回目は結果を返す
 
     let scenariosCallCount = 0
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
         scenariosCallCount++
-        // 1回目: 投稿データ取得（total_golden_eggs, stage_id）
         if (scenariosCallCount === 1) {
-          return scenariosQueryForPosts
+          return scenariosQuery1
         }
-        // 2回目: ステージ統計取得
         if (scenariosCallCount === 2) {
-          return scenariosQueryForStats
+          return scenariosQuery2
         }
-        // 3回目: いいねしたシナリオ詳細取得
-        return scenariosQueryForLiked
+        return scenariosQuery3
       }
       if (table === 'likes') {
         return likesQuery
@@ -162,7 +159,7 @@ describe('GET /api/profile/stats', () => {
       if (table === 'scenario_weapons') {
         return weaponsQuery
       }
-      return scenariosQueryForPosts
+      return scenariosQuery1
     })
 
     const response = await GET()
@@ -174,6 +171,8 @@ describe('GET /api/profile/stats', () => {
     expect(data.data?.total_scenarios).toBe(3)
     expect(data.data?.average_golden_eggs).toBeCloseTo(123.3, 1)
     expect(data.data?.max_golden_eggs).toBe(150)
+    expect(data.data?.stage_stats).toHaveLength(2)
+    expect(data.data?.liked_scenarios).toHaveLength(1)
   })
 
   it('should return 401 when user is not authenticated', async () => {
@@ -201,15 +200,8 @@ describe('GET /api/profile/stats', () => {
       error: null,
     })
 
-    // Promiseを返すオブジェクトを作成（thenable）
-    const createQueryResult = (result: any) => {
-      return {
-        then: (resolve: (_value: any) => any) => resolve(result),
-        catch: (_reject: (_error: any) => any) => _reject,
-      }
-    }
-
-    const scenariosQuery = {
+    // 1回目: scenarios - 投稿データ取得
+    const scenariosQuery1 = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnValue(
         createQueryResult({
@@ -219,7 +211,8 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
-    const stageStatsQuery = {
+    // 2回目: scenarios - ステージ統計取得
+    const scenariosQuery2 = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnValue(
         createQueryResult({
@@ -229,6 +222,7 @@ describe('GET /api/profile/stats', () => {
       ),
     }
 
+    // likes - いいねデータ取得
     const likesQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -245,14 +239,14 @@ describe('GET /api/profile/stats', () => {
       if (table === 'scenarios') {
         scenariosCallCount++
         if (scenariosCallCount === 1) {
-          return scenariosQuery
+          return scenariosQuery1
         }
-        return stageStatsQuery
+        return scenariosQuery2
       }
       if (table === 'likes') {
         return likesQuery
       }
-      return scenariosQuery
+      return scenariosQuery1
     })
 
     const response = await GET()
