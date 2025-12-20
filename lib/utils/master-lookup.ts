@@ -7,19 +7,31 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function lookupStageId(stageName: string): Promise<number | null> {
   const supabase = await createClient()
+  const normalizedInput = stageName.trim()
 
-  // 完全一致で検索
+  // 1. マスタテーブルで完全一致で検索
   const { data: exactMatch } = await supabase
     .from('m_stages')
     .select('id')
-    .eq('name', stageName)
+    .eq('name', normalizedInput)
     .maybeSingle()
 
-  if (exactMatch) {
-    return exactMatch.id
+  if (exactMatch && typeof exactMatch === 'object' && 'id' in exactMatch) {
+    return exactMatch.id as number
   }
 
-  // 部分一致で検索（名寄せのため）
+  // 2. エイリアステーブルで検索
+  const { data: aliasMatch } = await supabase
+    .from('stage_aliases')
+    .select('stage_id')
+    .eq('alias', normalizedInput)
+    .maybeSingle()
+
+  if (aliasMatch && 'stage_id' in aliasMatch) {
+    return aliasMatch.stage_id as number
+  }
+
+  // 3. 部分一致で検索（名寄せのため）
   const { data: partialMatches } = await supabase
     .from('m_stages')
     .select('id, name')
@@ -29,9 +41,14 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
   }
 
   // 最も長い部分一致を探す
-  const normalizedInput = stageName.trim()
   for (const stage of partialMatches) {
-    if (stage.name.includes(normalizedInput) || normalizedInput.includes(stage.name)) {
+    if (
+      'name' in stage &&
+      'id' in stage &&
+      typeof stage.name === 'string' &&
+      typeof stage.id === 'number' &&
+      (stage.name.includes(normalizedInput) || normalizedInput.includes(stage.name))
+    ) {
       return stage.id
     }
   }
@@ -46,19 +63,31 @@ export async function lookupStageId(stageName: string): Promise<number | null> {
  */
 export async function lookupWeaponId(weaponName: string): Promise<number | null> {
   const supabase = await createClient()
+  const normalizedInput = weaponName.trim()
 
-  // 完全一致で検索
+  // 1. マスタテーブルで完全一致で検索
   const { data: exactMatch } = await supabase
     .from('m_weapons')
     .select('id')
-    .eq('name', weaponName)
+    .eq('name', normalizedInput)
     .maybeSingle()
 
-  if (exactMatch) {
-    return exactMatch.id
+  if (exactMatch && typeof exactMatch === 'object' && 'id' in exactMatch) {
+    return exactMatch.id as number
   }
 
-  // 部分一致で検索（名寄せのため）
+  // 2. エイリアステーブルで検索
+  const { data: aliasMatch } = await supabase
+    .from('weapon_aliases')
+    .select('weapon_id')
+    .eq('alias', normalizedInput)
+    .maybeSingle()
+
+  if (aliasMatch && 'weapon_id' in aliasMatch) {
+    return aliasMatch.weapon_id as number
+  }
+
+  // 3. 部分一致で検索（名寄せのため）
   const { data: partialMatches } = await supabase
     .from('m_weapons')
     .select('id, name')
@@ -68,9 +97,14 @@ export async function lookupWeaponId(weaponName: string): Promise<number | null>
   }
 
   // 最も長い部分一致を探す
-  const normalizedInput = weaponName.trim()
   for (const weapon of partialMatches) {
-    if (weapon.name.includes(normalizedInput) || normalizedInput.includes(weapon.name)) {
+    if (
+      'name' in weapon &&
+      'id' in weapon &&
+      typeof weapon.name === 'string' &&
+      typeof weapon.id === 'number' &&
+      (weapon.name.includes(normalizedInput) || normalizedInput.includes(weapon.name))
+    ) {
       return weapon.id
     }
   }

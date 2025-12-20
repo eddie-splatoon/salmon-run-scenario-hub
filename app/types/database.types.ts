@@ -182,6 +182,118 @@ export interface Database {
           updated_at?: string
         }
       }
+      admins: {
+        Row: {
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          created_at?: string
+        }
+      }
+      unknown_stages: {
+        Row: {
+          id: number
+          name: string
+          detected_at: string
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_stage_id: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          detected_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_stage_id?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          detected_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_stage_id?: number | null
+          created_at?: string
+        }
+      }
+      unknown_weapons: {
+        Row: {
+          id: number
+          name: string
+          detected_at: string
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_weapon_id: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          detected_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_weapon_id?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          detected_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_weapon_id?: number | null
+          created_at?: string
+        }
+      }
+      stage_aliases: {
+        Row: {
+          id: number
+          stage_id: number
+          alias: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          stage_id: number
+          alias: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          stage_id?: number
+          alias?: string
+          created_at?: string
+        }
+      }
+      weapon_aliases: {
+        Row: {
+          id: number
+          weapon_id: number
+          alias: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          weapon_id: number
+          alias: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          weapon_id?: number
+          alias?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [key: string]: {
