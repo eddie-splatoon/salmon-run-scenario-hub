@@ -1,0 +1,196 @@
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import ScenarioDetailClient from './ScenarioDetailClient'
+
+interface WaveDetail {
+  wave_number: number
+  tide: 'low' | 'normal' | 'high'
+  event: string | null
+  delivered_count: number
+  quota: number
+  cleared: boolean
+}
+
+interface WeaponDetail {
+  weapon_id: number
+  weapon_name: string
+  icon_url: string | null
+  display_order: number
+}
+
+interface ScenarioDetail {
+  code: string
+  stage_id: number
+  stage_name: string
+  danger_rate: number
+  total_golden_eggs: number
+  total_power_eggs: number
+  created_at: string
+  waves: WaveDetail[]
+  weapons: WeaponDetail[]
+  like_count: number
+  comment_count: number
+  is_liked: boolean
+}
+
+async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail | null> {
+  try {
+    const supabase = await createClient()
+
+    // 認証情報を取得（いいね状態を確認するため）
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    // シナリオ基本情報を取得
+    const { data: scenario, error: scenarioError } = await supabase
+      .from('scenarios')
+      .select(`
+        code,
+        stage_id,
+        danger_rate,
+        total_golden_eggs,
+        total_power_eggs,
+        created_at,
+        m_stages!inner(name)
+      `)
+      .eq('code', scenarioCode)
+      .single()
+
+    if (scenarioError || !scenario) {
+      return null
+    }
+
+    // 型アサーション
+    type ScenarioWithStage = {
+      code: string
+      stage_id: number
+      danger_rate: number
+      total_golden_eggs: number
+      total_power_eggs: number
+      created_at: string
+      m_stages: { name: string }
+    }
+
+    const typedScenario = scenario as ScenarioWithStage
+
+    // WAVE情報を取得
+    const { data: waves, error: wavesError } = await supabase
+      .from('scenario_waves')
+      .select('*')
+      .eq('scenario_code', scenarioCode)
+      .order('wave_number')
+
+    if (wavesError) {
+      console.error('WAVE情報取得エラー:', wavesError)
+      return null
+    }
+
+    // 武器情報を取得
+    const { data: scenarioWeapons, error: weaponsError } = await supabase
+      .from('scenario_weapons')
+      .select(`
+        weapon_id,
+        display_order,
+        m_weapons!inner(id, name, icon_url)
+      `)
+      .eq('scenario_code', scenarioCode)
+      .order('display_order')
+
+    if (weaponsError) {
+      console.error('武器情報取得エラー:', weaponsError)
+      return null
+    }
+
+    // 型アサーション: 武器情報
+    type ScenarioWeaponWithWeapon = {
+      weapon_id: number
+      display_order: number
+      m_weapons: { id: number; name: string; icon_url: string | null }
+    }
+
+    const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
+
+    // いいね数を取得
+    const { count: likeCount, error: likeCountError } = await supabase
+      .from('likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('scenario_code', scenarioCode)
+
+    if (likeCountError) {
+      console.error('いいね数取得エラー:', likeCountError)
+    }
+
+    // コメント数を取得
+    const { count: commentCount, error: commentCountError } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('scenario_code', scenarioCode)
+
+    if (commentCountError) {
+      console.error('コメント数取得エラー:', commentCountError)
+    }
+
+    // 現在のユーザーがいいねしているか確認
+    let isLiked = false
+    if (user) {
+      const { data: like, error: likeError } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('scenario_code', scenarioCode)
+        .eq('user_id', user.id)
+        .single()
+
+      if (!likeError && like) {
+        isLiked = true
+      }
+    }
+
+    // 結果を整形
+    return {
+      code: typedScenario.code,
+      stage_id: typedScenario.stage_id,
+      stage_name: typedScenario.m_stages.name,
+      danger_rate: typedScenario.danger_rate,
+      total_golden_eggs: typedScenario.total_golden_eggs,
+      total_power_eggs: typedScenario.total_power_eggs,
+      created_at: typedScenario.created_at,
+      waves: (waves || []).map((wave) => ({
+        wave_number: wave.wave_number,
+        tide: wave.tide,
+        event: wave.event,
+        delivered_count: wave.delivered_count,
+        quota: wave.quota,
+        cleared: wave.cleared,
+      })),
+      weapons: typedScenarioWeapons.map((sw) => ({
+        weapon_id: sw.weapon_id,
+        weapon_name: sw.m_weapons.name,
+        icon_url: sw.m_weapons.icon_url,
+        display_order: sw.display_order,
+      })),
+      like_count: likeCount || 0,
+      comment_count: commentCount || 0,
+      is_liked: isLiked,
+    }
+  } catch (error) {
+    console.error('シナリオ詳細取得エラー:', error)
+    return null
+  }
+}
+
+export default async function ScenarioDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id: scenarioCode } = await params
+  const scenario = await getScenarioDetail(scenarioCode)
+
+  if (!scenario) {
+    notFound()
+  }
+
+  return <ScenarioDetailClient scenario={scenario} />
+}
+

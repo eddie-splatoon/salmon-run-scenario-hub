@@ -136,6 +136,52 @@ export interface Database {
           display_order?: number
         }
       }
+      likes: {
+        Row: {
+          id: number
+          scenario_code: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          scenario_code: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          scenario_code?: string
+          user_id?: string
+          created_at?: string
+        }
+      }
+      comments: {
+        Row: {
+          id: number
+          scenario_code: string
+          user_id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          scenario_code: string
+          user_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          scenario_code?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [key: string]: {
