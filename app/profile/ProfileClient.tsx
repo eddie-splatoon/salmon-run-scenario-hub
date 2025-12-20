@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Trash2, Edit2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import ScenarioCard from '@/app/components/ScenarioCard'
+import StatisticsDashboard from '@/app/components/StatisticsDashboard'
 
 interface WeaponDetail {
   weapon_id: number
@@ -24,6 +25,30 @@ interface UserScenario {
   weapons: WeaponDetail[]
 }
 
+interface StageStats {
+  stage_id: number
+  stage_name: string
+  count: number
+}
+
+interface LikedScenario {
+  code: string
+  stage_id: number
+  stage_name: string
+  danger_rate: number
+  total_golden_eggs: number
+  created_at: string
+  weapons: WeaponDetail[]
+}
+
+interface StatisticsData {
+  average_golden_eggs: number
+  max_golden_eggs: number
+  total_scenarios: number
+  stage_stats: StageStats[]
+  liked_scenarios: LikedScenario[]
+}
+
 interface User {
   id: string
   email: string
@@ -33,9 +58,14 @@ interface User {
 interface ProfileClientProps {
   user: User
   initialScenarios: UserScenario[]
+  initialStatisticsData?: StatisticsData | null
 }
 
-export default function ProfileClient({ user, initialScenarios }: ProfileClientProps) {
+export default function ProfileClient({
+  user,
+  initialScenarios,
+  initialStatisticsData,
+}: ProfileClientProps) {
   const [scenarios, setScenarios] = useState(initialScenarios)
   const [deletingCodes, setDeletingCodes] = useState<Set<string>>(new Set())
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -191,6 +221,12 @@ export default function ProfileClient({ user, initialScenarios }: ProfileClientP
               )}
             </div>
           </div>
+        </div>
+
+        {/* 統計ダッシュボード */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-100 mb-4">統計ダッシュボード</h2>
+          <StatisticsDashboard initialData={initialStatisticsData || undefined} />
         </div>
 
         {/* 投稿一覧 */}
