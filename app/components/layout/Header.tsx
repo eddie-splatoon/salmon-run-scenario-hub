@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { signInWithGoogle, signOut } from '@/lib/auth/google-auth'
 import type { User } from '@supabase/supabase-js'
-import { Menu, X, User as UserIcon, LogOut, LogIn } from 'lucide-react'
+import { Menu, X, User as UserIcon, LogOut, LogIn, Search } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils/cn'
 import LogoIcon from '../LogoIcon'
@@ -15,6 +15,7 @@ export default function Header() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [searchCode, setSearchCode] = useState('')
   const pathname = usePathname()
   const router = useRouter()
 
@@ -59,6 +60,16 @@ export default function Header() {
 
   const isActive = (path: string) => pathname === path
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmedCode = searchCode.trim()
+    // シナリオコードは16桁の文字列（英数字）を想定
+    if (trimmedCode.length > 0) {
+      router.push(`/scenarios/${trimmedCode}`)
+      setSearchCode('')
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-700 bg-gray-900 shadow-lg">
       <div className="container mx-auto px-4">
@@ -73,11 +84,26 @@ export default function Header() {
           </Link>
 
           {/* デスクトップメニュー */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-4 flex-1 max-w-2xl mx-4">
+            {/* シナリオコード検索 */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-xs">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchCode}
+                  onChange={(e) => setSearchCode(e.target.value)}
+                  placeholder="シナリオコードを入力"
+                  className="w-full px-4 py-2 pl-10 pr-4 bg-gray-800 border border-gray-700 rounded-md text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={16}
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+            </form>
+
             <Link
               href="/"
               className={cn(
-                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
                 isActive('/')
                   ? 'bg-orange-500 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -88,7 +114,7 @@ export default function Header() {
             <Link
               href="/analyze"
               className={cn(
-                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
                 isActive('/analyze')
                   ? 'bg-orange-500 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -171,6 +197,21 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-700 py-4">
             <nav className="flex flex-col space-y-2">
+              {/* モバイル検索 */}
+              <form onSubmit={handleSearch} className="px-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchCode}
+                    onChange={(e) => setSearchCode(e.target.value)}
+                    placeholder="シナリオコードを入力"
+                    className="w-full px-4 py-2 pl-10 pr-4 bg-gray-800 border border-gray-700 rounded-md text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={16}
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+              </form>
+
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}

@@ -348,5 +348,182 @@ describe('GET /api/scenarios', () => {
     expect(data.success).toBe(false)
     expect(data.error).toContain('シナリオ一覧の取得に失敗しました')
   })
+
+  it('should filter by max_danger (danger_rate = 333)', async () => {
+    // Promiseを返すオブジェクトを作成（thenable）
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const queryResult = createQueryResult({
+      data: [
+        {
+          code: 'ABC123',
+          stage_id: 1,
+          danger_rate: 333,
+          total_golden_eggs: 200,
+          created_at: '2024-01-01T00:00:00Z',
+          m_stages: { name: 'アラマキ砦' },
+        },
+      ],
+      error: null,
+    })
+
+    const scenariosQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      eq: vi.fn(),
+      gte: vi.fn().mockReturnThis(),
+    }
+
+    // eq()が呼ばれた後、awaitされるので、thenableオブジェクトを返す
+    scenariosQuery.eq.mockReturnValue(queryResult)
+
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn(),
+    }
+
+    // order()は1回目はthisを返し、2回目はthenableを返す
+    weaponsQuery.order
+      .mockReturnValueOnce(weaponsQuery)
+      .mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      )
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        return scenariosQuery
+      }
+      if (table === 'scenario_weapons') {
+        return weaponsQuery
+      }
+      return scenariosQuery
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/scenarios?filter=max_danger')
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(scenariosQuery.eq).toHaveBeenCalledWith('danger_rate', 333)
+    expect(data.success).toBe(true)
+  })
+
+  it('should filter by grizzco weapons', async () => {
+    // Promiseを返すオブジェクトを作成（thenable）
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const scenariosQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+    }
+
+    // order()の後にawaitされるので、thenableオブジェクトを返す
+    scenariosQuery.order.mockReturnValue(
+      createQueryResult({
+        data: [
+          {
+            code: 'ABC123',
+            stage_id: 1,
+            danger_rate: 100,
+            total_golden_eggs: 150,
+            created_at: '2024-01-01T00:00:00Z',
+            m_stages: { name: 'アラマキ砦' },
+          },
+          {
+            code: 'DEF456',
+            stage_id: 1,
+            danger_rate: 200,
+            total_golden_eggs: 200,
+            created_at: '2024-01-02T00:00:00Z',
+            m_stages: { name: 'アラマキ砦' },
+          },
+        ],
+        error: null,
+      })
+    )
+
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn(),
+    }
+
+    // ABC123にはクマサン武器（ID: 10）がある
+    // DEF456にはクマサン武器がない
+    weaponsQuery.in.mockReturnThis()
+    weaponsQuery.order
+      .mockReturnValueOnce(weaponsQuery)
+      .mockReturnValue(
+        createQueryResult({
+          data: [
+            {
+              scenario_code: 'ABC123',
+              weapon_id: 10, // クマサン武器
+              display_order: 1,
+              m_weapons: { id: 10, name: 'クマサン印の武器', icon_url: null },
+            },
+            {
+              scenario_code: 'DEF456',
+              weapon_id: 1, // 通常武器
+              display_order: 1,
+              m_weapons: { id: 1, name: 'スプラシューター', icon_url: null },
+            },
+          ],
+          error: null,
+        })
+      )
+
+    // クマサン武器を取得するクエリをモック
+    const grizzcoWeaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn(),
+    }
+
+    grizzcoWeaponsQuery.eq.mockReturnValue(
+      createQueryResult({
+        data: [{ id: 10 }],
+        error: null,
+      })
+    )
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        return scenariosQuery
+      }
+      if (table === 'scenario_weapons') {
+        return weaponsQuery
+      }
+      if (table === 'm_weapons') {
+        return grizzcoWeaponsQuery
+      }
+      return scenariosQuery
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/scenarios?filter=grizzco')
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(grizzcoWeaponsQuery.eq).toHaveBeenCalledWith('is_grizzco_weapon', true)
+    expect(data.success).toBe(true)
+    expect(data.data).toBeDefined()
+    // ABC123のみが返される（クマサン武器を含む）
+    expect(data.data).toHaveLength(1)
+    expect(data.data[0].code).toBe('ABC123')
+  })
 })
 
