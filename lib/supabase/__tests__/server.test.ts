@@ -2,23 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createClient } from '../server'
 
 // モック設定
-const mockGetAll = vi.fn(() => [])
-const mockSet = vi.fn()
+const { mockGetAll, mockSet, mockCookieStore, mockCreateServerClient } = vi.hoisted(() => {
+  const mockGetAll = vi.fn(() => [])
+  const mockSet = vi.fn()
 
-const mockCookieStore = {
-  getAll: mockGetAll,
-  set: mockSet,
-}
+  const mockCookieStore = {
+    getAll: mockGetAll,
+    set: mockSet,
+  }
+
+  const mockCreateServerClient = vi.fn((url, key, options) => ({
+    url,
+    key,
+    options,
+    type: 'server',
+  }))
+
+  return {
+    mockGetAll,
+    mockSet,
+    mockCookieStore,
+    mockCreateServerClient,
+  }
+})
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => Promise.resolve(mockCookieStore)),
-}))
-
-const mockCreateServerClient = vi.fn((url, key, options) => ({
-  url,
-  key,
-  options,
-  type: 'server',
 }))
 
 vi.mock('@supabase/ssr', () => ({
