@@ -66,19 +66,15 @@ describe('POST /api/analyze', () => {
   it('returns 500 when GEMINI_API_KEY is not configured', async () => {
     delete process.env.GEMINI_API_KEY
 
-    // Fileオブジェクトを作成して、arrayBufferメソッドをモック
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3])
-    const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドが正しく動作するように確認
-    const formData = new FormData()
-    formData.append('image', file)
-
+    
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
-      body: formData,
     })
-    // formData()をモックして、実際のFileオブジェクトを含むFormDataを返す
-    vi.spyOn(request, 'formData').mockResolvedValue(formData)
+    // formData()をモックして、arrayBufferメソッドを持つFileオブジェクトを含むFormDataを返す
+    const mockFormData = createMockFormDataWithFile(fileContent)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
     const data = await response.json()
