@@ -62,13 +62,13 @@ describe('POST /api/analyze', () => {
   })
 
   it('returns 400 when image file is missing', async () => {
-    // 空のFormDataを作成してbodyに設定
-    // NextRequestはFormDataをbodyに設定する際、適切なContent-Typeを自動設定する
-    const formData = new FormData()
+    // 空のFormDataをbodyに設定すると、NextRequestがformData()を呼び出した際にエラーが発生する可能性がある
+    // そのため、request.formData()をモックして空のFormDataを返すようにする
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
-      body: formData,
     })
+    const emptyFormData = new FormData()
+    vi.spyOn(request, 'formData').mockResolvedValue(emptyFormData)
 
     const response = await POST(request)
     const data = await response.json()

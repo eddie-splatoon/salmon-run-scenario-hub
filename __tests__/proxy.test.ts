@@ -99,6 +99,16 @@ describe('proxy', () => {
   })
 
   it('handles cookie operations', async () => {
+    const { createServerClient } = await import('@supabase/ssr')
+    const mockGetUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      auth: {
+        getUser: mockGetUser,
+      },
+    } as any)
+
     const request = new NextRequest('http://localhost:3000/', {
       headers: {
         cookie: 'test-cookie=test-value',
