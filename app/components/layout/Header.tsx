@@ -26,34 +26,53 @@ export default function Header() {
 
     // 初期ユーザー状態を取得
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
-      if (user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('user_id', user.id)
-            .maybeSingle()
-          
-          if (profile?.avatar_url) {
-            setProfileAvatarUrl(profile.avatar_url)
-          } else if (user.user_metadata?.picture) {
-            // Googleアカウントのデフォルト画像を使用
-            setProfileAvatarUrl(user.user_metadata.picture)
-          }
-        } catch (error) {
-          console.error('プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
-          if (user.user_metadata?.picture) {
-            setProfileAvatarUrl(user.user_metadata.picture)
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('ユーザー取得エラー:', userError)
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        
+        setUser(user)
+        
+        // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
+        if (user) {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('user_id', user.id)
+              .maybeSingle()
+            
+            if (profileError) {
+              console.error('プロフィール取得エラー:', profileError)
+              // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+              if (user.user_metadata?.picture) {
+                setProfileAvatarUrl(user.user_metadata.picture)
+              }
+            } else if (profile?.avatar_url) {
+              setProfileAvatarUrl(profile.avatar_url)
+            } else if (user.user_metadata?.picture) {
+              // Googleアカウントのデフォルト画像を使用
+              setProfileAvatarUrl(user.user_metadata.picture)
+            }
+          } catch (error) {
+            console.error('プロフィール取得エラー:', error)
+            // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+            if (user.user_metadata?.picture) {
+              setProfileAvatarUrl(user.user_metadata.picture)
+            }
           }
         }
+      } catch (error) {
+        console.error('ユーザー読み込みエラー:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
     
     loadUser()
@@ -68,21 +87,26 @@ export default function Header() {
       // プロフィール情報を再取得
       if (currentUser) {
         try {
-          // まず最新のユーザー情報を取得（user_metadataの更新を反映）
-          const { data: { user: freshUser } } = await supabase.auth.getUser()
-          
           // profilesテーブルから取得を試みる
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('avatar_url')
             .eq('user_id', currentUser.id)
             .maybeSingle()
           
-          if (profile?.avatar_url) {
+          if (profileError) {
+            console.error('プロフィール取得エラー:', profileError)
+            // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+            if (currentUser.user_metadata?.picture) {
+              setProfileAvatarUrl(currentUser.user_metadata.picture)
+            } else {
+              setProfileAvatarUrl(null)
+            }
+          } else if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (freshUser?.user_metadata?.picture) {
+          } else if (currentUser.user_metadata?.picture) {
             // Googleアカウントのデフォルト画像を使用
-            setProfileAvatarUrl(freshUser.user_metadata.picture)
+            setProfileAvatarUrl(currentUser.user_metadata.picture)
           } else {
             setProfileAvatarUrl(null)
           }
@@ -109,31 +133,49 @@ export default function Header() {
   useEffect(() => {
     const supabase = createClient()
     const reloadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          setProfileAvatarUrl(null)
+          return
+        }
+        
         try {
-          // 最新のユーザー情報を取得
-          const { data: { user: freshUser } } = await supabase.auth.getUser()
-          
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('avatar_url')
             .eq('user_id', user.id)
             .maybeSingle()
           
-          if (profile?.avatar_url) {
+          if (profileError) {
+            console.error('プロフィール取得エラー:', profileError)
+            // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+            if (user.user_metadata?.picture) {
+              setProfileAvatarUrl(user.user_metadata.picture)
+            } else {
+              setProfileAvatarUrl(null)
+            }
+          } else if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (freshUser?.user_metadata?.picture) {
+          } else if (user.user_metadata?.picture) {
             // Googleアカウントのデフォルト画像を使用
-            setProfileAvatarUrl(freshUser.user_metadata.picture)
+            setProfileAvatarUrl(user.user_metadata.picture)
+          } else {
+            setProfileAvatarUrl(null)
           }
         } catch (error) {
           console.error('プロフィール取得エラー:', error)
           // エラーが発生した場合はuser_metadataから取得（pictureのみ）
           if (user.user_metadata?.picture) {
             setProfileAvatarUrl(user.user_metadata.picture)
+          } else {
+            setProfileAvatarUrl(null)
           }
         }
+      } catch (error) {
+        console.error('プロフィール再読み込みエラー:', error)
+        setProfileAvatarUrl(null)
       }
     }
     reloadProfile()
