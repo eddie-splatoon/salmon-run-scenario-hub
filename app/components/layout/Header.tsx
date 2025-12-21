@@ -103,12 +103,8 @@ export default function Header() {
           
           if (profileError) {
             console.error('[Header] プロフィール取得エラー:', profileError)
-            // エラーが発生した場合はuser_metadataから取得（pictureのみ）
-            if (currentUser.user_metadata?.picture) {
-              setProfileAvatarUrl(currentUser.user_metadata.picture)
-            } else {
-              setProfileAvatarUrl(null)
-            }
+            // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+            setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
           } else if (currentUser.user_metadata?.picture) {
@@ -119,12 +115,8 @@ export default function Header() {
           }
         } catch (error) {
           console.error('[Header] プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
-          if (currentUser.user_metadata?.picture) {
-            setProfileAvatarUrl(currentUser.user_metadata.picture)
-          } else {
-            setProfileAvatarUrl(null)
-          }
+          // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+          setProfileAvatarUrl(null)
         }
       } else {
         setProfileAvatarUrl(null)
@@ -163,12 +155,8 @@ export default function Header() {
           
           if (profileError) {
             console.error('[Header] プロフィール取得エラー:', profileError)
-            // エラーが発生した場合はuser_metadataから取得（pictureのみ）
-            if (user.user_metadata?.picture) {
-              setProfileAvatarUrl(user.user_metadata.picture)
-            } else {
-              setProfileAvatarUrl(null)
-            }
+            // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+            setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
             console.error('[Header] プロフィールavatar_urlを設定:', profile.avatar_url.substring(0, 50))
             setProfileAvatarUrl(profile.avatar_url)
@@ -179,12 +167,8 @@ export default function Header() {
           }
         } catch (error) {
           console.error('[Header] プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
-          if (user.user_metadata?.picture) {
-            setProfileAvatarUrl(user.user_metadata.picture)
-          } else {
-            setProfileAvatarUrl(null)
-          }
+          // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+          setProfileAvatarUrl(null)
         }
       } catch (error) {
         console.error('[Header] プロフィール再読み込みエラー:', error)
