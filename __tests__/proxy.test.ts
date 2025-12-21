@@ -95,9 +95,16 @@ describe('proxy', () => {
       },
     } as any)
 
-    const request = new NextRequest('http://localhost:3000/', {
-      headers: new Headers(),
-    })
+    const request = new NextRequest('http://localhost:3000/')
+    // NextRequestのheadersプロパティがHeadersインスタンスであることを確認
+    if (!(request.headers instanceof Headers)) {
+      // headersがHeadersインスタンスでない場合、新しいHeadersインスタンスを作成
+      Object.defineProperty(request, 'headers', {
+        value: new Headers(),
+        writable: true,
+        configurable: true,
+      })
+    }
     const response = await proxy(request)
 
     expect(response).toBeDefined()
@@ -115,11 +122,21 @@ describe('proxy', () => {
       },
     } as any)
 
-    const request = new NextRequest('http://localhost:3000/', {
-      headers: new Headers({
-        'cookie': 'test-cookie=test-value',
-      }),
-    })
+    const request = new NextRequest('http://localhost:3000/')
+    // NextRequestのheadersプロパティがHeadersインスタンスであることを確認
+    if (!(request.headers instanceof Headers)) {
+      // headersがHeadersインスタンスでない場合、新しいHeadersインスタンスを作成
+      Object.defineProperty(request, 'headers', {
+        value: new Headers({
+          'cookie': 'test-cookie=test-value',
+        }),
+        writable: true,
+        configurable: true,
+      })
+    } else {
+      // headersが既にHeadersインスタンスの場合、cookieを設定
+      request.headers.set('cookie', 'test-cookie=test-value')
+    }
 
     const response = await proxy(request)
 
