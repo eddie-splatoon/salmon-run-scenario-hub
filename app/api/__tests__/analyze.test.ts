@@ -45,8 +45,8 @@ describe('POST /api/analyze', () => {
     delete process.env.GEMINI_API_KEY
 
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
@@ -109,9 +109,10 @@ describe('POST /api/analyze', () => {
     vi.mocked(lookupStageId).mockResolvedValue(1)
     vi.mocked(lookupWeaponIds).mockResolvedValue([1, 2])
 
+    // Fileオブジェクトを作成（BlobではなくFileを使用）
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
@@ -151,8 +152,8 @@ describe('POST /api/analyze', () => {
     vi.mocked(lookupWeaponIds).mockResolvedValue([])
 
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
@@ -187,8 +188,8 @@ describe('POST /api/analyze', () => {
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
 
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
@@ -220,8 +221,8 @@ describe('POST /api/analyze', () => {
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
 
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
@@ -253,8 +254,8 @@ describe('POST /api/analyze', () => {
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
 
     const formData = new FormData()
-    const blob = new Blob(['test'], { type: 'image/jpeg' })
-    formData.append('image', blob, 'test.jpg')
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+    formData.append('image', file)
 
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
