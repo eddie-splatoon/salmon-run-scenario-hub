@@ -17,6 +17,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchCode, setSearchCode] = useState('')
   const [avatarError, setAvatarError] = useState(false)
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -24,22 +25,90 @@ export default function Header() {
     const supabase = createClient()
 
     // 初期ユーザー状態を取得
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      
+      // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profile?.avatar_url) {
+          setProfileAvatarUrl(profile.avatar_url)
+        } else if (user.user_metadata?.avatar_url) {
+          setProfileAvatarUrl(user.user_metadata.avatar_url)
+        }
+      }
+      
       setLoading(false)
-    })
+    }
+    
+    loadUser()
 
     // 認証状態の変更を監視
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      
+      // プロフィール情報を再取得
+      if (currentUser) {
+        // まず最新のユーザー情報を取得（user_metadataの更新を反映）
+        const { data: { user: freshUser } } = await supabase.auth.getUser()
+        
+        // profilesテーブルから取得を試みる
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', currentUser.id)
+          .single()
+        
+        if (profile?.avatar_url) {
+          setProfileAvatarUrl(profile.avatar_url)
+        } else if (freshUser?.user_metadata?.avatar_url) {
+          setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
+        } else {
+          setProfileAvatarUrl(null)
+        }
+      } else {
+        setProfileAvatarUrl(null)
+      }
     })
 
     return () => {
       subscription.unsubscribe()
     }
   }, [])
+  
+  // パス名が変更されたとき（プロフィール更新後など）にプロフィールを再読み込み
+  useEffect(() => {
+    const supabase = createClient()
+    const reloadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // 最新のユーザー情報を取得
+        const { data: { user: freshUser } } = await supabase.auth.getUser()
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profile?.avatar_url) {
+          setProfileAvatarUrl(profile.avatar_url)
+        } else if (freshUser?.user_metadata?.avatar_url) {
+          setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
+        }
+      }
+    }
+    reloadProfile()
+  }, [pathname])
 
   const handleSignIn = async () => {
     try {
@@ -146,7 +215,14 @@ export default function Header() {
                     aria-label="ユーザーメニュー"
                   >
                     <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
-                      {user.user_metadata?.avatar_url && !avatarError ? (
+                      {profileAvatarUrl && !avatarError ? (
+                        <img
+                          src={profileAvatarUrl}
+                          alt={user.user_metadata?.full_name || 'ユーザー'}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : user.user_metadata?.avatar_url && !avatarError ? (
                         <img
                           src={user.user_metadata.avatar_url}
                           alt={user.user_metadata?.full_name || 'ユーザー'}

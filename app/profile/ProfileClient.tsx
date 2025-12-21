@@ -293,13 +293,13 @@ export default function ProfileClient({
   return (
     <div className="bg-gray-900 min-h-screen">
       <div className="container mx-auto px-4 py-8">
-        {/* 戻るボタン */}
+        {/* 一覧へボタン */}
         <Link
-          href="/"
+          href="/scenarios"
           className="inline-flex items-center text-gray-400 hover:text-gray-200 mb-6 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          一覧に戻る
+          一覧へ
         </Link>
 
         {/* プロフィール情報 */}
