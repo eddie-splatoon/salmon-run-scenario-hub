@@ -103,7 +103,9 @@ describe('HomeFilterSection', () => {
       'scrollPosition',
       expect.any(String)
     )
-    expect(mockReplace).toHaveBeenCalledWith('/?tags=クマフェス#latest', { scroll: false })
+    // URLSearchParamsを使用すると日本語が自動的にURLエンコードされる
+    const expectedUrl = new URLSearchParams({ tags: 'クマフェス' }).toString()
+    expect(mockReplace).toHaveBeenCalledWith(`/?${expectedUrl}#latest`, { scroll: false })
   })
 
   it('removes tag when clicking selected tag', () => {
@@ -127,8 +129,10 @@ describe('HomeFilterSection', () => {
     const orlanButton = screen.getByText('#オルラン').closest('button')
     fireEvent.click(orlanButton!)
 
+    // URLSearchParamsを使用すると日本語が自動的にURLエンコードされる
+    const expectedUrl = new URLSearchParams({ tags: 'クマフェス,オルラン' }).toString()
     expect(mockReplace).toHaveBeenCalledWith(
-      '/?tags=クマフェス,オルラン#latest',
+      `/?${expectedUrl}#latest`,
       { scroll: false }
     )
   })

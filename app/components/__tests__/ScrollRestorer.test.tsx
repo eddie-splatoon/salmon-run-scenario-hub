@@ -25,6 +25,13 @@ describe('ScrollRestorer', () => {
     })
 
     window.scrollTo = vi.fn()
+    // clearTimeoutとsetTimeoutをグローバルに定義（vi.useFakeTimers()使用時でも利用可能にする）
+    if (typeof globalThis.clearTimeout === 'undefined') {
+      globalThis.clearTimeout = global.clearTimeout || clearTimeout || (() => {})
+    }
+    if (typeof globalThis.setTimeout === 'undefined') {
+      globalThis.setTimeout = global.setTimeout || setTimeout || (() => {})
+    }
   })
 
   afterEach(() => {
