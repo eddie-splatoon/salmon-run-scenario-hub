@@ -399,6 +399,7 @@ interface ScenarioListItem {
   danger_rate: number
   total_golden_eggs: number
   created_at: string
+  author_id: string
   weapons: Array<{
     weapon_id: number
     weapon_name: string
@@ -433,6 +434,7 @@ export async function GET(
       .from('scenarios')
       .select(`
         code,
+        author_id,
         stage_id,
         danger_rate,
         total_golden_eggs,
@@ -479,6 +481,7 @@ export async function GET(
     // 型アサーション: Supabaseのクエリ結果の型を明示
     type ScenarioWithStage = {
       code: string
+      author_id: string
       stage_id: number
       danger_rate: number
       total_golden_eggs: number
@@ -584,6 +587,7 @@ export async function GET(
           danger_rate: scenario.danger_rate,
           total_golden_eggs: scenario.total_golden_eggs,
           created_at: scenario.created_at,
+          author_id: scenario.author_id,
           weapons,
         }
       })

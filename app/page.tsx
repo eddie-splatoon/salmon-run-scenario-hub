@@ -18,6 +18,7 @@ interface ScenarioListItem {
   danger_rate: number
   total_golden_eggs: number
   created_at: string
+  author_id: string
   weapons: Weapon[]
 }
 
@@ -29,6 +30,7 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       .from('scenarios')
       .select(`
         code,
+        author_id,
         stage_id,
         danger_rate,
         total_golden_eggs,
@@ -46,6 +48,7 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
     // 型アサーション: Supabaseのクエリ結果の型を明示
     type ScenarioWithStage = {
       code: string
+      author_id: string
       stage_id: number
       danger_rate: number
       total_golden_eggs: number
@@ -105,6 +108,7 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
         danger_rate: scenario.danger_rate,
         total_golden_eggs: scenario.total_golden_eggs,
         created_at: scenario.created_at,
+        author_id: scenario.author_id,
         weapons,
       }
     })
@@ -163,6 +167,7 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
       .from('scenarios')
       .select(`
         code,
+        author_id,
         stage_id,
         danger_rate,
         total_golden_eggs,
@@ -179,6 +184,7 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
     // 型アサーション
     type ScenarioWithStage = {
       code: string
+      author_id: string
       stage_id: number
       danger_rate: number
       total_golden_eggs: number
@@ -236,6 +242,7 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
           danger_rate: scenario.danger_rate,
           total_golden_eggs: scenario.total_golden_eggs,
           created_at: scenario.created_at,
+          author_id: scenario.author_id,
           weapons,
           like_count: likeCounts.get(code) || 0,
         }
@@ -367,6 +374,7 @@ export default async function Home() {
                   dangerRate={scenario.danger_rate}
                   totalGoldenEggs={scenario.total_golden_eggs}
                   weapons={scenario.weapons}
+                  authorId={scenario.author_id}
                   showTrending={true}
                   trendingCount={scenario.like_count}
                 />
@@ -439,6 +447,7 @@ export default async function Home() {
                   dangerRate={scenario.danger_rate}
                   totalGoldenEggs={scenario.total_golden_eggs}
                   weapons={scenario.weapons}
+                  authorId={scenario.author_id}
                 />
               ))}
             </div>
