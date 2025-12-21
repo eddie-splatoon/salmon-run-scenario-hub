@@ -12,12 +12,24 @@ vi.mock('next/navigation', () => ({
 }))
 
 // Supabaseクライアントをモック
-const mockGetUser = vi.fn()
-const mockOnAuthStateChange = vi.fn()
-const mockFrom = vi.fn()
-const mockSelect = vi.fn()
-const mockEq = vi.fn()
-const mockMaybeSingle = vi.fn()
+const { mockGetUser, mockOnAuthStateChange, mockFrom, mockSelect, mockEq, mockMaybeSingle } =
+  vi.hoisted(() => {
+    const mockGetUser = vi.fn()
+    const mockOnAuthStateChange = vi.fn()
+    const mockFrom = vi.fn()
+    const mockSelect = vi.fn()
+    const mockEq = vi.fn()
+    const mockMaybeSingle = vi.fn()
+
+    return {
+      mockGetUser,
+      mockOnAuthStateChange,
+      mockFrom,
+      mockSelect,
+      mockEq,
+      mockMaybeSingle,
+    }
+  })
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(() => ({
@@ -26,12 +38,22 @@ vi.mock('@/lib/supabase/client', () => ({
       onAuthStateChange: mockOnAuthStateChange,
     },
     from: mockFrom,
+    select: mockSelect,
+    eq: mockEq,
+    maybeSingle: mockMaybeSingle,
   })),
 }))
 
 // 認証関数をモック
-const mockSignInWithGoogle = vi.fn()
-const mockSignOut = vi.fn()
+const { mockSignInWithGoogle, mockSignOut } = vi.hoisted(() => {
+  const mockSignInWithGoogle = vi.fn()
+  const mockSignOut = vi.fn()
+
+  return {
+    mockSignInWithGoogle,
+    mockSignOut,
+  }
+})
 
 vi.mock('@/lib/auth/google-auth', () => ({
   signInWithGoogle: mockSignInWithGoogle,
