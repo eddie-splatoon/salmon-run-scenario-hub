@@ -38,9 +38,16 @@ describe('proxy', () => {
       },
     } as any)
 
-    const request = new NextRequest('http://localhost:3000/', {
-      headers: new Headers(),
-    })
+    const request = new NextRequest('http://localhost:3000/')
+    // NextRequestのheadersプロパティがHeadersインスタンスであることを確認
+    if (!(request.headers instanceof Headers)) {
+      // headersがHeadersインスタンスでない場合、新しいHeadersインスタンスを作成
+      Object.defineProperty(request, 'headers', {
+        value: new Headers(),
+        writable: true,
+        configurable: true,
+      })
+    }
     const response = await proxy(request)
 
     expect(response).toBeDefined()
@@ -60,9 +67,16 @@ describe('proxy', () => {
       },
     } as any)
 
-        const request = new NextRequest('http://localhost:3000/', {
-          headers: new Headers(),
-        })
+        const request = new NextRequest('http://localhost:3000/')
+        // NextRequestのheadersプロパティがHeadersインスタンスであることを確認
+        if (!(request.headers instanceof Headers)) {
+          // headersがHeadersインスタンスでない場合、新しいHeadersインスタンスを作成
+          Object.defineProperty(request, 'headers', {
+            value: new Headers(),
+            writable: true,
+            configurable: true,
+          })
+        }
         await proxy(request)
 
     expect(mockCreateServerClient).toHaveBeenCalledWith(
