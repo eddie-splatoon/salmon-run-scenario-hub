@@ -368,13 +368,14 @@ describe('Header', () => {
 
       render(<Header />)
 
+      let avatarImage: HTMLElement
       await waitFor(() => {
-        const avatarImage = screen.getByAltText('Test User')
+        avatarImage = screen.getByAltText('Test User')
         expect(avatarImage).toBeInTheDocument()
       })
 
       // 画像エラーをシミュレート
-      fireEvent.error(avatarImage)
+      fireEvent.error(avatarImage!)
 
       await waitFor(() => {
         // エラー後はuser_metadata.pictureが表示される
@@ -567,7 +568,6 @@ describe('Header', () => {
 
       await waitFor(() => {
         // モバイルメニューが閉じられる
-        const mobileMenu = screen.queryByText('一覧')
         // デスクトップメニューには存在する
         expect(screen.getAllByText('一覧').length).toBeGreaterThan(0)
       })
@@ -588,7 +588,6 @@ describe('Header', () => {
 
       await waitFor(() => {
         // モバイルメニューが閉じられる
-        const mobileMenu = screen.queryByText('一覧')
         // デスクトップメニューには存在する
         expect(screen.getAllByText('一覧').length).toBeGreaterThan(0)
       })

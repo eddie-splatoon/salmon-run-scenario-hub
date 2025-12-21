@@ -73,7 +73,6 @@ describe('GET /api/scenarios/check', () => {
     it('シナリオコードが空白のみの場合は400を返す', async () => {
       const request = new NextRequest('http://localhost:3000/api/scenarios/check?code=%20%20')
       const response = await GET(request)
-      const data = await response.json()
 
       expect(response.status).toBe(200)
       // URLパラメータとして空白は有効な値として扱われるため、実際にはチェックされる
