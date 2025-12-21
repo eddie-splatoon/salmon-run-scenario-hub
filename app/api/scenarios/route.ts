@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
+import { hasTag } from '@/lib/utils/scenario-tags-server'
 
 interface SaveScenarioRequest {
   scenario_code: string
@@ -426,6 +427,7 @@ export async function GET(
     const weaponIds = searchParams.get('weapon_ids')?.split(',').map(Number).filter(Boolean)
     const minDangerRate = searchParams.get('min_danger_rate')
     const filter = searchParams.get('filter') // クイックフィルタ: 'grizzco' または 'max_danger'
+    const tag = searchParams.get('tag') // ハッシュタグフィルタ
 
     const supabase = await createClient()
 
@@ -528,6 +530,27 @@ export async function GET(
 
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
+    // WAVE情報を取得（ハッシュタグ判定に必要）
+    const { data: scenarioWaves, error: wavesError } = await supabase
+      .from('scenario_waves')
+      .select('scenario_code, wave_number, event, cleared')
+      .in('scenario_code', scenarioCodes)
+      .order('scenario_code')
+      .order('wave_number')
+
+    if (wavesError) {
+      console.error('[GET /api/scenarios] WAVE情報取得エラー:', wavesError)
+    }
+
+    type ScenarioWaveInfo = {
+      scenario_code: string
+      wave_number: number
+      event: string | null
+      cleared: boolean
+    }
+
+    const typedScenarioWaves = (scenarioWaves || []) as ScenarioWaveInfo[]
+
     // 武器フィルター適用（武器IDが指定されている場合、またはクマサン印フィルタ）
     // 指定された武器IDをすべて含むシナリオのみを抽出
     let filteredScenarioCodes = scenarioCodes
@@ -563,6 +586,38 @@ export async function GET(
           .map((sw) => sw.weapon_id)
         // 指定された武器IDをすべて含むかチェック
         return weaponIds.every((weaponId) => scenarioWeaponIds.includes(weaponId))
+      })
+    }
+
+    // ハッシュタグフィルター適用
+    if (tag) {
+      filteredScenarioCodes = filteredScenarioCodes.filter((code) => {
+        const scenario = typedScenarios.find((s) => s.code === code)
+        if (!scenario) return false
+
+        const waves = typedScenarioWaves
+          .filter((w) => w.scenario_code === code)
+          .map((w) => ({
+            wave_number: w.wave_number,
+            event: w.event,
+            cleared: w.cleared,
+          }))
+
+        const weapons = typedScenarioWeapons
+          .filter((sw) => sw.scenario_code === code)
+          .map((sw) => ({
+            weapon_name: sw.m_weapons.name,
+          }))
+
+        return hasTag(
+          {
+            danger_rate: scenario.danger_rate,
+            total_golden_eggs: scenario.total_golden_eggs,
+            waves,
+            weapons,
+          },
+          tag
+        )
       })
     }
 
