@@ -38,7 +38,6 @@ export default function Header() {
         if (userError) {
           console.error('[Header] ユーザー取得エラー:', userError)
           setUser(null)
-          setLoading(false)
           return
         }
         
@@ -78,6 +77,7 @@ export default function Header() {
         console.error('[Header] ユーザー読み込み例外:', error)
         setUser(null)
       } finally {
+        console.error('[Header] loadUser完了 - loadingをfalseに設定')
         setLoading(false)
       }
     }
@@ -87,9 +87,11 @@ export default function Header() {
     // 認証状態の変更を監視
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.error('[Header] onAuthStateChange:', event, session?.user?.id)
       const currentUser = session?.user ?? null
       setUser(currentUser)
+      setLoading(false) // 認証状態変更時もローディングを解除
       
       // プロフィール情報を再取得
       if (currentUser) {
@@ -102,7 +104,7 @@ export default function Header() {
             .maybeSingle()
           
           if (profileError) {
-            console.error('プロフィール取得エラー:', profileError)
+            console.error('[Header] プロフィール取得エラー:', profileError)
             // エラーが発生した場合はuser_metadataから取得（pictureのみ）
             if (currentUser.user_metadata?.picture) {
               setProfileAvatarUrl(currentUser.user_metadata.picture)
@@ -118,7 +120,7 @@ export default function Header() {
             setProfileAvatarUrl(null)
           }
         } catch (error) {
-          console.error('プロフィール取得エラー:', error)
+          console.error('[Header] プロフィール取得エラー:', error)
           // エラーが発生した場合はuser_metadataから取得（pictureのみ）
           if (currentUser.user_metadata?.picture) {
             setProfileAvatarUrl(currentUser.user_metadata.picture)
