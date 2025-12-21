@@ -127,13 +127,20 @@ describe('GET /api/scenarios', () => {
     const wavesQuery = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnValue(
+      order: vi.fn(),
+    }
+
+    // order()は2回呼ばれる（scenario_codeとwave_number）
+    // 1回目と2回目はthisを返し、最後にthenableを返す
+    wavesQuery.order
+      .mockReturnValueOnce(wavesQuery)
+      .mockReturnValueOnce(wavesQuery)
+      .mockReturnValue(
         createQueryResult({
           data: [],
           error: null,
         })
-      ),
-    }
+      )
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
@@ -195,13 +202,20 @@ describe('GET /api/scenarios', () => {
     const wavesQuery = {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnValue(
+      order: vi.fn(),
+    }
+
+    // order()は2回呼ばれる（scenario_codeとwave_number）
+    // 1回目と2回目はthisを返し、最後にthenableを返す
+    wavesQuery.order
+      .mockReturnValueOnce(wavesQuery)
+      .mockReturnValueOnce(wavesQuery)
+      .mockReturnValue(
         createQueryResult({
           data: [],
           error: null,
         })
-      ),
-    }
+      )
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
