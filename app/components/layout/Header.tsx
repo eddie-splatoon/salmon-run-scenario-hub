@@ -30,12 +30,13 @@ export default function Header() {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (userError) {
-          console.error('ユーザー取得エラー:', userError)
+          console.error('[Header] ユーザー取得エラー:', userError)
           setUser(null)
           setLoading(false)
           return
         }
         
+        console.log('[Header] ユーザー取得成功:', user ? 'ログイン中' : '未ログイン')
         setUser(user)
         
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
@@ -48,19 +49,24 @@ export default function Header() {
               .maybeSingle()
             
             if (profileError) {
-              console.error('プロフィール取得エラー:', profileError)
+              console.error('[Header] プロフィール取得エラー:', profileError)
               // エラーが発生した場合はuser_metadataから取得（pictureのみ）
               if (user.user_metadata?.picture) {
+                console.log('[Header] user_metadata.pictureを使用')
                 setProfileAvatarUrl(user.user_metadata.picture)
               }
             } else if (profile?.avatar_url) {
+              console.log('[Header] profilesテーブルのavatar_urlを使用')
               setProfileAvatarUrl(profile.avatar_url)
             } else if (user.user_metadata?.picture) {
+              console.log('[Header] user_metadata.pictureを使用（profilesテーブルにデータなし）')
               // Googleアカウントのデフォルト画像を使用
               setProfileAvatarUrl(user.user_metadata.picture)
+            } else {
+              console.log('[Header] アバター画像なし')
             }
           } catch (error) {
-            console.error('プロフィール取得エラー:', error)
+            console.error('[Header] プロフィール取得例外:', error)
             // エラーが発生した場合はuser_metadataから取得（pictureのみ）
             if (user.user_metadata?.picture) {
               setProfileAvatarUrl(user.user_metadata.picture)
@@ -68,9 +74,10 @@ export default function Header() {
           }
         }
       } catch (error) {
-        console.error('ユーザー読み込みエラー:', error)
+        console.error('[Header] ユーザー読み込み例外:', error)
         setUser(null)
       } finally {
+        console.log('[Header] ローディング完了')
         setLoading(false)
       }
     }
