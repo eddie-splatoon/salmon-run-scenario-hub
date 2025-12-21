@@ -314,9 +314,9 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ tags?: string }>
-}) {
-  const params = await searchParams
+  searchParams?: Promise<{ tags?: string }>
+} = {}) {
+  const params = searchParams ? await searchParams : { tags: undefined }
   const tags = params.tags?.split(',').filter(Boolean) || []
   
   const latestScenarios = await getLatestScenarios(6, tags)

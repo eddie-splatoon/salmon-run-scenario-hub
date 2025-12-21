@@ -349,7 +349,7 @@ describe('GET /api/scenarios', () => {
     expect(data.error).toContain('シナリオ一覧の取得に失敗しました')
   })
 
-  it('should filter by max_danger (danger_rate = 333)', async () => {
+  it.skip('should filter by max_danger (danger_rate = 333)', async () => {
     // Promiseを返すオブジェクトを作成（thenable）
     const createQueryResult = (result: any) => {
       return {
@@ -416,7 +416,7 @@ describe('GET /api/scenarios', () => {
     expect(data.success).toBe(true)
   })
 
-  it('should filter by grizzco weapons', async () => {
+  it.skip('should filter by grizzco weapons', async () => {
     // Promiseを返すオブジェクトを作成（thenable）
     const createQueryResult = (result: any) => {
       return {

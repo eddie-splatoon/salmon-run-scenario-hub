@@ -31,16 +31,28 @@ export default function Header() {
       
       // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('user_id', user.id)
-          .single()
-        
-        if (profile?.avatar_url) {
-          setProfileAvatarUrl(profile.avatar_url)
-        } else if (user.user_metadata?.avatar_url) {
-          setProfileAvatarUrl(user.user_metadata.avatar_url)
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('user_id', user.id)
+            .maybeSingle()
+          
+          if (profile?.avatar_url) {
+            setProfileAvatarUrl(profile.avatar_url)
+          } else if (user.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(user.user_metadata.avatar_url)
+          } else if (user.user_metadata?.picture) {
+            setProfileAvatarUrl(user.user_metadata.picture)
+          }
+        } catch (error) {
+          console.error('プロフィール取得エラー:', error)
+          // エラーが発生した場合はuser_metadataから取得
+          if (user.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(user.user_metadata.avatar_url)
+          } else if (user.user_metadata?.picture) {
+            setProfileAvatarUrl(user.user_metadata.picture)
+          }
         }
       }
       
@@ -58,22 +70,36 @@ export default function Header() {
       
       // プロフィール情報を再取得
       if (currentUser) {
-        // まず最新のユーザー情報を取得（user_metadataの更新を反映）
-        const { data: { user: freshUser } } = await supabase.auth.getUser()
-        
-        // profilesテーブルから取得を試みる
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('user_id', currentUser.id)
-          .single()
-        
-        if (profile?.avatar_url) {
-          setProfileAvatarUrl(profile.avatar_url)
-        } else if (freshUser?.user_metadata?.avatar_url) {
-          setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
-        } else {
-          setProfileAvatarUrl(null)
+        try {
+          // まず最新のユーザー情報を取得（user_metadataの更新を反映）
+          const { data: { user: freshUser } } = await supabase.auth.getUser()
+          
+          // profilesテーブルから取得を試みる
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('user_id', currentUser.id)
+            .maybeSingle()
+          
+          if (profile?.avatar_url) {
+            setProfileAvatarUrl(profile.avatar_url)
+          } else if (freshUser?.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
+          } else if (freshUser?.user_metadata?.picture) {
+            setProfileAvatarUrl(freshUser.user_metadata.picture)
+          } else {
+            setProfileAvatarUrl(null)
+          }
+        } catch (error) {
+          console.error('プロフィール取得エラー:', error)
+          // エラーが発生した場合はuser_metadataから取得
+          if (currentUser.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(currentUser.user_metadata.avatar_url)
+          } else if (currentUser.user_metadata?.picture) {
+            setProfileAvatarUrl(currentUser.user_metadata.picture)
+          } else {
+            setProfileAvatarUrl(null)
+          }
         }
       } else {
         setProfileAvatarUrl(null)
@@ -91,19 +117,31 @@ export default function Header() {
     const reloadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // 最新のユーザー情報を取得
-        const { data: { user: freshUser } } = await supabase.auth.getUser()
-        
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('user_id', user.id)
-          .single()
-        
-        if (profile?.avatar_url) {
-          setProfileAvatarUrl(profile.avatar_url)
-        } else if (freshUser?.user_metadata?.avatar_url) {
-          setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
+        try {
+          // 最新のユーザー情報を取得
+          const { data: { user: freshUser } } = await supabase.auth.getUser()
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('user_id', user.id)
+            .maybeSingle()
+          
+          if (profile?.avatar_url) {
+            setProfileAvatarUrl(profile.avatar_url)
+          } else if (freshUser?.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
+          } else if (freshUser?.user_metadata?.picture) {
+            setProfileAvatarUrl(freshUser.user_metadata.picture)
+          }
+        } catch (error) {
+          console.error('プロフィール取得エラー:', error)
+          // エラーが発生した場合はuser_metadataから取得
+          if (user.user_metadata?.avatar_url) {
+            setProfileAvatarUrl(user.user_metadata.avatar_url)
+          } else if (user.user_metadata?.picture) {
+            setProfileAvatarUrl(user.user_metadata.picture)
+          }
         }
       }
     }
@@ -171,15 +209,15 @@ export default function Header() {
             </form>
 
             <Link
-              href="/"
+              href="/scenarios"
               className={cn(
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-                isActive('/')
+                isActive('/scenarios')
                   ? 'bg-orange-500 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               )}
             >
-              探す
+              一覧
             </Link>
             <Link
               href="/analyze"
@@ -190,7 +228,7 @@ export default function Header() {
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               )}
             >
-              解析
+              投稿する
             </Link>
             <Link
               href="/guide"
@@ -321,16 +359,16 @@ export default function Header() {
               </form>
 
               <Link
-                href="/"
+                href="/scenarios"
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'px-3 py-2 rounded-md text-base font-medium transition-colors',
-                  isActive('/')
+                  isActive('/scenarios')
                     ? 'bg-orange-500 text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 )}
               >
-                探す
+                一覧
               </Link>
               <Link
                 href="/analyze"
@@ -342,7 +380,7 @@ export default function Header() {
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 )}
               >
-                解析
+                投稿する
               </Link>
               <Link
                 href="/guide"
