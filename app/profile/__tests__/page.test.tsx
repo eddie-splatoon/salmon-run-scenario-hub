@@ -115,20 +115,6 @@ describe('ProfilePage', () => {
       }),
     }
 
-    const mockStageStatsQuery = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        data: [
-          {
-            stage_id: 1,
-            m_stages: { name: 'アラマキ砦' },
-          },
-        ],
-        error: null,
-      }),
-    }
-
     const mockLikesQuery = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -198,15 +184,6 @@ describe('ProfilePage', () => {
     }
 
     const mockStatsQuery = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        data: [],
-        error: null,
-      }),
-    }
-
-    const mockStageStatsQuery = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({
