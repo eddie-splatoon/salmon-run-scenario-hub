@@ -582,7 +582,11 @@ describe('Header', () => {
       await userEvent.click(menuButton)
 
       await waitFor(() => {
-        expect(screen.getByText('一覧')).toBeInTheDocument()
+        // モバイルメニューが表示される（text-baseクラスを持つ要素はモバイルメニュー）
+        const mobileLinks = screen.getAllByText('一覧').filter(
+          (link) => link.className.includes('text-base')
+        )
+        expect(mobileLinks.length).toBeGreaterThan(0)
       })
 
       const closeButton = screen.getByLabelText('メニューを開く')
@@ -590,8 +594,11 @@ describe('Header', () => {
 
       await waitFor(() => {
         // モバイルメニューが閉じられる
-        // デスクトップメニューには存在する
-        expect(screen.getAllByText('一覧').length).toBeGreaterThan(0)
+        // デスクトップメニューには存在する（text-smクラスを持つ要素はデスクトップメニュー）
+        const desktopLinks = screen.getAllByText('一覧').filter(
+          (link) => link.className.includes('text-sm')
+        )
+        expect(desktopLinks.length).toBeGreaterThan(0)
       })
     })
 
@@ -602,16 +609,27 @@ describe('Header', () => {
       await userEvent.click(menuButton)
 
       await waitFor(() => {
-        expect(screen.getByText('一覧')).toBeInTheDocument()
+        // モバイルメニューが表示される（text-baseクラスを持つ要素はモバイルメニュー）
+        const mobileLinks = screen.getAllByText('一覧').filter(
+          (link) => link.className.includes('text-base')
+        )
+        expect(mobileLinks.length).toBeGreaterThan(0)
       })
 
-      const scenariosLink = screen.getAllByText('一覧')[0]
+      // モバイルメニュー内のリンクを取得（text-baseクラスを持つ要素）
+      const mobileLinks = screen.getAllByText('一覧').filter(
+        (link) => link.className.includes('text-base')
+      )
+      const scenariosLink = mobileLinks[0]
       await userEvent.click(scenariosLink)
 
       await waitFor(() => {
         // モバイルメニューが閉じられる
-        // デスクトップメニューには存在する
-        expect(screen.getAllByText('一覧').length).toBeGreaterThan(0)
+        // デスクトップメニューには存在する（text-smクラスを持つ要素はデスクトップメニュー）
+        const desktopLinks = screen.getAllByText('一覧').filter(
+          (link) => link.className.includes('text-sm')
+        )
+        expect(desktopLinks.length).toBeGreaterThan(0)
       })
     })
 
