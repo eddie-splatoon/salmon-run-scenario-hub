@@ -60,6 +60,8 @@ describe('ProfilePage', () => {
       data: { user: mockUser },
       error: null,
     })
+    // mockSupabase.fromをリセット
+    mockSupabase.from = vi.fn()
   })
 
   it('renders profile page when user is authenticated', async () => {
@@ -155,20 +157,20 @@ describe('ProfilePage', () => {
     }
 
     // getStatisticsData内でscenariosテーブルに複数回アクセスするため、呼び出し回数で分岐
-    let scenariosCallCount = 0
-    mockSupabase.from = vi.fn((table: string) => {
+    const fromMock = vi.fn((table: string) => {
       if (table === 'scenarios') {
-        scenariosCallCount++
+        // 呼び出し回数をカウント（現在の呼び出しを含む）
+        const callCount = fromMock.mock.calls.filter((c) => c[0] === 'scenarios').length
         // 1回目: getUserScenarios
-        if (scenariosCallCount === 1) {
+        if (callCount === 1) {
           return mockScenariosQuery
         }
         // 2回目: getStatisticsData - total_golden_eggs, stage_id取得
-        if (scenariosCallCount === 2) {
+        if (callCount === 2) {
           return mockStatsQuery
         }
         // 3回目: getStatisticsData - stage_id, m_stages取得（ステージ統計用）
-        if (scenariosCallCount === 3) {
+        if (callCount === 3) {
           return mockStageStatsQuery
         }
         // 4回目以降: getStatisticsData - いいねしたシナリオの詳細（likedScenarioCodes.length > 0の場合のみ）
@@ -188,6 +190,7 @@ describe('ProfilePage', () => {
       if (table === 'profiles') return mockProfileQuery
       return { from: vi.fn() }
     })
+    mockSupabase.from = fromMock
 
     const page = await ProfilePage()
     render(page)
