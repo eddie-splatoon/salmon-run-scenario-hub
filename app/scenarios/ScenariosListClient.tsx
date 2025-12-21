@@ -61,6 +61,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
   const [selectedWeaponIds, setSelectedWeaponIds] = useState<number[]>([])
   const [minDangerRate, setMinDangerRate] = useState(0)
   const [quickFilter, setQuickFilter] = useState<string | null>(null)
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const router = useRouter()
 
   const fetchScenarios = useCallback(async () => {
@@ -79,6 +80,9 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
       if (quickFilter) {
         params.append('filter', quickFilter)
       }
+      if (selectedTag) {
+        params.append('tag', selectedTag)
+      }
 
       const response = await fetch(`/api/scenarios?${params.toString()}`)
       const data = await response.json()
@@ -95,7 +99,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
     } finally {
       setLoading(false)
     }
-  }, [selectedStageId, selectedWeaponIds, minDangerRate, quickFilter])
+  }, [selectedStageId, selectedWeaponIds, minDangerRate, quickFilter, selectedTag])
 
   useEffect(() => {
     fetchScenarios()
@@ -120,7 +124,23 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
     setSelectedWeaponIds([])
     setMinDangerRate(0)
     setQuickFilter(null)
+    setSelectedTag(null)
   }
+
+  // 利用可能なハッシュタグ
+  const availableTags = [
+    { value: 'クマフェス', label: '#クマフェス' },
+    { value: 'オルラン', label: '#オルラン' },
+    { value: '初心者向け', label: '#初心者向け' },
+    { value: '未クリア', label: '#未クリア' },
+    { value: '高難易度', label: '#高難易度' },
+    { value: '乱獲向け', label: '#乱獲向け' },
+    { value: '昼のみ', label: '#昼のみ' },
+    { value: '夜1', label: '#夜1' },
+    { value: '夜2', label: '#夜2' },
+    { value: '夜のみ', label: '#夜のみ' },
+    { value: 'オカシラあり', label: '#オカシラあり' },
+  ]
 
   return (
     <div className="bg-gray-900 min-h-screen">
@@ -322,7 +342,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
               <Filter className="h-4 w-4 text-gray-400" />
               <Typography className="text-gray-300 text-sm font-semibold">クイックフィルタ</Typography>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               <Button
                 onClick={() => setQuickFilter(quickFilter === 'grizzco' ? null : 'grizzco')}
                 variant={quickFilter === 'grizzco' ? 'contained' : 'outlined'}
@@ -374,10 +394,41 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
                 #カンスト向け
               </Button>
             </div>
+            {/* ハッシュタグフィルタ */}
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => (
+                <Button
+                  key={tag.value}
+                  onClick={() => setSelectedTag(selectedTag === tag.value ? null : tag.value)}
+                  variant={selectedTag === tag.value ? 'contained' : 'outlined'}
+                  size="small"
+                  sx={{
+                    ...(selectedTag === tag.value
+                      ? {
+                          backgroundColor: '#f97316',
+                          color: '#ffffff',
+                          '&:hover': {
+                            backgroundColor: '#ea580c',
+                          },
+                        }
+                      : {
+                          color: '#e5e7eb',
+                          borderColor: '#4b5563',
+                          '&:hover': {
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                          },
+                        }),
+                  }}
+                >
+                  {tag.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* フィルタクリアボタン */}
-          {(selectedStageId || selectedWeaponIds.length > 0 || minDangerRate > 0 || quickFilter) && (
+          {(selectedStageId || selectedWeaponIds.length > 0 || minDangerRate > 0 || quickFilter || selectedTag) && (
             <Button
               onClick={clearFilters}
               variant="outlined"

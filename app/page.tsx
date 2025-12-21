@@ -25,7 +25,7 @@ interface ScenarioListItem {
   weapons: Weapon[]
 }
 
-async function getLatestScenarios(limit: number = 6, filter: string | null = null): Promise<ScenarioListItem[]> {
+async function getLatestScenarios(limit: number = 6, filter: string | null = null, tag: string | null = null): Promise<ScenarioListItem[]> {
   try {
     const supabase = await createClient()
 
@@ -121,6 +121,54 @@ async function getLatestScenarios(limit: number = 6, filter: string | null = nul
         })
       } else {
         filteredScenarios = []
+      }
+    }
+
+    // ハッシュタグフィルター適用
+    if (tag) {
+      // WAVE情報を取得（ハッシュタグ判定に必要）
+      const { data: scenarioWaves, error: wavesError } = await supabase
+        .from('scenario_waves')
+        .select('scenario_code, wave_number, event, cleared')
+        .in('scenario_code', filteredScenarios.map((s) => s.code))
+        .order('scenario_code')
+        .order('wave_number')
+
+      if (!wavesError && scenarioWaves) {
+        const typedScenarioWaves = scenarioWaves as Array<{
+          scenario_code: string
+          wave_number: number
+          event: string | null
+          cleared: boolean
+        }>
+
+        const { hasTag } = await import('@/lib/utils/scenario-tags-server')
+
+        filteredScenarios = filteredScenarios.filter((scenario) => {
+          const waves = typedScenarioWaves
+            .filter((w) => w.scenario_code === scenario.code)
+            .map((w) => ({
+              wave_number: w.wave_number,
+              event: w.event,
+              cleared: w.cleared,
+            }))
+
+          const weapons = typedScenarioWeapons
+            .filter((sw) => sw.scenario_code === scenario.code)
+            .map((sw) => ({
+              weapon_name: sw.m_weapons.name,
+            }))
+
+          return hasTag(
+            {
+              danger_rate: scenario.danger_rate,
+              total_golden_eggs: scenario.total_golden_eggs,
+              waves,
+              weapons,
+            },
+            tag
+          )
+        })
       }
     }
 
@@ -293,12 +341,13 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>
+  searchParams: Promise<{ filter?: string; tag?: string }>
 }) {
   const params = await searchParams
   const filter = params.filter || null
+  const tag = params.tag || null
   
-  const latestScenarios = await getLatestScenarios(6, filter)
+  const latestScenarios = await getLatestScenarios(6, filter, tag)
   const trendingScenarios = await getTrendingScenarios(6)
 
   return (
