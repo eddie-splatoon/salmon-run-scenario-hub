@@ -16,19 +16,20 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('GET /auth/callback', () => {
-  const mockSupabase = {
-    auth: {
-      exchangeCodeForSession: vi.fn(),
-    },
-  }
+  let mockSupabase: any
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
+    mockSupabase = {
+      auth: {
+        exchangeCodeForSession: vi.fn(),
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(mockSupabase)
   })
 
   it('redirects to next path after successful authentication', async () => {
-    mockSupabase.auth.exchangeCodeForSession = vi.fn().mockResolvedValue({
+    mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
       error: null,
     })
 
@@ -41,7 +42,7 @@ describe('GET /auth/callback', () => {
   })
 
   it('redirects to home when next parameter is not provided', async () => {
-    mockSupabase.auth.exchangeCodeForSession = vi.fn().mockResolvedValue({
+    mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
       error: null,
     })
 
@@ -53,7 +54,7 @@ describe('GET /auth/callback', () => {
   })
 
   it('redirects to login page with error when code exchange fails', async () => {
-    mockSupabase.auth.exchangeCodeForSession = vi.fn().mockResolvedValue({
+    mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
       error: { message: 'Invalid code' },
     })
 

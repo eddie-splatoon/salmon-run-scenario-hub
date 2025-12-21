@@ -16,40 +16,19 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('GET /api/users/[id]', () => {
-  const createMockQueryBuilder = () => {
-    const builder = {
-      from: vi.fn(() => builder),
-      select: vi.fn(() => builder),
-      eq: vi.fn(() => builder),
-      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    }
-    return builder
-  }
-
-  const mockQueryBuilder = createMockQueryBuilder()
-
-  const mockSupabase = {
-    from: vi.fn(() => mockQueryBuilder),
-    auth: {
-      getUser: vi.fn(),
-    },
-  }
+  let mockSupabase: any
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockQueryBuilder.from = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.eq = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-    })
-
-    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
-      data: { user: null },
-    })
-
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
+    mockSupabase = {
+      from: vi.fn(),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+        }),
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(mockSupabase)
   })
 
   it('returns user profile when profile exists', async () => {
@@ -59,10 +38,16 @@ describe('GET /api/users/[id]', () => {
       avatar_url: 'https://example.com/avatar.png',
     }
 
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: mockProfile,
-      error: null,
-    })
+    const profilesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: mockProfile,
+        error: null,
+      }),
+    }
+
+    mockSupabase.from.mockReturnValue(profilesQuery)
 
     const request = new NextRequest('http://localhost:3000/api/users/user-123')
     const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
@@ -77,7 +62,7 @@ describe('GET /api/users/[id]', () => {
       avatar_url: 'https://example.com/avatar.png',
     })
     expect(mockSupabase.from).toHaveBeenCalledWith('profiles')
-    expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123')
+    expect(profilesQuery.eq).toHaveBeenCalledWith('user_id', 'user-123')
   })
 
   it('returns user info with email when requesting own profile', async () => {
@@ -87,12 +72,17 @@ describe('GET /api/users/[id]', () => {
       avatar_url: 'https://example.com/avatar.png',
     }
 
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: mockProfile,
-      error: null,
-    })
+    const profilesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: mockProfile,
+        error: null,
+      }),
+    }
 
-    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+    mockSupabase.from.mockReturnValue(profilesQuery)
+    mockSupabase.auth.getUser.mockResolvedValue({
       data: {
         user: {
           id: 'user-123',
@@ -111,12 +101,17 @@ describe('GET /api/users/[id]', () => {
   })
 
   it('returns auth user info when profile does not exist but user is authenticated', async () => {
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-    })
+    const profilesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    }
 
-    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+    mockSupabase.from.mockReturnValue(profilesQuery)
+    mockSupabase.auth.getUser.mockResolvedValue({
       data: {
         user: {
           id: 'user-123',
@@ -144,12 +139,17 @@ describe('GET /api/users/[id]', () => {
   })
 
   it('returns empty user info when profile does not exist and user is not authenticated', async () => {
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-    })
+    const profilesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    }
 
-    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+    mockSupabase.from.mockReturnValue(profilesQuery)
+    mockSupabase.auth.getUser.mockResolvedValue({
       data: { user: null },
     })
 
@@ -168,10 +168,16 @@ describe('GET /api/users/[id]', () => {
   })
 
   it('handles database errors', async () => {
-    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: 'Database error' },
-    })
+    const profilesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' },
+      }),
+    }
+
+    mockSupabase.from.mockReturnValue(profilesQuery)
 
     const request = new NextRequest('http://localhost:3000/api/users/user-123')
     const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })

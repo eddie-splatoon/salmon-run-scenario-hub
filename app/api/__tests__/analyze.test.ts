@@ -5,8 +5,15 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
 
 // モック設定
-vi.mock('@google/generative-ai')
-vi.mock('@/lib/utils/master-lookup')
+vi.mock('@google/generative-ai', () => {
+  return {
+    GoogleGenerativeAI: vi.fn(),
+  }
+})
+vi.mock('@/lib/utils/master-lookup', () => ({
+  lookupStageId: vi.fn(),
+  lookupWeaponIds: vi.fn(),
+}))
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => Promise.resolve({
