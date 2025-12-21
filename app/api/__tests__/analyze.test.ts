@@ -22,6 +22,10 @@ vi.mock('next/headers', () => ({
   })),
 }))
 
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(),
+}))
+
 describe('POST /api/analyze', () => {
   const originalEnv = process.env
 
