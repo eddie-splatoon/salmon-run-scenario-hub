@@ -1,0 +1,197 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { GET } from '../users/[id]/route'
+import { NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+// モック設定
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(),
+}))
+
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(() => Promise.resolve({
+    getAll: vi.fn(() => []),
+    set: vi.fn(),
+  })),
+}))
+
+describe('GET /api/users/[id]', () => {
+  const createMockQueryBuilder = () => {
+    const builder = {
+      from: vi.fn(() => builder),
+      select: vi.fn(() => builder),
+      eq: vi.fn(() => builder),
+      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+    }
+    return builder
+  }
+
+  const mockQueryBuilder = createMockQueryBuilder()
+
+  const mockSupabase = {
+    from: vi.fn(() => mockQueryBuilder),
+    auth: {
+      getUser: vi.fn(),
+    },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockQueryBuilder.from = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.eq = vi.fn(() => mockQueryBuilder)
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    })
+
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+    })
+
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
+  })
+
+  it('returns user profile when profile exists', async () => {
+    const mockProfile = {
+      user_id: 'user-123',
+      display_name: 'Test User',
+      avatar_url: 'https://example.com/avatar.png',
+    }
+
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: mockProfile,
+      error: null,
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data).toEqual({
+      id: 'user-123',
+      email: null, // 自分以外のユーザーの場合はemailは返さない
+      name: 'Test User',
+      avatar_url: 'https://example.com/avatar.png',
+    })
+    expect(mockSupabase.from).toHaveBeenCalledWith('profiles')
+    expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123')
+  })
+
+  it('returns user info with email when requesting own profile', async () => {
+    const mockProfile = {
+      user_id: 'user-123',
+      display_name: 'Test User',
+      avatar_url: 'https://example.com/avatar.png',
+    }
+
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: mockProfile,
+      error: null,
+    })
+
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+        },
+      },
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data?.email).toBe('test@example.com')
+  })
+
+  it('returns auth user info when profile does not exist but user is authenticated', async () => {
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    })
+
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+      data: {
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          user_metadata: {
+            full_name: 'Test User',
+            picture: 'https://example.com/picture.png',
+          },
+        },
+      },
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data).toEqual({
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      avatar_url: 'https://example.com/picture.png',
+    })
+  })
+
+  it('returns empty user info when profile does not exist and user is not authenticated', async () => {
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    })
+
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.data).toEqual({
+      id: 'user-123',
+      email: null,
+      name: null,
+      avatar_url: null,
+    })
+  })
+
+  it('handles database errors', async () => {
+    mockQueryBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'Database error' },
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    // エラーが発生してもプロフィール情報が存在しない場合として処理される
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+  })
+
+  it('handles unexpected errors', async () => {
+    vi.mocked(createClient).mockRejectedValue(new Error('Unexpected error'))
+
+    const request = new NextRequest('http://localhost:3000/api/users/user-123')
+    const response = await GET(request, { params: Promise.resolve({ id: 'user-123' }) })
+    const data = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('予期しないエラー')
+  })
+})
+
