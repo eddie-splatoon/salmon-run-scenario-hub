@@ -88,6 +88,7 @@ describe('GET /api/scenarios', () => {
       data: [
         {
           code: 'ABC123',
+          author_id: 'user-123',
           stage_id: 1,
           danger_rate: 100,
           total_golden_eggs: 150,
