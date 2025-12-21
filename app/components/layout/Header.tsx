@@ -46,10 +46,8 @@ export default function Header() {
           }
         } catch (error) {
           console.error('プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得
-          if (user.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(user.user_metadata.avatar_url)
-          } else if (user.user_metadata?.picture) {
+          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+          if (user.user_metadata?.picture) {
             setProfileAvatarUrl(user.user_metadata.picture)
           }
         }
@@ -131,10 +129,8 @@ export default function Header() {
           }
         } catch (error) {
           console.error('プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得
-          if (user.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(user.user_metadata.avatar_url)
-          } else if (user.user_metadata?.picture) {
+          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+          if (user.user_metadata?.picture) {
             setProfileAvatarUrl(user.user_metadata.picture)
           }
         }
@@ -251,13 +247,6 @@ export default function Header() {
                       {profileAvatarUrl && !avatarError ? (
                         <img
                           src={profileAvatarUrl}
-                          alt={user.user_metadata?.full_name || 'ユーザー'}
-                          className="w-full h-full object-cover"
-                          onError={() => setAvatarError(true)}
-                        />
-                      ) : user.user_metadata?.avatar_url && !avatarError ? (
-                        <img
-                          src={user.user_metadata.avatar_url}
                           alt={user.user_metadata?.full_name || 'ユーザー'}
                           className="w-full h-full object-cover"
                           onError={() => setAvatarError(true)}

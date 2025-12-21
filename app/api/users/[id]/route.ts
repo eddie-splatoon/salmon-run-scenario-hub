@@ -63,7 +63,7 @@ export async function GET(
           id: user.id,
           email: user.email || null,
           name: user.user_metadata?.full_name || user.email?.split('@')[0] || null,
-          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          avatar_url: user.user_metadata?.picture || null, // user_metadata.avatar_urlは使用しない（Cookieサイズ削減のため）
         },
       })
     }

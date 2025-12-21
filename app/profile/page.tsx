@@ -320,13 +320,20 @@ export default async function ProfilePage() {
   const scenarios = await getUserScenarios(user.id)
   const statisticsData = await getStatisticsData(user.id)
 
+  // プロフィール情報を取得（profilesテーブルから）
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
   return (
     <ProfileClient
       user={{
         id: user.id,
         email: user.email || '',
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー',
-        avatar_url: user.user_metadata?.avatar_url || null,
+        name: profile?.display_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー',
+        avatar_url: profile?.avatar_url || user.user_metadata?.picture || null,
       }}
       initialScenarios={scenarios}
       initialStatisticsData={statisticsData}

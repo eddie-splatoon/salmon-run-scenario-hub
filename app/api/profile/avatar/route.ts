@@ -64,25 +64,7 @@ export async function POST(
     const base64Image = buffer.toString('base64')
     const dataUrl = `data:${imageFile.type};base64,${base64Image}`
 
-    // auth.usersのuser_metadataを更新
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        avatar_url: dataUrl,
-      },
-    })
-
-    if (updateError) {
-      console.error('[POST /api/profile/avatar] プロフィール更新エラー:', updateError)
-      return NextResponse.json(
-        {
-          success: false,
-          error: `プロフィール画像の更新に失敗しました: ${updateError.message}`,
-        },
-        { status: 500 }
-      )
-    }
-
-    // profilesテーブルも更新（user_idカラムを使用）
+    // profilesテーブルのみを更新（user_metadataには保存しない - Cookieサイズ制限を回避）
     const { error: profileUpdateError } = await supabase
       .from('profiles')
       .update({ avatar_url: dataUrl })
@@ -90,7 +72,13 @@ export async function POST(
 
     if (profileUpdateError) {
       console.error('[POST /api/profile/avatar] profilesテーブル更新エラー:', profileUpdateError)
-      // profilesテーブルの更新エラーは無視（auth.usersの更新は成功しているため）
+      return NextResponse.json(
+        {
+          success: false,
+          error: `プロフィール画像の更新に失敗しました: ${profileUpdateError.message}`,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
