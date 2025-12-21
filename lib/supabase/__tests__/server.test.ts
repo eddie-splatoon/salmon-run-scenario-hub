@@ -42,10 +42,11 @@ describe('createClient (server)', () => {
 
   it('provides cookie handlers', async () => {
     const { createServerClient } = await import('@supabase/ssr')
+    const mockCreateServerClient = vi.mocked(createServerClient)
     
     await createClient()
 
-    expect(createServerClient).toHaveBeenCalledWith(
+    expect(mockCreateServerClient).toHaveBeenCalledWith(
       'https://test.supabase.co',
       'test-anon-key',
       expect.objectContaining({
