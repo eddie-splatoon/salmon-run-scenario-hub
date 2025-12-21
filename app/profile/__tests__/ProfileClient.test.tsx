@@ -20,10 +20,15 @@ vi.mock('next/navigation', () => ({
 }))
 
 // sonnerのtoastをモック
+const { mockToastSuccess, mockToastError } = vi.hoisted(() => ({
+  mockToastSuccess: vi.fn(),
+  mockToastError: vi.fn(),
+}))
+
 vi.mock('sonner', () => ({
   toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+    success: mockToastSuccess,
+    error: mockToastError,
   },
 }))
 
@@ -106,6 +111,12 @@ Object.defineProperty(window, 'location', {
 })
 
 describe('ProfileClient', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockToastSuccess.mockClear()
+    mockToastError.mockClear()
+  })
+
   const mockUser = {
     id: 'user1',
     email: 'test@example.com',
@@ -297,8 +308,7 @@ describe('ProfileClient', () => {
     await user.click(saveButton)
 
     await waitFor(() => {
-      const { toast } = require('sonner')
-      expect(toast.error).toHaveBeenCalled()
+      expect(mockToastError).toHaveBeenCalled()
     })
   })
 
@@ -322,8 +332,7 @@ describe('ProfileClient', () => {
     await user.click(saveButton)
 
     await waitFor(() => {
-      const { toast } = require('sonner')
-      expect(toast.error).toHaveBeenCalledWith('ユーザー名を入力してください')
+      expect(mockToastError).toHaveBeenCalledWith('ユーザー名を入力してください')
     })
   })
 
