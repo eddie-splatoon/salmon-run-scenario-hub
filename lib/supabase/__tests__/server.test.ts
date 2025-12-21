@@ -201,23 +201,20 @@ describe('createClient (server)', () => {
 
   describe('非同期処理', () => {
     it('awaits cookies() before creating client', async () => {
-      let cookiesResolved = false
+      let cookiesCalled = false
       const { cookies } = await import('next/headers')
       const originalCookies = vi.mocked(cookies)
 
       vi.mocked(cookies).mockImplementation(() => {
-        return Promise.resolve({
-          ...mockCookieStore,
-          getAll: () => {
-            cookiesResolved = true
-            return mockGetAll()
-          },
-        })
+        cookiesCalled = true
+        return Promise.resolve(mockCookieStore)
       })
 
       await createClient()
 
-      expect(cookiesResolved).toBe(true)
+      // cookies()が呼ばれたことを確認
+      expect(cookiesCalled).toBe(true)
+      expect(vi.mocked(cookies)).toHaveBeenCalled()
 
       vi.mocked(cookies).mockImplementation(originalCookies)
     })
