@@ -95,7 +95,15 @@ global.fetch = vi.fn()
 global.confirm = vi.fn(() => true)
 global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
 global.URL.revokeObjectURL = vi.fn()
-global.window.location.reload = vi.fn()
+// window.location.reloadは読み取り専用プロパティのため、Object.definePropertyを使用
+Object.defineProperty(window, 'location', {
+  value: {
+    ...window.location,
+    reload: vi.fn(),
+  },
+  writable: true,
+  configurable: true,
+})
 
 describe('ProfileClient', () => {
   const mockUser = {
