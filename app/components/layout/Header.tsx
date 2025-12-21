@@ -119,11 +119,11 @@ export default function Header() {
             // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           }
-        } catch (error) {
+        } catch (_error) {
           // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
           setProfileAvatarUrl(null)
         }
-      } catch (error) {
+      } catch (_error) {
         setProfileAvatarUrl(null)
       }
     }
@@ -145,7 +145,7 @@ export default function Header() {
       setProfileAvatarUrl(null)
       router.push('/')
       router.refresh()
-    } catch (error) {
+    } catch (_error) {
       // エラーが発生しても、ローカル状態をクリアしてリダイレクト
       setUser(null)
       setProfileAvatarUrl(null)
