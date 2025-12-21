@@ -119,12 +119,14 @@ describe('ScrollRestorer', () => {
       configurable: true,
     })
 
+    window.scrollTo = vi.fn()
     const { rerender } = render(<ScrollRestorer />)
 
     vi.advanceTimersByTime(50)
     expect(window.scrollTo).toHaveBeenCalledWith(0, 300)
 
     vi.clearAllMocks()
+    window.scrollTo = vi.fn()
     // パス名が変わったように再レンダー（usePathnameのモックを変更）
     ;(usePathname as ReturnType<typeof vi.fn>).mockReturnValue('/new-path')
     rerender(<ScrollRestorer />)
@@ -144,12 +146,14 @@ describe('ScrollRestorer', () => {
       configurable: true,
     })
 
+    window.scrollTo = vi.fn()
     const { rerender } = render(<ScrollRestorer />)
 
     vi.advanceTimersByTime(50)
     expect(window.scrollTo).toHaveBeenCalledWith(0, 700)
 
     vi.clearAllMocks()
+    window.scrollTo = vi.fn()
     // 検索パラメータが変わったように再レンダー（useSearchParamsのモックを変更）
     ;(useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(new URLSearchParams('?filter=test') as any)
     rerender(<ScrollRestorer />)
