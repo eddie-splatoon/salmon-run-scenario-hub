@@ -223,7 +223,7 @@ describe('Home Page (Landing Page)', () => {
     // Supabaseクライアントが呼ばれたことを確認
     expect(createClient).toHaveBeenCalled()
     expect(mockSupabase.from).toHaveBeenCalledWith('scenarios')
-    expect(mockQueryBuilder.limit).toHaveBeenCalledWith(6)
+    expect(mockQueryBuilder.limit).toHaveBeenCalledWith(60) // limit * 10 = 6 * 10 = 60
     expect(mockSupabase.from).toHaveBeenCalledWith('scenario_weapons')
     expect(mockWeaponQueryBuilder.limit).toHaveBeenCalledWith(24) // 6シナリオ × 4武器 = 24
   })
