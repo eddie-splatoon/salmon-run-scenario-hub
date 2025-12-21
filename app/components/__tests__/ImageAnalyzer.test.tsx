@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import React from 'react'
 import ImageAnalyzer from '../ImageAnalyzer'
 import { useRouter } from 'next/navigation'
 
@@ -189,7 +190,6 @@ describe('ImageAnalyzer', () => {
   })
 
   it('should show error for non-image file', async () => {
-    const user = userEvent.setup()
     render(<ImageAnalyzer />)
 
     const file = new File(['test'], 'test.txt', { type: 'text/plain' })
@@ -222,7 +222,6 @@ describe('ImageAnalyzer', () => {
   })
 
   it('should show error for file too large', async () => {
-    const user = userEvent.setup()
     render(<ImageAnalyzer />)
 
     // 10MBを超えるファイルを作成
