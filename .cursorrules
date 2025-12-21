@@ -105,6 +105,151 @@ const { data: { user } } = await supabase.auth.getUser()
 - `@testing-library/jest-dom`のマッチャーを使用
 - モックは`vi.mock()`を使用
 
+### テスト作成時の留意事項
+
+#### 1. グローバルオブジェクトのモック
+
+**`navigator.clipboard`のモック**:
+- `navigator.clipboard`は読み取り専用プロパティのため、直接代入できない
+- `Object.defineProperty`を使用してモックする
+- `beforeEach`で毎回再設定する
+
+```typescript
+const mockWriteText = vi.fn().mockResolvedValue(undefined)
+
+beforeEach(() => {
+  Object.defineProperty(global.navigator, 'clipboard', {
+    value: {
+      writeText: mockWriteText,
+    },
+    writable: true,
+    configurable: true,
+  })
+})
+```
+
+#### 2. fetchモックの設定
+
+**初期データ取得とテスト対象リクエストの両方に対応**:
+- コンポーネントのマウント時に実行される初期データ取得用のfetchと、テスト対象のリクエスト用のfetchの両方に対応する
+- URLやメソッドで条件分岐して適切なレスポンスを返す
+
+```typescript
+global.fetch = vi.fn((url: string, options?: any) => {
+  // テスト対象のリクエスト
+  if (options?.method === 'POST' && url.includes('/api/endpoint')) {
+    return Promise.resolve({
+      json: async () => ({ success: true, data: {} }),
+    })
+  }
+  // 初期データ取得用のリクエスト
+  if (url.includes('/api/initial-data')) {
+    return Promise.resolve({
+      json: async () => ({ success: true, data: mockData }),
+    })
+  }
+  return Promise.resolve({
+    json: async () => ({ success: true, data: {} }),
+  })
+})
+```
+
+#### 3. 要素の取得方法
+
+**labelとinputの関連付けがない場合**:
+- `getByLabelText`は`for`属性や`aria-labelledby`で関連付けられている必要がある
+- 関連付けがない場合は`getByRole('textbox')`や`getAllByRole('textbox')`を使用
+
+```typescript
+// labelとinputが関連付けられていない場合
+const textboxes = screen.getAllByRole('textbox')
+const nameInput = textboxes[0]
+```
+
+**複数の要素に同じテキストが存在する場合**:
+- `getByText`の代わりに`getAllByText`を使用
+- または、より具体的なセレクタ（`getByRole`, `getByTestId`など）を使用
+
+```typescript
+// 複数の要素に同じテキストが存在する場合
+const elements = screen.getAllByText('テキスト')
+expect(elements.length).toBeGreaterThan(0)
+```
+
+#### 4. 非同期処理の待機
+
+**非同期処理が完了するまで待つ**:
+- `waitFor`を使用して非同期処理の完了を待つ
+- タイムアウトを適切に設定する（デフォルトは1000ms）
+
+```typescript
+await waitFor(
+  () => {
+    expect(mockFunction).toHaveBeenCalledWith(expectedArgs)
+  },
+  { timeout: 3000 }
+)
+```
+
+#### 5. Material-UIコンポーネントのモック
+
+**Material-UIコンポーネントをモックする場合**:
+- `multiple`プロパティなど、コンポーネントの全プロパティに対応する
+- `renderInput`などのコールバック関数も適切に処理する
+
+```typescript
+vi.mock('@mui/material', () => ({
+  Autocomplete: ({ options, value, onChange, renderInput, multiple, ...props }: any) => {
+    // multipleプロパティにも対応
+    return (
+      <div data-testid="autocomplete">
+        <select
+          multiple={multiple}
+          onChange={(e) => {
+            // onChange処理
+          }}
+        >
+          {options.map((opt: any) => (
+            <option key={opt.id} value={opt.id}>{opt.name}</option>
+          ))}
+        </select>
+        {renderInput && renderInput({})}
+      </div>
+    )
+  },
+}))
+```
+
+#### 6. 画像のalt属性での検索
+
+**画像要素の検索**:
+- 武器名などが画像の`alt`属性に存在する場合は、`getByAltText`を使用
+- `getByText`では見つからない場合がある
+
+```typescript
+// 画像のalt属性で検索
+expect(screen.getByAltText('スプラシューター')).toBeInTheDocument()
+```
+
+#### 7. テストの独立性
+
+**各テストは独立して実行できるようにする**:
+- `beforeEach`でモックをクリアし、初期状態にリセットする
+- グローバルオブジェクトのモックも`beforeEach`で再設定する
+
+```typescript
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockFunction.mockClear()
+  // グローバルオブジェクトのモックも再設定
+  Object.defineProperty(global.navigator, 'clipboard', {
+    value: { writeText: mockWriteText },
+    writable: true,
+    configurable: true,
+  })
+})
+```
+
 ## エラーハンドリング
 
 ```typescript
