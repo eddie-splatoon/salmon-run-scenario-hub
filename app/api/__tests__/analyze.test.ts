@@ -135,22 +135,14 @@ describe('POST /api/analyze', () => {
     vi.mocked(lookupStageId).mockResolvedValue(1)
     vi.mocked(lookupWeaponIds).mockResolvedValue([1, 2])
 
-    // Fileオブジェクトを作成（jsdom環境ではarrayBufferメソッドが正しく動作しないため、モックする）
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3, 4, 5])
-    const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドをモック（jsdom環境では正しく動作しないため）
-    file.arrayBuffer = vi.fn().mockResolvedValue(fileContent.buffer)
     
-    const formData = new FormData()
-    formData.append('image', file)
-
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
-      body: formData,
     })
-    // formData()をモックして、モックされたFileオブジェクトを含むFormDataを返す
-    const mockFormData = new FormData()
-    mockFormData.append('image', file)
+    // formData()をモックして、arrayBufferメソッドを持つFileオブジェクトを含むFormDataを返す
+    const mockFormData = createMockFormDataWithFile(fileContent)
     vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
@@ -220,22 +212,14 @@ describe('POST /api/analyze', () => {
     vi.mocked(lookupStageId).mockResolvedValue(1)
     vi.mocked(lookupWeaponIds).mockResolvedValue([])
 
-    // Fileオブジェクトを作成（jsdom環境ではarrayBufferメソッドが正しく動作しないため、モックする）
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3])
-    const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドをモック（jsdom環境では正しく動作しないため）
-    file.arrayBuffer = vi.fn().mockResolvedValue(fileContent.buffer)
     
-    const formData = new FormData()
-    formData.append('image', file)
-
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
-      body: formData,
     })
-    // formData()をモックして、モックされたFileオブジェクトを含むFormDataを返す
-    const mockFormData = new FormData()
-    mockFormData.append('image', file)
+    // formData()をモックして、arrayBufferメソッドを持つFileオブジェクトを含むFormDataを返す
+    const mockFormData = createMockFormDataWithFile(fileContent)
     vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
@@ -261,22 +245,14 @@ describe('POST /api/analyze', () => {
 
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
 
-    // Fileオブジェクトを作成（jsdom環境ではarrayBufferメソッドが正しく動作しないため、モックする）
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3])
-    const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドをモック（jsdom環境では正しく動作しないため）
-    file.arrayBuffer = vi.fn().mockResolvedValue(fileContent.buffer)
     
-    const formData = new FormData()
-    formData.append('image', file)
-
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
-      body: formData,
     })
-    // formData()をモックして、モックされたFileオブジェクトを含むFormDataを返す
-    const mockFormData = new FormData()
-    mockFormData.append('image', file)
+    // formData()をモックして、arrayBufferメソッドを持つFileオブジェクトを含むFormDataを返す
+    const mockFormData = createMockFormDataWithFile(fileContent)
     vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
