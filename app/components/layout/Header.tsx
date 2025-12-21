@@ -16,6 +16,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchCode, setSearchCode] = useState('')
+  const [avatarError, setAvatarError] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -144,9 +145,27 @@ export default function Header() {
                     className="flex items-center space-x-2 rounded-full bg-gray-800 p-2 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     aria-label="ユーザーメニュー"
                   >
-                    <UserIcon className="h-5 w-5 text-gray-300" />
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
+                      {user.user_metadata?.avatar_url && !avatarError ? (
+                        <img
+                          src={user.user_metadata.avatar_url}
+                          alt={user.user_metadata?.full_name || 'ユーザー'}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : user.user_metadata?.picture && !avatarError ? (
+                        <img
+                          src={user.user_metadata.picture}
+                          alt={user.user_metadata?.full_name || 'ユーザー'}
+                          className="w-full h-full object-cover"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        <UserIcon className="h-4 w-4 text-gray-300" />
+                      )}
+                    </div>
                     <span className="hidden lg:block text-sm text-gray-300">
-                      {user.email?.split('@')[0] || 'ユーザー'}
+                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー'}
                     </span>
                   </button>
                 </DropdownMenu.Trigger>
@@ -161,7 +180,9 @@ export default function Header() {
                       disabled
                     >
                       <UserIcon className="h-4 w-4" />
-                      <span className="truncate">{user.email}</span>
+                      <span className="truncate">
+                        {user.user_metadata?.full_name || 'ユーザー'}
+                      </span>
                     </DropdownMenu.Item>
                     <DropdownMenu.Separator className="my-1 h-px bg-gray-700" />
                     <Link href="/profile" className="w-full">
@@ -265,7 +286,9 @@ export default function Header() {
                 </div>
               ) : user ? (
                 <>
-                  <div className="px-3 py-2 text-sm text-gray-400">{user.email}</div>
+                  <div className="px-3 py-2 text-sm text-gray-400">
+                    {user.user_metadata?.full_name || 'ユーザー'}
+                  </div>
                   <Link
                     href="/profile"
                     onClick={() => setMobileMenuOpen(false)}

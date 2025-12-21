@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { TrendingUp, Trash2 } from 'lucide-react'
+import { TrendingUp, Trash2, User } from 'lucide-react'
 
 interface Weapon {
   weapon_id: number
@@ -17,11 +17,18 @@ interface ScenarioCardProps {
   dangerRate: number
   totalGoldenEggs: number
   weapons: Weapon[]
+  authorId?: string
   showTrending?: boolean
   trendingCount?: number
   showDelete?: boolean
   onDelete?: (code: string) => void
   isDeleting?: boolean
+}
+
+interface UserInfo {
+  id: string
+  name: string | null
+  avatar_url: string | null
 }
 
 export default function ScenarioCard({
@@ -30,12 +37,38 @@ export default function ScenarioCard({
   dangerRate,
   totalGoldenEggs,
   weapons,
+  authorId,
   showTrending = false,
   trendingCount = 0,
   showDelete = false,
   onDelete,
   isDeleting = false,
 }: ScenarioCardProps) {
+  const [authorInfo, setAuthorInfo] = useState<UserInfo | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
+
+  useEffect(() => {
+    if (!authorId) return
+
+    const fetchAuthorInfo = async () => {
+      try {
+        const response = await fetch(`/api/users/${authorId}`)
+        const data = await response.json()
+        if (data.success && data.data) {
+          setAuthorInfo({
+            id: data.data.id,
+            name: data.data.name,
+            avatar_url: data.data.avatar_url,
+          })
+        }
+      } catch (error) {
+        console.error('投稿者情報取得エラー:', error)
+      }
+    }
+
+    fetchAuthorInfo()
+  }, [authorId])
+
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -105,23 +138,47 @@ export default function ScenarioCard({
         </div>
 
         {/* フッタ */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-700">
-          {showTrending && (
-            <div className="flex items-center gap-1 text-orange-500 text-xs font-semibold">
-              <TrendingUp className="h-3 w-3" />
-              <span>{trendingCount}</span>
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-700">
+          {/* 投稿者アイコン */}
+          {authorInfo && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
+                {authorInfo.avatar_url && !avatarError ? (
+                  <img
+                    src={authorInfo.avatar_url}
+                    alt={authorInfo.name || '投稿者'}
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <User className="w-3 h-3 text-gray-300" />
+                )}
+              </div>
+              {authorInfo.name && (
+                <span className="text-xs text-gray-400 truncate max-w-[100px]">
+                  {authorInfo.name}
+                </span>
+              )}
             </div>
           )}
-          {showDelete && onDelete && (
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="削除"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {showTrending && (
+              <div className="flex items-center gap-1 text-orange-500 text-xs font-semibold">
+                <TrendingUp className="h-3 w-3" />
+                <span>{trendingCount}</span>
+              </div>
+            )}
+            {showDelete && onDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="削除"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Link>

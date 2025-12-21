@@ -25,6 +25,7 @@ interface ScenarioDetail {
   total_golden_eggs: number
   total_power_eggs: number
   created_at: string
+  author_id: string
   waves: WaveDetail[]
   weapons: WeaponDetail[]
   like_count: number
@@ -59,6 +60,7 @@ export async function GET(
       .from('scenarios')
       .select(`
         code,
+        author_id,
         stage_id,
         danger_rate,
         total_golden_eggs,
@@ -83,6 +85,7 @@ export async function GET(
     // 型アサーション
     type ScenarioWithStage = {
       code: string
+      author_id: string
       stage_id: number
       danger_rate: number
       total_golden_eggs: number
@@ -188,6 +191,7 @@ export async function GET(
       total_golden_eggs: typedScenario.total_golden_eggs,
       total_power_eggs: typedScenario.total_power_eggs,
       created_at: typedScenario.created_at,
+      author_id: typedScenario.author_id,
       waves: (waves || []).map((wave) => ({
         wave_number: wave.wave_number,
         tide: wave.tide,

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { FormEvent } from 'react'
-import { Copy, Heart, MessageCircle, ArrowLeft } from 'lucide-react'
+import { Copy, Heart, MessageCircle, ArrowLeft, User } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { calculateScenarioTags } from '@/lib/utils/scenario-tags'
 
 interface WaveDetail {
   wave_number: number
@@ -30,6 +31,7 @@ interface ScenarioDetail {
   total_golden_eggs: number
   total_power_eggs: number
   created_at: string
+  author_id: string
   waves: WaveDetail[]
   weapons: WeaponDetail[]
   like_count: number
@@ -54,6 +56,12 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
   const [commentContent, setCommentContent] = useState('')
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [isLoadingComments, setIsLoadingComments] = useState(false)
+  const [authorInfo, setAuthorInfo] = useState<{
+    id: string
+    name: string | null
+    avatar_url: string | null
+  } | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
 
   const loadComments = useCallback(async () => {
     setIsLoadingComments(true)
@@ -74,6 +82,29 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
   useEffect(() => {
     loadComments()
   }, [loadComments])
+
+  // 投稿者情報を取得
+  useEffect(() => {
+    if (!scenario.author_id) return
+
+    const fetchAuthorInfo = async () => {
+      try {
+        const response = await fetch(`/api/users/${scenario.author_id}`)
+        const data = await response.json()
+        if (data.success && data.data) {
+          setAuthorInfo({
+            id: data.data.id,
+            name: data.data.name,
+            avatar_url: data.data.avatar_url,
+          })
+        }
+      } catch (error) {
+        console.error('投稿者情報取得エラー:', error)
+      }
+    }
+
+    fetchAuthorInfo()
+  }, [scenario.author_id])
 
   const handleCopyCode = async () => {
     try {
@@ -186,6 +217,21 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
     })
   }
 
+  // ハッシュタグを計算
+  const { tags, tagColors } = calculateScenarioTags({
+    danger_rate: scenario.danger_rate,
+    total_golden_eggs: scenario.total_golden_eggs,
+    waves: scenario.waves.map((w) => ({
+      wave_number: w.wave_number,
+      event: w.event,
+      cleared: w.cleared,
+    })),
+    weapons: scenario.weapons.map((w) => ({
+      weapon_id: w.weapon_id,
+      weapon_name: w.weapon_name,
+    })),
+  })
+
   return (
     <div className="bg-gray-900 min-h-screen">
       <div className="container mx-auto px-4 py-8">
@@ -204,7 +250,29 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
             <div className="flex-1 mb-4 md:mb-0">
               <h1 className="text-3xl font-bold text-gray-100 mb-2">{scenario.code}</h1>
-              <p className="text-lg text-gray-400">{scenario.stage_name}</p>
+              <p className="text-lg text-gray-400 mb-2">{scenario.stage_name}</p>
+              {/* 投稿者情報 */}
+              {authorInfo && (
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
+                    {authorInfo.avatar_url && !avatarError ? (
+                      <img
+                        src={authorInfo.avatar_url}
+                        alt={authorInfo.name || '投稿者'}
+                        className="w-full h-full object-cover"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <User className="w-4 h-4 text-gray-300" />
+                    )}
+                  </div>
+                  {authorInfo.name && (
+                    <span className="text-sm text-gray-400">
+                      投稿者: {authorInfo.name}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-4">
               {/* コピーボタン */}
@@ -233,6 +301,25 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
               <div className="text-sm text-gray-300">{formatDate(scenario.created_at)}</div>
             </div>
           </div>
+
+          {/* ハッシュタグ */}
+          {tags.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">タグ</h2>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-semibold border ${
+                      tagColors[tag] || 'bg-gray-500/20 text-gray-300 border-gray-500/50'
+                    }`}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 武器 */}
           <div className="mb-6">
