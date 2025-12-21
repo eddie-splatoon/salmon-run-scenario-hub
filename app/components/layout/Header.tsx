@@ -98,7 +98,7 @@ export default function Header() {
     console.error('[Header] loadUser()を呼び出し')
     loadUser()
 
-    // 認証状態の変更を監視
+    // 認証状態の変更を監視（プロフィール取得はloadUserとpathname変更時のuseEffectで行う）
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -107,48 +107,8 @@ export default function Header() {
       setUser(currentUser)
       setLoading(false) // 認証状態変更時もローディングを解除
       
-      // プロフィール情報を再取得
-      if (currentUser) {
-        console.error('[Header] onAuthStateChange - プロフィール取得開始, user_id:', currentUser.id)
-        // 新しいSupabaseクライアントインスタンスを作成
-        const profileSupabase = createClient()
-        try {
-          console.error('[Header] onAuthStateChange - supabase.from呼び出し前')
-          // profilesテーブルから取得を試みる
-          const profileResult = await profileSupabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('user_id', currentUser.id)
-            .maybeSingle()
-          
-          console.error('[Header] onAuthStateChange - supabase.from呼び出し後')
-          const { data: profile, error: profileError } = profileResult
-          
-          console.error('[Header] onAuthStateChange - プロフィール取得結果:', { 
-            hasProfile: !!profile, 
-            hasAvatarUrl: !!profile?.avatar_url,
-            avatarUrlLength: profile?.avatar_url?.length || 0,
-            error: profileError,
-            errorMessage: profileError?.message
-          })
-          
-          if (profileError) {
-            console.error('[Header] onAuthStateChange - プロフィール取得エラー:', profileError)
-            // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
-            setProfileAvatarUrl(null)
-          } else if (profile?.avatar_url) {
-            console.error('[Header] onAuthStateChange - avatar_urlを設定:', profile.avatar_url.substring(0, 50))
-            setProfileAvatarUrl(profile.avatar_url)
-          } else {
-            console.error('[Header] onAuthStateChange - avatar_urlをnullに設定（profilesテーブルにデータなし）')
-            setProfileAvatarUrl(null)
-          }
-        } catch (error) {
-          console.error('[Header] プロフィール取得エラー:', error)
-          // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
-          setProfileAvatarUrl(null)
-        }
-      } else {
+      // ログアウト時はプロフィールをクリア
+      if (!currentUser) {
         setProfileAvatarUrl(null)
       }
     })
