@@ -64,7 +64,7 @@ export async function POST(
     const base64Image = buffer.toString('base64')
     const dataUrl = `data:${imageFile.type};base64,${base64Image}`
 
-    // プロフィールを更新
+    // auth.usersのuser_metadataを更新
     const { error: updateError } = await supabase.auth.updateUser({
       data: {
         avatar_url: dataUrl,
@@ -80,6 +80,17 @@ export async function POST(
         },
         { status: 500 }
       )
+    }
+
+    // profilesテーブルも更新（user_idカラムを使用）
+    const { error: profileUpdateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: dataUrl })
+      .eq('user_id', user.id)
+
+    if (profileUpdateError) {
+      console.error('[POST /api/profile/avatar] profilesテーブル更新エラー:', profileUpdateError)
+      // profilesテーブルの更新エラーは無視（auth.usersの更新は成功しているため）
     }
 
     return NextResponse.json({
