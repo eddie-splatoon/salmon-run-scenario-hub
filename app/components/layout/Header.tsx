@@ -59,12 +59,14 @@ export default function Header() {
               if (user.user_metadata?.picture) {
                 setProfileAvatarUrl(user.user_metadata.picture)
               }
-            } else if (profile?.avatar_url) {
-              setProfileAvatarUrl(profile.avatar_url)
-            } else if (user.user_metadata?.picture) {
-              // Googleアカウントのデフォルト画像を使用
-              setProfileAvatarUrl(user.user_metadata.picture)
-            }
+          } else if (profile?.avatar_url) {
+            console.error('[Header] profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
+            setProfileAvatarUrl(profile.avatar_url)
+          } else {
+            // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
+            console.error('[Header] profilesテーブルにavatar_urlなし')
+            setProfileAvatarUrl(null)
+          }
           } catch (error) {
             console.error('[Header] プロフィール取得例外:', error)
             // エラーが発生した場合はuser_metadataから取得（pictureのみ）
@@ -174,12 +176,9 @@ export default function Header() {
           } else if (profile?.avatar_url) {
             console.error('[Header] プロフィールavatar_urlを設定:', profile.avatar_url.substring(0, 50))
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (user.user_metadata?.picture) {
-            // Googleアカウントのデフォルト画像を使用
-            console.error('[Header] user_metadata.pictureを設定')
-            setProfileAvatarUrl(user.user_metadata.picture)
           } else {
-            console.error('[Header] avatar_urlをnullに設定')
+            // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
+            console.error('[Header] avatar_urlをnullに設定（profilesテーブルにデータなし）')
             setProfileAvatarUrl(null)
           }
         } catch (error) {
@@ -313,12 +312,15 @@ export default function Header() {
                     aria-label="ユーザーメニュー"
                   >
                     <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden">
-                      {profileAvatarUrl && !avatarError ? (
+                      {profileAvatarUrl ? (
                         <img
                           src={profileAvatarUrl}
                           alt={user.user_metadata?.full_name || 'ユーザー'}
                           className="w-full h-full object-cover"
-                          onError={() => setAvatarError(true)}
+                          onError={() => {
+                            console.error('[Header] アバター画像読み込みエラー:', profileAvatarUrl)
+                            setAvatarError(true)
+                          }}
                         />
                       ) : user.user_metadata?.picture && !avatarError ? (
                         <img
