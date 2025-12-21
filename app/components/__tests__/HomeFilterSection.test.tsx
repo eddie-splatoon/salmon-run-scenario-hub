@@ -1,20 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import HomeFilterSection from '../HomeFilterSection'
 
 // Next.jsのnavigationをモック
-const mockReplace = vi.fn()
-const mockGet = vi.fn()
-const mockToString = vi.fn(() => '')
-
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    replace: mockReplace,
-  }),
-  useSearchParams: () => ({
-    get: mockGet,
-    toString: mockToString,
-  }),
+  useRouter: vi.fn(),
+  useSearchParams: vi.fn(),
 }))
 
 // lucide-reactのアイコンをモック
@@ -23,10 +15,21 @@ vi.mock('lucide-react', () => ({
 }))
 
 describe('HomeFilterSection', () => {
+  const mockReplace = vi.fn()
+  const mockGet = vi.fn()
+  const mockToString = vi.fn(() => '')
+
   beforeEach(() => {
     vi.clearAllMocks()
     mockGet.mockReturnValue(null)
     mockToString.mockReturnValue('')
+    ;(useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
+      replace: mockReplace,
+    })
+    ;(useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue({
+      get: mockGet,
+      toString: mockToString,
+    } as any)
     // sessionStorageをモック
     Object.defineProperty(window, 'sessionStorage', {
       value: {
