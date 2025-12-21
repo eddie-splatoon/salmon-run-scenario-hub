@@ -250,6 +250,148 @@ beforeEach(() => {
 })
 ```
 
+#### 8. ファイル入力要素の取得
+
+**labelとinputの関連付けがない場合**:
+- Material-UIの`Button`コンポーネントが`component="label"`として使用されている場合、`getByLabelText`では取得できない
+- `document.querySelector('input[type="file"]')`で直接取得する
+
+```typescript
+// labelとinputが関連付けられていない場合
+const input = document.querySelector('input[type="file"]') as HTMLInputElement
+expect(input).toBeInTheDocument()
+await user.upload(input, file)
+```
+
+#### 9. エラーメッセージと成功メッセージの検証
+
+**非同期で表示されるメッセージの検証**:
+- `getByText`の代わりに`queryByText`を使用し、`waitFor`で適切に待機する
+- タイムアウト時間を適切に設定する（デフォルトは1000ms）
+
+```typescript
+// エラーメッセージの検証
+await waitFor(
+  () => {
+    const errorMessage = screen.queryByText('エラーメッセージ')
+    expect(errorMessage).toBeInTheDocument()
+  },
+  { timeout: 3000 }
+)
+```
+
+#### 10. ファイルアップロードのテスト
+
+**ファイルアップロードのテスト**:
+- `user.upload`が正しく動作しない場合は、直接イベントを発火する
+- ファイルの型チェックやサイズチェックのテストでは、`Object.defineProperty`でファイルを設定してからイベントを発火する
+
+```typescript
+// ファイルを直接設定してonChangeイベントを発火
+const file = new File(['test'], 'test.txt', { type: 'text/plain' })
+const input = document.querySelector('input[type="file"]') as HTMLInputElement
+
+Object.defineProperty(input, 'files', {
+  value: [file],
+  writable: false,
+  configurable: true,
+})
+
+// ChangeEventを作成して発火
+const changeEvent = new Event('change', { bubbles: true }) as any
+Object.defineProperty(changeEvent, 'target', {
+  value: input,
+  enumerable: true,
+})
+input.dispatchEvent(changeEvent)
+```
+
+#### 11. フォーム送信のテスト
+
+**フォームのsubmitイベントのテスト**:
+- Material-UIの`Button`コンポーネントが`type="submit"`の場合、`user.click`でボタンをクリックしてもフォームの`onSubmit`が発火しない場合がある
+- フォームの`submit`イベントを直接発火する
+
+```typescript
+// フォーム要素を取得
+const form = screen.getByText('保存する').closest('form') as HTMLFormElement
+expect(form).toBeInTheDocument()
+
+// フォームのsubmitイベントを直接発火
+const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+const preventDefaultSpy = vi.fn()
+Object.defineProperty(submitEvent, 'preventDefault', {
+  value: preventDefaultSpy,
+  writable: true,
+})
+form.dispatchEvent(submitEvent)
+```
+
+#### 12. global.fetchのモック
+
+**テスト内でglobal.fetchを上書きする場合**:
+- `beforeEach`で設定された`global.fetch`と、テスト内で設定された`global.fetch`が競合する可能性がある
+- テスト内で`global.fetch`を上書きする場合は、元のモックを保存してから上書きし、テスト終了時に復元する
+- URLの型が`string | URL | Request`の可能性があるため、適切に処理する
+
+```typescript
+it('should handle save scenario', async () => {
+  // 元のfetchを保存
+  const originalFetch = global.fetch
+  
+  // fetchモックを設定
+  const fetchMock = vi.fn((url: string | URL | Request, options?: any) => {
+    const urlString = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url
+    // モック処理
+  })
+  
+  global.fetch = fetchMock
+  
+  // テスト実行
+  
+  // 元のfetchを復元
+  global.fetch = originalFetch
+})
+```
+
+#### 13. タイムアウト時間の設定
+
+**長時間実行されるテスト**:
+- 非同期処理が多いテストや、複数のAPI呼び出しを含むテストでは、タイムアウト時間を適切に設定する
+- テスト全体のタイムアウトを設定する場合は、`it`の第2引数にタイムアウト時間を指定する
+
+```typescript
+it('should handle save scenario', async () => {
+  // テストコード
+}, 15000) // テスト全体のタイムアウトを15秒に設定
+
+// または、waitForのタイムアウトを個別に設定
+await waitFor(
+  () => {
+    expect(someCondition).toBe(true)
+  },
+  { timeout: 10000 }
+)
+```
+
+#### 14. fetchモックの呼び出し確認
+
+**fetchモックが正しく呼ばれたことを確認する**:
+- `fetchMock.mock.calls`を確認する際は、URLの型が`string | URL | Request`の可能性があるため、適切に処理する
+- 複数のAPI呼び出しがある場合は、URLやメソッドでフィルタリングする
+
+```typescript
+// fetchMockが呼ばれたか確認
+const saveCalls = fetchMock.mock.calls.filter(
+  (call) => {
+    const url = typeof call[0] === 'string' ? call[0] : call[0] instanceof URL ? call[0].toString() : call[0]?.url || ''
+    const options = call[1] || {}
+    return url.includes('/api/scenarios') && !url.includes('/check') && options.method === 'POST'
+  }
+)
+expect(saveCalls.length).toBeGreaterThan(0)
+```
+
 ## エラーハンドリング
 
 ```typescript
