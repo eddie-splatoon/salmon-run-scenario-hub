@@ -14,6 +14,7 @@ describe('PUT /api/profile', () => {
       getUser: vi.fn(),
       updateUser: vi.fn(),
     },
+    from: vi.fn(),
   }
 
   beforeEach(() => {
