@@ -88,6 +88,7 @@ export default function Header() {
       }
     }
     
+    console.error('[Header] loadUser()を呼び出し')
     loadUser()
 
     // 認証状態の変更を監視
