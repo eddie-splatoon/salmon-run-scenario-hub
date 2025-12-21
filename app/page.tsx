@@ -25,11 +25,11 @@ interface ScenarioListItem {
   weapons: Weapon[]
 }
 
-async function getLatestScenarios(limit: number = 6, filter: string | null = null, tag: string | null = null): Promise<ScenarioListItem[]> {
+async function getLatestScenarios(limit: number = 6, tags: string[] = []): Promise<ScenarioListItem[]> {
   try {
     const supabase = await createClient()
 
-    let query = supabase
+    const query = supabase
       .from('scenarios')
       .select(`
         code,
@@ -41,11 +41,6 @@ async function getLatestScenarios(limit: number = 6, filter: string | null = nul
         m_stages!inner(name)
       `)
       .order('created_at', { ascending: false })
-
-    // クイックフィルタ: カンスト向け（danger_rate = 333）
-    if (filter === 'max_danger') {
-      query = query.eq('danger_rate', 333)
-    }
 
     const { data: scenarios, error: scenariosError } = await query.limit(limit * 10) // フィルタ後にlimitを適用するため、多めに取得
 
@@ -99,33 +94,11 @@ async function getLatestScenarios(limit: number = 6, filter: string | null = nul
       m_weapons: { id: number; name: string; icon_url: string | null }
     }>
 
-    // 武器フィルター適用（クマサン印フィルタ）
+    // 武器フィルター適用
     let filteredScenarios = typedScenarios
-    
-    // クイックフィルタ: クマサン印あり
-    if (filter === 'grizzco') {
-      // クマサン印の武器IDを取得
-      const { data: grizzcoWeapons, error: grizzcoError } = await supabase
-        .from('m_weapons')
-        .select('id')
-        .eq('is_grizzco_weapon', true)
 
-      if (!grizzcoError && grizzcoWeapons && grizzcoWeapons.length > 0) {
-        const grizzcoWeaponIds = grizzcoWeapons.map((w) => w.id)
-        // クマサン印の武器を少なくとも1つ含むシナリオを抽出
-        filteredScenarios = typedScenarios.filter((scenario) => {
-          const scenarioWeaponIds = typedScenarioWeapons
-            .filter((sw) => sw.scenario_code === scenario.code)
-            .map((sw) => sw.weapon_id)
-          return grizzcoWeaponIds.some((weaponId) => scenarioWeaponIds.includes(weaponId))
-        })
-      } else {
-        filteredScenarios = []
-      }
-    }
-
-    // ハッシュタグフィルター適用
-    if (tag) {
+    // ハッシュタグフィルター適用（OR条件：いずれかのタグが含まれていればOK）
+    if (tags.length > 0) {
       // WAVE情報を取得（ハッシュタグ判定に必要）
       const { data: scenarioWaves, error: wavesError } = await supabase
         .from('scenario_waves')
@@ -159,15 +132,15 @@ async function getLatestScenarios(limit: number = 6, filter: string | null = nul
               weapon_name: sw.m_weapons.name,
             }))
 
-          return hasTag(
-            {
-              danger_rate: scenario.danger_rate,
-              total_golden_eggs: scenario.total_golden_eggs,
-              waves,
-              weapons,
-            },
-            tag
-          )
+          const scenarioInfo = {
+            danger_rate: scenario.danger_rate,
+            total_golden_eggs: scenario.total_golden_eggs,
+            waves,
+            weapons,
+          }
+
+          // OR条件：いずれかのタグが含まれていればOK
+          return tags.some((tag) => hasTag(scenarioInfo, tag))
         })
       }
     }
@@ -341,13 +314,12 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; tag?: string }>
+  searchParams: Promise<{ tags?: string }>
 }) {
   const params = await searchParams
-  const filter = params.filter || null
-  const tag = params.tag || null
+  const tags = params.tags?.split(',').filter(Boolean) || []
   
-  const latestScenarios = await getLatestScenarios(6, filter, tag)
+  const latestScenarios = await getLatestScenarios(6, tags)
   const trendingScenarios = await getTrendingScenarios(6)
 
   return (
