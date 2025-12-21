@@ -62,7 +62,8 @@ describe('POST /api/analyze', () => {
   })
 
   it('returns 400 when image file is missing', async () => {
-    // FormDataをbodyに設定する場合、Content-Typeは自動設定されるため、手動で設定しない
+    // 空のFormDataを作成してbodyに設定
+    // NextRequestはFormDataをbodyに設定する際、適切なContent-Typeを自動設定する
     const formData = new FormData()
     const request = new NextRequest('http://localhost:3000/api/analyze', {
       method: 'POST',
