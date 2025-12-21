@@ -29,6 +29,12 @@ export default function Header() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
+        console.error('[Header] getUser結果:', { 
+          hasUser: !!user, 
+          userId: user?.id,
+          error: userError 
+        })
+        
         if (userError) {
           console.error('[Header] ユーザー取得エラー:', userError)
           setUser(null)
@@ -36,6 +42,7 @@ export default function Header() {
           return
         }
         
+        console.error('[Header] ユーザーを設定:', user?.id)
         setUser(user)
         
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
@@ -275,7 +282,7 @@ export default function Header() {
               ガイド
             </Link>
 
-            {/* ユーザーメニュー */}
+            {/* ユーザーメニュー - DEBUG: loading={String(loading)}, user={user ? user.id : 'null'} */}
             {loading ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-gray-700" />
             ) : user ? (
