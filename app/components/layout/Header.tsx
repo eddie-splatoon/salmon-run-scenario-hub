@@ -36,7 +36,6 @@ export default function Header() {
           return
         }
         
-        console.log('[Header] ユーザー取得成功:', user ? 'ログイン中' : '未ログイン')
         setUser(user)
         
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
@@ -52,18 +51,13 @@ export default function Header() {
               console.error('[Header] プロフィール取得エラー:', profileError)
               // エラーが発生した場合はuser_metadataから取得（pictureのみ）
               if (user.user_metadata?.picture) {
-                console.log('[Header] user_metadata.pictureを使用')
                 setProfileAvatarUrl(user.user_metadata.picture)
               }
             } else if (profile?.avatar_url) {
-              console.log('[Header] profilesテーブルのavatar_urlを使用')
               setProfileAvatarUrl(profile.avatar_url)
             } else if (user.user_metadata?.picture) {
-              console.log('[Header] user_metadata.pictureを使用（profilesテーブルにデータなし）')
               // Googleアカウントのデフォルト画像を使用
               setProfileAvatarUrl(user.user_metadata.picture)
-            } else {
-              console.log('[Header] アバター画像なし')
             }
           } catch (error) {
             console.error('[Header] プロフィール取得例外:', error)
@@ -77,7 +71,6 @@ export default function Header() {
         console.error('[Header] ユーザー読み込み例外:', error)
         setUser(null)
       } finally {
-        console.log('[Header] ローディング完了')
         setLoading(false)
       }
     }
