@@ -22,7 +22,9 @@ vi.mock('next/headers', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
-  redirect: vi.fn(),
+  redirect: vi.fn(() => {
+    throw new Error('NEXT_REDIRECT')
+  }),
 }))
 
 vi.mock('../ProfileClient', () => ({
@@ -115,6 +117,20 @@ describe('ProfilePage', () => {
       }),
     }
 
+    const mockStageStatsQuery = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          {
+            stage_id: 1,
+            m_stages: { name: 'アラマキ砦' },
+          },
+        ],
+        error: null,
+      }),
+    }
+
     const mockLikesQuery = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -138,14 +154,34 @@ describe('ProfilePage', () => {
       }),
     }
 
+    // getStatisticsData内でscenariosテーブルに複数回アクセスするため、呼び出し回数で分岐
+    let scenariosCallCount = 0
     mockSupabase.from = vi.fn((table: string) => {
       if (table === 'scenarios') {
-        // 最初の呼び出しはgetUserScenarios、2回目はgetStatisticsData
-        const callCount = mockSupabase.from.mock.calls.filter((c) => c[0] === 'scenarios').length
-        if (callCount === 1) {
+        scenariosCallCount++
+        // 1回目: getUserScenarios
+        if (scenariosCallCount === 1) {
           return mockScenariosQuery
         }
-        return mockStatsQuery
+        // 2回目: getStatisticsData - total_golden_eggs, stage_id取得
+        if (scenariosCallCount === 2) {
+          return mockStatsQuery
+        }
+        // 3回目: getStatisticsData - stage_id, m_stages取得（ステージ統計用）
+        if (scenariosCallCount === 3) {
+          return mockStageStatsQuery
+        }
+        // 4回目以降: getStatisticsData - いいねしたシナリオの詳細（likedScenarioCodes.length > 0の場合のみ）
+        // このテストではlikesが空なので、この呼び出しは発生しない
+        return {
+          from: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          in: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          }),
+        }
       }
       if (table === 'scenario_weapons') return mockWeaponsQuery
       if (table === 'likes') return mockLikesQuery
@@ -167,7 +203,13 @@ describe('ProfilePage', () => {
       error: { message: 'Not authenticated' },
     })
 
-    await ProfilePage()
+    // redirectは例外を投げるため、try-catchで処理
+    try {
+      await ProfilePage()
+    } catch (error: any) {
+      // NEXT_REDIRECTエラーが投げられることを確認
+      expect(error.message).toBe('NEXT_REDIRECT')
+    }
 
     expect(redirect).toHaveBeenCalledWith('/auth/login')
   })

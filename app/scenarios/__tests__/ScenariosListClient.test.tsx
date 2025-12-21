@@ -156,7 +156,9 @@ describe('ScenariosListClient', () => {
   it('displays loading state initially', () => {
     render(<ScenariosListClient stages={mockStages} weapons={mockWeapons} />)
 
-    expect(screen.getByText('読み込み中...')).toBeInTheDocument()
+    // 「読み込み中...」は複数箇所に存在するため、getAllByTextを使用
+    const loadingTexts = screen.getAllByText('読み込み中...')
+    expect(loadingTexts.length).toBeGreaterThan(0)
   })
 
   it('displays empty state when no scenarios found', async () => {
@@ -182,8 +184,9 @@ describe('ScenariosListClient', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/scenarios?')
     })
 
-    // ステージフィルタを選択
-    const stageSelect = screen.getByTestId('autocomplete-select')
+    // ステージフィルタを選択（複数のautocomplete-selectが存在するため、最初のものを取得）
+    const selects = screen.getAllByTestId('autocomplete-select')
+    const stageSelect = selects[0] // 最初のselectはステージフィルタ
     await user.selectOptions(stageSelect, '1')
 
     await waitFor(() => {
@@ -225,13 +228,14 @@ describe('ScenariosListClient', () => {
     const user = userEvent.setup()
     render(<ScenariosListClient stages={mockStages} weapons={mockWeapons} />)
 
-    // ステージフィルタを選択
+    // ステージフィルタを選択（複数のautocomplete-selectが存在するため、最初のものを取得）
     await waitFor(() => {
-      const stageSelect = screen.getByTestId('autocomplete-select')
-      expect(stageSelect).toBeInTheDocument()
+      const selects = screen.getAllByTestId('autocomplete-select')
+      expect(selects.length).toBeGreaterThan(0)
     })
 
-    const stageSelect = screen.getByTestId('autocomplete-select')
+    const selects = screen.getAllByTestId('autocomplete-select')
+    const stageSelect = selects[0] // 最初のselectはステージフィルタ
     await user.selectOptions(stageSelect, '1')
 
     await waitFor(() => {
