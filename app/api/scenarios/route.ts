@@ -426,8 +426,7 @@ export async function GET(
     const stageId = searchParams.get('stage_id')
     const weaponIds = searchParams.get('weapon_ids')?.split(',').map(Number).filter(Boolean)
     const minDangerRate = searchParams.get('min_danger_rate')
-    const filter = searchParams.get('filter') // クイックフィルタ: 'grizzco' または 'max_danger'
-    const tag = searchParams.get('tag') // ハッシュタグフィルタ
+    const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [] // ハッシュタグフィルタ（複数選択可能、OR条件）
 
     const supabase = await createClient()
 
@@ -453,11 +452,6 @@ export async function GET(
     // キケン度フィルター
     if (minDangerRate) {
       query = query.gte('danger_rate', parseInt(minDangerRate, 10))
-    }
-
-    // クイックフィルタ: カンスト向け（danger_rate = 333）
-    if (filter === 'max_danger') {
-      query = query.eq('danger_rate', 333)
     }
 
     const { data: scenarios, error: scenariosError } = await query
@@ -551,34 +545,11 @@ export async function GET(
 
     const typedScenarioWaves = (scenarioWaves || []) as ScenarioWaveInfo[]
 
-    // 武器フィルター適用（武器IDが指定されている場合、またはクマサン印フィルタ）
+    // 武器フィルター適用（武器IDが指定されている場合）
     // 指定された武器IDをすべて含むシナリオのみを抽出
     let filteredScenarioCodes = scenarioCodes
     
-    // クイックフィルタ: クマサン印あり
-    if (filter === 'grizzco') {
-      // クマサン印の武器IDを取得
-      const { data: grizzcoWeapons, error: grizzcoError } = await supabase
-        .from('m_weapons')
-        .select('id')
-        .eq('is_grizzco_weapon', true)
-
-      if (grizzcoError) {
-        console.error('[GET /api/scenarios] クマサン武器取得エラー:', grizzcoError)
-      } else if (grizzcoWeapons && grizzcoWeapons.length > 0) {
-        const grizzcoWeaponIds = grizzcoWeapons.map((w) => w.id)
-        // クマサン印の武器を少なくとも1つ含むシナリオを抽出
-        filteredScenarioCodes = scenarioCodes.filter((code) => {
-          const scenarioWeaponIds = typedScenarioWeapons
-            .filter((sw) => sw.scenario_code === code)
-            .map((sw) => sw.weapon_id)
-          return grizzcoWeaponIds.some((weaponId) => scenarioWeaponIds.includes(weaponId))
-        })
-      } else {
-        // クマサン武器が見つからない場合は空配列を返す
-        filteredScenarioCodes = []
-      }
-    } else if (weaponIds && weaponIds.length > 0) {
+    if (weaponIds && weaponIds.length > 0) {
       // 各シナリオコードに対して、指定された武器IDをすべて含むかチェック
       filteredScenarioCodes = scenarioCodes.filter((code) => {
         const scenarioWeaponIds = typedScenarioWeapons
@@ -589,8 +560,8 @@ export async function GET(
       })
     }
 
-    // ハッシュタグフィルター適用
-    if (tag) {
+    // ハッシュタグフィルター適用（OR条件：いずれかのタグが含まれていればOK）
+    if (tags.length > 0) {
       filteredScenarioCodes = filteredScenarioCodes.filter((code) => {
         const scenario = typedScenarios.find((s) => s.code === code)
         if (!scenario) return false
@@ -609,15 +580,15 @@ export async function GET(
             weapon_name: sw.m_weapons.name,
           }))
 
-        return hasTag(
-          {
-            danger_rate: scenario.danger_rate,
-            total_golden_eggs: scenario.total_golden_eggs,
-            waves,
-            weapons,
-          },
-          tag
-        )
+        const scenarioInfo = {
+          danger_rate: scenario.danger_rate,
+          total_golden_eggs: scenario.total_golden_eggs,
+          waves,
+          weapons,
+        }
+
+        // OR条件：いずれかのタグが含まれていればOK
+        return tags.some((tag) => hasTag(scenarioInfo, tag))
       })
     }
 

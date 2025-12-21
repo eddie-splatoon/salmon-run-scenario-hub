@@ -60,8 +60,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
   const [selectedStageId, setSelectedStageId] = useState<number | ''>('')
   const [selectedWeaponIds, setSelectedWeaponIds] = useState<number[]>([])
   const [minDangerRate, setMinDangerRate] = useState(0)
-  const [quickFilter, setQuickFilter] = useState<string | null>(null)
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const router = useRouter()
 
   const fetchScenarios = useCallback(async () => {
@@ -77,11 +76,8 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
       if (minDangerRate > 0) {
         params.append('min_danger_rate', String(minDangerRate))
       }
-      if (quickFilter) {
-        params.append('filter', quickFilter)
-      }
-      if (selectedTag) {
-        params.append('tag', selectedTag)
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
       }
 
       const response = await fetch(`/api/scenarios?${params.toString()}`)
@@ -99,7 +95,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
     } finally {
       setLoading(false)
     }
-  }, [selectedStageId, selectedWeaponIds, minDangerRate, quickFilter, selectedTag])
+  }, [selectedStageId, selectedWeaponIds, minDangerRate, selectedTags])
 
   useEffect(() => {
     fetchScenarios()
@@ -123,8 +119,13 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
     setSelectedStageId('')
     setSelectedWeaponIds([])
     setMinDangerRate(0)
-    setQuickFilter(null)
-    setSelectedTag(null)
+    setSelectedTags([])
+  }
+
+  const handleTagToggle = (tagValue: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagValue) ? prev.filter((t) => t !== tagValue) : [...prev, tagValue]
+    )
   }
 
   // 利用可能なハッシュタグ
@@ -336,74 +337,21 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
             </Box>
           </div>
 
-          {/* クイックフィルタ */}
+          {/* ハッシュタグフィルタ */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <Filter className="h-4 w-4 text-gray-400" />
-              <Typography className="text-gray-300 text-sm font-semibold">クイックフィルタ</Typography>
+              <Typography className="text-gray-300 text-sm font-semibold">ハッシュタグフィルタ</Typography>
             </div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Button
-                onClick={() => setQuickFilter(quickFilter === 'grizzco' ? null : 'grizzco')}
-                variant={quickFilter === 'grizzco' ? 'contained' : 'outlined'}
-                size="small"
-                sx={{
-                  ...(quickFilter === 'grizzco'
-                    ? {
-                        backgroundColor: '#f97316',
-                        color: '#ffffff',
-                        '&:hover': {
-                          backgroundColor: '#ea580c',
-                        },
-                      }
-                    : {
-                        color: '#e5e7eb',
-                        borderColor: '#4b5563',
-                        '&:hover': {
-                          borderColor: '#f97316',
-                          backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        },
-                      }),
-                }}
-              >
-                #クマサン印あり
-              </Button>
-              <Button
-                onClick={() => setQuickFilter(quickFilter === 'max_danger' ? null : 'max_danger')}
-                variant={quickFilter === 'max_danger' ? 'contained' : 'outlined'}
-                size="small"
-                sx={{
-                  ...(quickFilter === 'max_danger'
-                    ? {
-                        backgroundColor: '#f97316',
-                        color: '#ffffff',
-                        '&:hover': {
-                          backgroundColor: '#ea580c',
-                        },
-                      }
-                    : {
-                        color: '#e5e7eb',
-                        borderColor: '#4b5563',
-                        '&:hover': {
-                          borderColor: '#f97316',
-                          backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        },
-                      }),
-                }}
-              >
-                #カンスト向け
-              </Button>
-            </div>
-            {/* ハッシュタグフィルタ */}
             <div className="flex flex-wrap gap-2">
               {availableTags.map((tag) => (
                 <Button
                   key={tag.value}
-                  onClick={() => setSelectedTag(selectedTag === tag.value ? null : tag.value)}
-                  variant={selectedTag === tag.value ? 'contained' : 'outlined'}
+                  onClick={() => handleTagToggle(tag.value)}
+                  variant={selectedTags.includes(tag.value) ? 'contained' : 'outlined'}
                   size="small"
                   sx={{
-                    ...(selectedTag === tag.value
+                    ...(selectedTags.includes(tag.value)
                       ? {
                           backgroundColor: '#f97316',
                           color: '#ffffff',
@@ -428,7 +376,7 @@ export default function ScenariosListClient({ stages, weapons }: ScenariosListCl
           </div>
 
           {/* フィルタクリアボタン */}
-          {(selectedStageId || selectedWeaponIds.length > 0 || minDangerRate > 0 || quickFilter || selectedTag) && (
+          {(selectedStageId || selectedWeaponIds.length > 0 || minDangerRate > 0 || selectedTags.length > 0) && (
             <Button
               onClick={clearFilters}
               variant="outlined"
