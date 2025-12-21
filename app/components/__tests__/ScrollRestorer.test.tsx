@@ -58,7 +58,9 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
+    window.scrollTo = vi.fn()
 
     render(<ScrollRestorer />)
 
@@ -75,7 +77,9 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
+    window.scrollTo = vi.fn()
 
     render(<ScrollRestorer />)
 
@@ -92,7 +96,9 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
+    window.scrollTo = vi.fn()
 
     const { unmount } = render(<ScrollRestorer />)
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
@@ -110,6 +116,7 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
 
     const { rerender } = render(<ScrollRestorer />)
@@ -118,7 +125,8 @@ describe('ScrollRestorer', () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 300)
 
     vi.clearAllMocks()
-    // パス名が変わったように再レンダー
+    // パス名が変わったように再レンダー（usePathnameのモックを変更）
+    ;(usePathname as ReturnType<typeof vi.fn>).mockReturnValue('/new-path')
     rerender(<ScrollRestorer />)
 
     vi.advanceTimersByTime(50)
@@ -133,6 +141,7 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
 
     const { rerender } = render(<ScrollRestorer />)
@@ -141,7 +150,8 @@ describe('ScrollRestorer', () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 700)
 
     vi.clearAllMocks()
-    // 検索パラメータが変わったように再レンダー
+    // 検索パラメータが変わったように再レンダー（useSearchParamsのモックを変更）
+    ;(useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(new URLSearchParams('?filter=test') as any)
     rerender(<ScrollRestorer />)
 
     vi.advanceTimersByTime(50)
