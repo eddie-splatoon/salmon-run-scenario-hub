@@ -272,8 +272,7 @@ export default function ProfileClient({
         toast.success('保存しました')
         // ページをリロードしてHeaderコンポーネントも更新されるようにする
         setTimeout(() => {
-          router.refresh()
-          window.location.reload()
+          window.location.href = '/profile'
         }, 500)
       } else {
         toast.error(data.error || 'プロフィール画像の更新に失敗しました')

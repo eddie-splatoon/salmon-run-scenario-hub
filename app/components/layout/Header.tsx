@@ -157,8 +157,14 @@ export default function Header() {
             .eq('user_id', user.id)
             .maybeSingle()
           
+          console.error('[Header] プロフィール再読み込み:', { 
+            hasProfile: !!profile, 
+            avatarUrl: profile?.avatar_url ? 'あり' : 'なし',
+            error: profileError 
+          })
+          
           if (profileError) {
-            console.error('プロフィール取得エラー:', profileError)
+            console.error('[Header] プロフィール取得エラー:', profileError)
             // エラーが発生した場合はuser_metadataから取得（pictureのみ）
             if (user.user_metadata?.picture) {
               setProfileAvatarUrl(user.user_metadata.picture)
@@ -166,15 +172,18 @@ export default function Header() {
               setProfileAvatarUrl(null)
             }
           } else if (profile?.avatar_url) {
+            console.error('[Header] プロフィールavatar_urlを設定:', profile.avatar_url.substring(0, 50))
             setProfileAvatarUrl(profile.avatar_url)
           } else if (user.user_metadata?.picture) {
             // Googleアカウントのデフォルト画像を使用
+            console.error('[Header] user_metadata.pictureを設定')
             setProfileAvatarUrl(user.user_metadata.picture)
           } else {
+            console.error('[Header] avatar_urlをnullに設定')
             setProfileAvatarUrl(null)
           }
         } catch (error) {
-          console.error('プロフィール取得エラー:', error)
+          console.error('[Header] プロフィール取得エラー:', error)
           // エラーが発生した場合はuser_metadataから取得（pictureのみ）
           if (user.user_metadata?.picture) {
             setProfileAvatarUrl(user.user_metadata.picture)
@@ -183,7 +192,7 @@ export default function Header() {
           }
         }
       } catch (error) {
-        console.error('プロフィール再読み込みエラー:', error)
+        console.error('[Header] プロフィール再読み込みエラー:', error)
         setProfileAvatarUrl(null)
       }
     }
