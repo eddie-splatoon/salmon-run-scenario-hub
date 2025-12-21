@@ -1,5 +1,7 @@
 # Salmon Run Scenario Hub
 
+[![codecov](https://codecov.io/github/eddie-splatoon/salmon-run-scenario-hub/graph/badge.svg?token=SF9LO1W2XR)](https://codecov.io/github/eddie-splatoon/salmon-run-scenario-hub)
+
 Next.js 16 (App Router)、Tailwind CSS、TypeScript、Supabaseを使用したプロジェクトです。
 
 ## セットアップ
