@@ -40,9 +40,8 @@ export default function Header() {
           
           if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (user.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(user.user_metadata.avatar_url)
           } else if (user.user_metadata?.picture) {
+            // Googleアカウントのデフォルト画像を使用
             setProfileAvatarUrl(user.user_metadata.picture)
           }
         } catch (error) {
@@ -83,19 +82,16 @@ export default function Header() {
           
           if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (freshUser?.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
           } else if (freshUser?.user_metadata?.picture) {
+            // Googleアカウントのデフォルト画像を使用
             setProfileAvatarUrl(freshUser.user_metadata.picture)
           } else {
             setProfileAvatarUrl(null)
           }
         } catch (error) {
           console.error('プロフィール取得エラー:', error)
-          // エラーが発生した場合はuser_metadataから取得
-          if (currentUser.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(currentUser.user_metadata.avatar_url)
-          } else if (currentUser.user_metadata?.picture) {
+          // エラーが発生した場合はuser_metadataから取得（pictureのみ）
+          if (currentUser.user_metadata?.picture) {
             setProfileAvatarUrl(currentUser.user_metadata.picture)
           } else {
             setProfileAvatarUrl(null)
@@ -129,9 +125,8 @@ export default function Header() {
           
           if (profile?.avatar_url) {
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (freshUser?.user_metadata?.avatar_url) {
-            setProfileAvatarUrl(freshUser.user_metadata.avatar_url)
           } else if (freshUser?.user_metadata?.picture) {
+            // Googleアカウントのデフォルト画像を使用
             setProfileAvatarUrl(freshUser.user_metadata.picture)
           }
         } catch (error) {

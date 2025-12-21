@@ -74,28 +74,37 @@ export async function PUT(
       )
     }
 
-    // プロフィールを更新
-    const updateData: { full_name?: string; avatar_url?: string } = {}
+    // auth.usersのuser_metadataを更新（nameのみ、avatar_urlは保存しない）
     if (body.name !== undefined) {
-      updateData.full_name = trimmedName
-    }
-    if (body.avatar_url !== undefined) {
-      updateData.avatar_url = body.avatar_url
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: updateData,
-    })
-
-    if (updateError) {
-      console.error('[PUT /api/profile] プロフィール更新エラー:', updateError)
-      return NextResponse.json(
-        {
-          success: false,
-          error: `プロフィールの更新に失敗しました: ${updateError.message}`,
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          full_name: trimmedName,
         },
-        { status: 500 }
-      )
+      })
+
+      if (updateError) {
+        console.error('[PUT /api/profile] プロフィール更新エラー:', updateError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: `プロフィールの更新に失敗しました: ${updateError.message}`,
+          },
+          { status: 500 }
+        )
+      }
+    }
+
+    // profilesテーブルも更新（nameのみ、avatar_urlは別APIで管理）
+    if (body.name !== undefined) {
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({ display_name: trimmedName })
+        .eq('user_id', user.id)
+
+      if (profileUpdateError) {
+        console.error('[PUT /api/profile] profilesテーブル更新エラー:', profileUpdateError)
+        // profilesテーブルの更新エラーは無視（auth.usersの更新は成功しているため）
+      }
     }
 
     return NextResponse.json({
