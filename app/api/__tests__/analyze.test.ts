@@ -24,6 +24,12 @@ describe('POST /api/analyze', () => {
     process.env.GEMINI_API_KEY = 'test-api-key'
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    // デフォルトのモック実装をリセット
+    vi.mocked(GoogleGenerativeAI).mockImplementation(() => ({
+      getGenerativeModel: vi.fn(() => ({
+        generateContent: vi.fn(),
+      })),
+    }) as any)
   })
 
   afterEach(() => {
