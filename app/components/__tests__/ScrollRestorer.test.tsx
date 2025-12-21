@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render } from '@testing-library/react'
+import { usePathname, useSearchParams } from 'next/navigation'
 import ScrollRestorer from '../ScrollRestorer'
 
 // Next.jsのnavigationをモック
-const mockPathname = '/'
-const mockSearchParams = new URLSearchParams()
-
 vi.mock('next/navigation', () => ({
-  usePathname: () => mockPathname,
-  useSearchParams: () => mockSearchParams,
+  usePathname: vi.fn(),
+  useSearchParams: vi.fn(),
 }))
 
 describe('ScrollRestorer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(usePathname as ReturnType<typeof vi.fn>).mockReturnValue('/')
+    ;(useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(new URLSearchParams() as any)
     // sessionStorageとwindow.scrollToをモック
     Object.defineProperty(window, 'sessionStorage', {
       value: {
@@ -21,6 +21,7 @@ describe('ScrollRestorer', () => {
         setItem: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
 
     window.scrollTo = vi.fn()
