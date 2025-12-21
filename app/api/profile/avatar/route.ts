@@ -65,10 +65,18 @@ export async function POST(
     const dataUrl = `data:${imageFile.type};base64,${base64Image}`
 
     // profilesテーブルのみを更新（user_metadataには保存しない - Cookieサイズ制限を回避）
+    // upsertを使用して、レコードが存在しない場合は作成、存在する場合は更新
     const { error: profileUpdateError } = await supabase
       .from('profiles')
-      .update({ avatar_url: dataUrl })
-      .eq('user_id', user.id)
+      .upsert(
+        { 
+          user_id: user.id,
+          avatar_url: dataUrl,
+        },
+        { 
+          onConflict: 'user_id',
+        }
+      )
 
     if (profileUpdateError) {
       console.error('[POST /api/profile/avatar] profilesテーブル更新エラー:', profileUpdateError)

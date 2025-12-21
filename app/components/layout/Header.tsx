@@ -200,11 +200,20 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
+      console.error('[Header] ログアウト開始')
       await signOut()
+      console.error('[Header] ログアウト成功')
+      setUser(null)
+      setProfileAvatarUrl(null)
       router.push('/')
       router.refresh()
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('[Header] ログアウトエラー:', error)
+      // エラーが発生しても、ローカル状態をクリアしてリダイレクト
+      setUser(null)
+      setProfileAvatarUrl(null)
+      router.push('/')
+      router.refresh()
     }
   }
 
