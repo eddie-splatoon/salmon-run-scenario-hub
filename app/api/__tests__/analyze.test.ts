@@ -52,6 +52,7 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -116,6 +117,7 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -156,6 +158,8 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    // formData()をモックして、FormDataを返すようにする
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -190,6 +194,7 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -222,6 +227,7 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -233,7 +239,7 @@ describe('POST /api/analyze', () => {
 
   it('handles authentication error (401)', async () => {
     const mockGenerateContent = vi.fn().mockRejectedValue(
-      new Error('401 Unauthorized: API key')
+      new Error('401 Unauthorized: API key is invalid')
     )
 
     const mockModel = {
@@ -254,6 +260,8 @@ describe('POST /api/analyze', () => {
       method: 'POST',
       body: formData,
     })
+    // formData()をモックして、FormDataを返すようにする
+    vi.spyOn(request, 'formData').mockResolvedValue(formData)
 
     const response = await POST(request)
     const data = await response.json()
