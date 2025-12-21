@@ -38,6 +38,15 @@ describe('PUT /api/profile', () => {
       error: null,
     })
 
+    mockSupabase.from.mockReturnValue({
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      }),
+    })
+
     const request = new NextRequest('http://localhost:3000/api/profile', {
       method: 'PUT',
       body: JSON.stringify({ name: 'Updated Name' }),
