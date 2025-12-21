@@ -22,7 +22,16 @@ export default function ScrollRestorer() {
         }
       }, 50)
 
-      return () => clearTimeout(timeoutId)
+      return () => {
+        // clearTimeoutが利用可能であることを確認
+        if (typeof clearTimeout !== 'undefined') {
+          clearTimeout(timeoutId)
+        } else if (typeof global !== 'undefined' && global.clearTimeout) {
+          global.clearTimeout(timeoutId)
+        } else if (typeof globalThis !== 'undefined' && globalThis.clearTimeout) {
+          globalThis.clearTimeout(timeoutId)
+        }
+      }
     }
   }, [pathname, searchParams])
 
