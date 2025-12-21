@@ -33,7 +33,8 @@ jobs:
         run: npm run lint:eslint
 
       - name: Run tests with coverage
-        run: npm run test:coverage -- --run --reporter=junit --outputFile=test-report.junit.xml
+        run: npm run test:coverage -- --run --reporter=junit --outputFile=test-report.junit.xml --reporter=verbose
+        continue-on-error: false
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
