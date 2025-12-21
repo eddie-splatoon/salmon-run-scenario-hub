@@ -270,9 +270,9 @@ export default function ProfileClient({
         setCrop(undefined)
         setCompletedCrop(undefined)
         toast.success('保存しました')
-        // ページをリロードしてHeaderコンポーネントも更新されるようにする
+        // ページ全体をリロードしてHeaderコンポーネントも更新されるようにする
         setTimeout(() => {
-          window.location.href = '/profile'
+          window.location.reload()
         }, 500)
       } else {
         toast.error(data.error || 'プロフィール画像の更新に失敗しました')
