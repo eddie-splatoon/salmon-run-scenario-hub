@@ -223,7 +223,7 @@ describe('POST /api/analyze', () => {
 
     expect(response.status).toBe(500)
     expect(data.success).toBe(false)
-    expect(data.error).toBe('Failed to parse AI response as JSON')
+    expect(data.error).toContain('画像の解析中にエラーが発生しました')
   })
 
   it('handles rate limit error (429)', async () => {

@@ -58,8 +58,10 @@ describe('proxy', () => {
       },
     } as any)
 
-    const request = new NextRequest('http://localhost:3000/')
-    await proxy(request)
+        const request = new NextRequest('http://localhost:3000/', {
+          headers: new Headers(),
+        })
+        await proxy(request)
 
     expect(mockCreateServerClient).toHaveBeenCalledWith(
       'https://test.supabase.co',
