@@ -21,16 +21,6 @@ describe('proxy', () => {
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
-    
-    // デフォルトのモック実装を設定
-    const { createServerClient } = require('@supabase/ssr')
-    vi.mocked(createServerClient).mockReturnValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-        }),
-      },
-    } as any)
   })
 
   afterEach(() => {
@@ -38,6 +28,16 @@ describe('proxy', () => {
   })
 
   it('returns NextResponse', async () => {
+    const { createServerClient } = await import('@supabase/ssr')
+    const mockGetUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+    })
+    vi.mocked(createServerClient).mockReturnValue({
+      auth: {
+        getUser: mockGetUser,
+      },
+    } as any)
+
     const request = new NextRequest('http://localhost:3000/')
     const response = await proxy(request)
 
