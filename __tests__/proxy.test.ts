@@ -95,7 +95,9 @@ describe('proxy', () => {
       },
     } as any)
 
-    const request = new NextRequest('http://localhost:3000/')
+    const request = new NextRequest('http://localhost:3000/', {
+      headers: new Headers(),
+    })
     const response = await proxy(request)
 
     expect(response).toBeDefined()
