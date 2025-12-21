@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import ScenarioCard from './components/ScenarioCard'
 import LogoIcon from './components/LogoIcon'
-import { Upload, Search, ArrowRight, TrendingUp, Filter } from 'lucide-react'
+import HomeFilterSection from './components/HomeFilterSection'
+import ScrollRestorer from './components/ScrollRestorer'
+import { Upload, Search, ArrowRight, TrendingUp } from 'lucide-react'
 
 interface Weapon {
   weapon_id: number
@@ -22,11 +25,11 @@ interface ScenarioListItem {
   weapons: Weapon[]
 }
 
-async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]> {
+async function getLatestScenarios(limit: number = 6, filter: string | null = null): Promise<ScenarioListItem[]> {
   try {
     const supabase = await createClient()
 
-    const { data: scenarios, error: scenariosError } = await supabase
+    let query = supabase
       .from('scenarios')
       .select(`
         code,
@@ -38,7 +41,13 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
         m_stages!inner(name)
       `)
       .order('created_at', { ascending: false })
-      .limit(limit)
+
+    // クイックフィルタ: カンスト向け（danger_rate = 333）
+    if (filter === 'max_danger') {
+      query = query.eq('danger_rate', 333)
+    }
+
+    const { data: scenarios, error: scenariosError } = await query.limit(limit * 10) // フィルタ後にlimitを適用するため、多めに取得
 
     if (scenariosError || !scenarios) {
       console.error('シナリオ取得エラー:', scenariosError)
@@ -90,7 +99,32 @@ async function getLatestScenarios(limit: number = 6): Promise<ScenarioListItem[]
       m_weapons: { id: number; name: string; icon_url: string | null }
     }>
 
-    return typedScenarios.map((scenario) => {
+    // 武器フィルター適用（クマサン印フィルタ）
+    let filteredScenarios = typedScenarios
+    
+    // クイックフィルタ: クマサン印あり
+    if (filter === 'grizzco') {
+      // クマサン印の武器IDを取得
+      const { data: grizzcoWeapons, error: grizzcoError } = await supabase
+        .from('m_weapons')
+        .select('id')
+        .eq('is_grizzco_weapon', true)
+
+      if (!grizzcoError && grizzcoWeapons && grizzcoWeapons.length > 0) {
+        const grizzcoWeaponIds = grizzcoWeapons.map((w) => w.id)
+        // クマサン印の武器を少なくとも1つ含むシナリオを抽出
+        filteredScenarios = typedScenarios.filter((scenario) => {
+          const scenarioWeaponIds = typedScenarioWeapons
+            .filter((sw) => sw.scenario_code === scenario.code)
+            .map((sw) => sw.weapon_id)
+          return grizzcoWeaponIds.some((weaponId) => scenarioWeaponIds.includes(weaponId))
+        })
+      } else {
+        filteredScenarios = []
+      }
+    }
+
+    return filteredScenarios.slice(0, limit).map((scenario) => {
       const weapons = typedScenarioWeapons
         .filter((sw) => sw.scenario_code === scenario.code)
         .map((sw) => ({
@@ -256,12 +290,20 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
   }
 }
 
-export default async function Home() {
-  const latestScenarios = await getLatestScenarios(6)
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>
+}) {
+  const params = await searchParams
+  const filter = params.filter || null
+  
+  const latestScenarios = await getLatestScenarios(6, filter)
   const trendingScenarios = await getTrendingScenarios(6)
 
   return (
     <div className="bg-gray-900">
+      <ScrollRestorer />
       {/* ヒーローセクション */}
       <section className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-yellow-500 py-20 md:py-32">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTYwIDBIMFY2MEg2MFYwWiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBIMjBWMjBIMFYwWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
@@ -385,28 +427,9 @@ export default async function Home() {
       )}
 
       {/* クイックフィルタ */}
-      <section className="py-8 bg-gray-900 border-t border-gray-700">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-300">クイックフィルタ</h3>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/?filter=grizzco"
-              className="inline-flex items-center px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition-colors border border-gray-700 hover:border-orange-500"
-            >
-              <span>#クマサン印あり</span>
-            </Link>
-            <Link
-              href="/?filter=max_danger"
-              className="inline-flex items-center px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition-colors border border-gray-700 hover:border-orange-500"
-            >
-              <span>#カンスト向け</span>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <Suspense fallback={<div className="py-8 bg-gray-900 border-t border-gray-700"><div className="container mx-auto px-4">読み込み中...</div></div>}>
+        <HomeFilterSection />
+      </Suspense>
 
       {/* 最新シナリオのプレビュー */}
       <section id="latest" className="py-16 md:py-24 bg-gray-900">
