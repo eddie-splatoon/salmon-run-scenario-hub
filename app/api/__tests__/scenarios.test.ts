@@ -35,6 +35,7 @@ describe('GET /api/scenarios', () => {
       order: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
     }
 
     // order()の後にawaitされるので、thenableオブジェクトを返す
@@ -155,6 +156,7 @@ describe('GET /api/scenarios', () => {
       order: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
     }
 
     // gte()が呼ばれた後、awaitされるので、thenableオブジェクトを返す
@@ -208,6 +210,7 @@ describe('GET /api/scenarios', () => {
       order: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
     }
 
     // order()の後にawaitされるので、thenableオブジェクトを返す
@@ -241,12 +244,21 @@ describe('GET /api/scenarios', () => {
       order: vi.fn().mockReturnThis(),
     }
 
+    const wavesQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+    }
+
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
         return scenariosQuery
       }
       if (table === 'scenario_weapons') {
         return weaponsQuery
+      }
+      if (table === 'scenario_waves') {
+        return wavesQuery
       }
       return scenariosQuery
     })
@@ -430,6 +442,7 @@ describe('GET /api/scenarios', () => {
       order: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
     }
 
     // order()の後にawaitされるので、thenableオブジェクトを返す

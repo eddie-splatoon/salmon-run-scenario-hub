@@ -24,6 +24,20 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+// Next.jsのnavigationをモック
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  useSearchParams: () => ({
+    get: vi.fn(() => null),
+    toString: vi.fn(() => ''),
+  }),
+  usePathname: () => '/',
+}))
+
 // lucide-reactのアイコンをモック
 vi.mock('lucide-react', () => ({
   Upload: () => <span data-testid="upload-icon">Upload</span>,
@@ -72,6 +86,10 @@ describe('Home Page (Landing Page)', () => {
     mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
     mockQueryBuilder.order = vi.fn(() => mockQueryBuilder)
     mockQueryBuilder.limit = vi.fn(() => Promise.resolve({
+      data: [],
+      error: null,
+    }))
+    mockQueryBuilder.gte = vi.fn(() => Promise.resolve({
       data: [],
       error: null,
     }))

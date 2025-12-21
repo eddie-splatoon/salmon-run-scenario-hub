@@ -29,80 +29,53 @@ export default function Header() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        console.error('[Header] getUser結果:', { 
-          hasUser: !!user, 
-          userId: user?.id,
-          error: userError 
-        })
-        
         if (userError) {
-          console.error('[Header] ユーザー取得エラー:', userError)
           setUser(null)
           return
         }
         
-        console.error('[Header] ユーザーを設定:', user?.id)
         setUser(user)
         
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
         if (user) {
-          console.error('[Header] loadUser - プロフィール取得開始, user_id:', user.id)
           // 新しいSupabaseクライアントインスタンスを作成
           const profileSupabase = createClient()
           try {
-            console.error('[Header] loadUser - supabase.from呼び出し前')
             const profileResult = await profileSupabase
               .from('profiles')
               .select('avatar_url')
               .eq('user_id', user.id)
               .maybeSingle()
             
-            console.error('[Header] loadUser - supabase.from呼び出し後')
             const { data: profile, error: profileError } = profileResult
             
-            console.error('[Header] loadUser - プロフィール取得結果:', { 
-              hasProfile: !!profile, 
-              hasAvatarUrl: !!profile?.avatar_url,
-              avatarUrlLength: profile?.avatar_url?.length || 0,
-              error: profileError,
-              errorMessage: profileError?.message
-            })
-            
             if (profileError) {
-              console.error('[Header] loadUser - プロフィール取得エラー:', profileError)
               // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
               setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
-              console.error('[Header] loadUser - profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
               setProfileAvatarUrl(profile.avatar_url)
             } else {
               // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-              console.error('[Header] loadUser - profilesテーブルにavatar_urlなし')
               setProfileAvatarUrl(null)
             }
           } catch (error) {
-            console.error('[Header] loadUser - プロフィール取得例外:', error)
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           }
         }
       } catch (error) {
-        console.error('[Header] ユーザー読み込み例外:', error)
         setUser(null)
       } finally {
-        console.error('[Header] loadUser完了 - loadingをfalseに設定')
         setLoading(false)
       }
     }
     
-    console.error('[Header] loadUser()を呼び出し')
     loadUser()
 
     // 認証状態の変更を監視（プロフィール取得はloadUserとpathname変更時のuseEffectで行う）
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.error('[Header] onAuthStateChange:', event, session?.user?.id)
       const currentUser = session?.user ?? null
       setUser(currentUser)
       setLoading(false) // 認証状態変更時もローディングを解除
@@ -137,31 +110,20 @@ export default function Header() {
             .eq('user_id', user.id)
             .maybeSingle()
           
-          console.error('[Header] プロフィール再読み込み:', { 
-            hasProfile: !!profile, 
-            avatarUrl: profile?.avatar_url ? 'あり' : 'なし',
-            error: profileError 
-          })
-          
           if (profileError) {
-            console.error('[Header] プロフィール取得エラー:', profileError)
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
-            console.error('[Header] プロフィールavatar_urlを設定:', profile.avatar_url.substring(0, 50))
             setProfileAvatarUrl(profile.avatar_url)
           } else {
             // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-            console.error('[Header] avatar_urlをnullに設定（profilesテーブルにデータなし）')
             setProfileAvatarUrl(null)
           }
         } catch (error) {
-          console.error('[Header] プロフィール取得エラー:', error)
           // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
           setProfileAvatarUrl(null)
         }
       } catch (error) {
-        console.error('[Header] プロフィール再読み込みエラー:', error)
         setProfileAvatarUrl(null)
       }
     }
@@ -178,15 +140,12 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      console.error('[Header] ログアウト開始')
       await signOut()
-      console.error('[Header] ログアウト成功')
       setUser(null)
       setProfileAvatarUrl(null)
       router.push('/')
       router.refresh()
     } catch (error) {
-      console.error('[Header] ログアウトエラー:', error)
       // エラーが発生しても、ローカル状態をクリアしてリダイレクト
       setUser(null)
       setProfileAvatarUrl(null)
@@ -288,7 +247,6 @@ export default function Header() {
                           alt={user.user_metadata?.full_name || 'ユーザー'}
                           className="w-full h-full object-cover"
                           onError={() => {
-                            console.error('[Header] アバター画像読み込みエラー:', profileAvatarUrl)
                             setAvatarError(true)
                           }}
                         />

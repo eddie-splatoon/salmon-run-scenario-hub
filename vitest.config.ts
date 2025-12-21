@@ -30,5 +30,12 @@ export default defineConfig({
       '@': path.resolve(process.cwd(), './'),
     },
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
 })
 
