@@ -46,6 +46,7 @@ export default function Header() {
         
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
         if (user) {
+          console.error('[Header] loadUser - プロフィール取得開始, user_id:', user.id)
           try {
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
@@ -53,18 +54,25 @@ export default function Header() {
               .eq('user_id', user.id)
               .maybeSingle()
             
+            console.error('[Header] loadUser - プロフィール取得結果:', { 
+              hasProfile: !!profile, 
+              hasAvatarUrl: !!profile?.avatar_url,
+              avatarUrlLength: profile?.avatar_url?.length || 0,
+              error: profileError 
+            })
+            
             if (profileError) {
               console.error('[Header] プロフィール取得エラー:', profileError)
               // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
               setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
-            console.error('[Header] profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
-            setProfileAvatarUrl(profile.avatar_url)
-          } else {
-            // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-            console.error('[Header] profilesテーブルにavatar_urlなし')
-            setProfileAvatarUrl(null)
-          }
+              console.error('[Header] profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
+              setProfileAvatarUrl(profile.avatar_url)
+            } else {
+              // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
+              console.error('[Header] profilesテーブルにavatar_urlなし')
+              setProfileAvatarUrl(null)
+            }
           } catch (error) {
             console.error('[Header] プロフィール取得例外:', error)
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
