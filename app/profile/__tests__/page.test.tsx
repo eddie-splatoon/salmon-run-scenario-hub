@@ -83,10 +83,8 @@ describe('ProfilePage', () => {
       }),
     }
 
-    const mockWeaponsQuery = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      in: vi.fn().mockReturnThis(),
+    // orderが2回呼ばれるため、チェーンできるようにする
+    const mockWeaponsOrder2 = {
       order: vi.fn().mockResolvedValue({
         data: [
           {
@@ -102,6 +100,12 @@ describe('ProfilePage', () => {
         ],
         error: null,
       }),
+    }
+    const mockWeaponsQuery = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(mockWeaponsOrder2),
     }
 
     const mockStatsQuery = {
