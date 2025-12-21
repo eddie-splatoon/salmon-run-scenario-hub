@@ -199,11 +199,12 @@ describe('POST /api/analyze', () => {
     }
 
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
+    vi.mocked(lookupStageId).mockResolvedValue(1)
+    vi.mocked(lookupWeaponIds).mockResolvedValue([])
 
-    // Fileオブジェクトを作成して、arrayBufferメソッドをモック
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3])
     const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドが正しく動作するように確認
     const formData = new FormData()
     formData.append('image', file)
 
@@ -212,7 +213,9 @@ describe('POST /api/analyze', () => {
       body: formData,
     })
     // formData()をモックして、実際のFileオブジェクトを含むFormDataを返す
-    vi.spyOn(request, 'formData').mockResolvedValue(formData)
+    const mockFormData = new FormData()
+    mockFormData.append('image', file)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
     const data = await response.json()
@@ -237,10 +240,9 @@ describe('POST /api/analyze', () => {
 
     vi.mocked(GoogleGenerativeAI).mockImplementation(() => mockGenAI as any)
 
-    // Fileオブジェクトを作成して、arrayBufferメソッドをモック
+    // Fileオブジェクトを作成
     const fileContent = new Uint8Array([1, 2, 3])
     const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
-    // arrayBufferメソッドが正しく動作するように確認
     const formData = new FormData()
     formData.append('image', file)
 
@@ -249,7 +251,9 @@ describe('POST /api/analyze', () => {
       body: formData,
     })
     // formData()をモックして、実際のFileオブジェクトを含むFormDataを返す
-    vi.spyOn(request, 'formData').mockResolvedValue(formData)
+    const mockFormData = new FormData()
+    mockFormData.append('image', file)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
     const data = await response.json()
