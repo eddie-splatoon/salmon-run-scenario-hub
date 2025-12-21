@@ -115,10 +115,10 @@ describe('proxy', () => {
       },
     } as any)
 
-    const headers = new Headers()
-    headers.set('cookie', 'test-cookie=test-value')
     const request = new NextRequest('http://localhost:3000/', {
-      headers,
+      headers: new Headers({
+        'cookie': 'test-cookie=test-value',
+      }),
     })
 
     const response = await proxy(request)
