@@ -106,13 +106,25 @@ export default function Header() {
         try {
           console.error('[Header] onAuthStateChange - supabase.from呼び出し前')
           // profilesテーブルから取得を試みる
-          const profileResult = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('user_id', currentUser.id)
-            .maybeSingle()
+          let profileResult
+          try {
+            profileResult = await Promise.race([
+              supabase
+                .from('profiles')
+                .select('avatar_url')
+                .eq('user_id', currentUser.id)
+                .maybeSingle(),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('タイムアウト')), 10000)
+              )
+            ]) as { data: any; error: any }
+            console.error('[Header] onAuthStateChange - supabase.from呼び出し後')
+          } catch (raceError) {
+            console.error('[Header] onAuthStateChange - クエリ実行エラー:', raceError)
+            setProfileAvatarUrl(null)
+            return
+          }
           
-          console.error('[Header] onAuthStateChange - supabase.from呼び出し後')
           const { data: profile, error: profileError } = profileResult
           
           console.error('[Header] onAuthStateChange - プロフィール取得結果:', { 
