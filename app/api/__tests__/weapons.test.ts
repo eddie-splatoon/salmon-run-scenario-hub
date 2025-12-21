@@ -15,30 +15,12 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('GET /api/weapons', () => {
-  const createMockQueryBuilder = () => {
-    const builder = {
-      from: vi.fn(() => builder),
-      select: vi.fn(() => builder),
-      order: vi.fn(() => builder),
-    }
-    return builder
-  }
-
-  const mockQueryBuilder = createMockQueryBuilder()
-
   const mockSupabase = {
-    from: vi.fn(() => mockQueryBuilder),
+    from: vi.fn(),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockQueryBuilder.from = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.order = vi.fn(() => Promise.resolve({
-      data: [],
-      error: null,
-    }))
-
     vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
   })
 
@@ -49,10 +31,24 @@ describe('GET /api/weapons', () => {
       { id: 3, name: 'スプラローラー', icon_url: null },
     ]
 
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: mockWeapons,
-      error: null,
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockWeapons,
+          error: null,
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(weaponsQuery)
 
     const response = await GET()
     const data = await response.json()
@@ -61,15 +57,29 @@ describe('GET /api/weapons', () => {
     expect(data.success).toBe(true)
     expect(data.data).toEqual(mockWeapons)
     expect(mockSupabase.from).toHaveBeenCalledWith('m_weapons')
-    expect(mockQueryBuilder.select).toHaveBeenCalledWith('id, name, icon_url')
-    expect(mockQueryBuilder.order).toHaveBeenCalledWith('name')
+    expect(weaponsQuery.select).toHaveBeenCalledWith('id, name, icon_url')
+    expect(weaponsQuery.order).toHaveBeenCalledWith('name')
   })
 
   it('returns empty array when no weapons exist', async () => {
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: [],
-      error: null,
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(weaponsQuery)
 
     const response = await GET()
     const data = await response.json()
@@ -80,10 +90,24 @@ describe('GET /api/weapons', () => {
   })
 
   it('returns 500 when database error occurs', async () => {
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: 'Database error' },
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const weaponsQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: null,
+          error: { message: 'Database error' },
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(weaponsQuery)
 
     const response = await GET()
     const data = await response.json()

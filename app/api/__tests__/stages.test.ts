@@ -15,30 +15,12 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('GET /api/stages', () => {
-  const createMockQueryBuilder = () => {
-    const builder = {
-      from: vi.fn(() => builder),
-      select: vi.fn(() => builder),
-      order: vi.fn(() => builder),
-    }
-    return builder
-  }
-
-  const mockQueryBuilder = createMockQueryBuilder()
-
   const mockSupabase = {
-    from: vi.fn(() => mockQueryBuilder),
+    from: vi.fn(),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockQueryBuilder.from = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.select = vi.fn(() => mockQueryBuilder)
-    mockQueryBuilder.order = vi.fn(() => Promise.resolve({
-      data: [],
-      error: null,
-    }))
-
     vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
   })
 
@@ -49,10 +31,24 @@ describe('GET /api/stages', () => {
       { id: 3, name: '海上集落シャケト場' },
     ]
 
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: mockStages,
-      error: null,
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const stagesQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: mockStages,
+          error: null,
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(stagesQuery)
 
     const response = await GET()
     const data = await response.json()
@@ -61,15 +57,29 @@ describe('GET /api/stages', () => {
     expect(data.success).toBe(true)
     expect(data.data).toEqual(mockStages)
     expect(mockSupabase.from).toHaveBeenCalledWith('m_stages')
-    expect(mockQueryBuilder.select).toHaveBeenCalledWith('id, name')
-    expect(mockQueryBuilder.order).toHaveBeenCalledWith('name')
+    expect(stagesQuery.select).toHaveBeenCalledWith('id, name')
+    expect(stagesQuery.order).toHaveBeenCalledWith('name')
   })
 
   it('returns empty array when no stages exist', async () => {
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: [],
-      error: null,
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const stagesQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(stagesQuery)
 
     const response = await GET()
     const data = await response.json()
@@ -80,10 +90,24 @@ describe('GET /api/stages', () => {
   })
 
   it('returns 500 when database error occurs', async () => {
-    mockQueryBuilder.order = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: 'Database error' },
-    })
+    const createQueryResult = (result: any) => {
+      return {
+        then: (resolve: (_value: any) => any) => resolve(result),
+        catch: (_reject: (_error: any) => any) => _reject,
+      }
+    }
+
+    const stagesQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: null,
+          error: { message: 'Database error' },
+        })
+      ),
+    }
+
+    mockSupabase.from.mockReturnValue(stagesQuery)
 
     const response = await GET()
     const data = await response.json()
