@@ -192,12 +192,26 @@ describe('GET /api/scenarios', () => {
       ),
     }
 
+    const wavesQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnValue(
+        createQueryResult({
+          data: [],
+          error: null,
+        })
+      ),
+    }
+
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'scenarios') {
         return scenariosQuery
       }
       if (table === 'scenario_weapons') {
         return weaponsQuery
+      }
+      if (table === 'scenario_waves') {
+        return wavesQuery
       }
       return scenariosQuery
     })
