@@ -357,7 +357,6 @@ describe('MastersAdminClient', () => {
   })
 
   it('displays unknown data count badge', async () => {
-    const user = userEvent.setup()
     render(<MastersAdminClient />)
 
     await waitFor(() => {
