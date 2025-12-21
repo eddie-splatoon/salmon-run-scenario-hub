@@ -125,7 +125,10 @@ describe('POST /api/analyze', () => {
       body: formData,
     })
     // formData()をモックして、実際のFileオブジェクトを含むFormDataを返す
-    vi.spyOn(request, 'formData').mockResolvedValue(formData)
+    // FormDataから取得する際にFileオブジェクトが保持されるようにする
+    const mockFormData = new FormData()
+    mockFormData.append('image', file)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
 
     const response = await POST(request)
     const data = await response.json()
