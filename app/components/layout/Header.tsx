@@ -47,34 +47,41 @@ export default function Header() {
         // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
         if (user) {
           console.error('[Header] loadUser - プロフィール取得開始, user_id:', user.id)
+          // 新しいSupabaseクライアントインスタンスを作成
+          const profileSupabase = createClient()
           try {
-            const { data: profile, error: profileError } = await supabase
+            console.error('[Header] loadUser - supabase.from呼び出し前')
+            const profileResult = await profileSupabase
               .from('profiles')
               .select('avatar_url')
               .eq('user_id', user.id)
               .maybeSingle()
             
+            console.error('[Header] loadUser - supabase.from呼び出し後')
+            const { data: profile, error: profileError } = profileResult
+            
             console.error('[Header] loadUser - プロフィール取得結果:', { 
               hasProfile: !!profile, 
               hasAvatarUrl: !!profile?.avatar_url,
               avatarUrlLength: profile?.avatar_url?.length || 0,
-              error: profileError 
+              error: profileError,
+              errorMessage: profileError?.message
             })
             
             if (profileError) {
-              console.error('[Header] プロフィール取得エラー:', profileError)
+              console.error('[Header] loadUser - プロフィール取得エラー:', profileError)
               // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
               setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
-              console.error('[Header] profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
+              console.error('[Header] loadUser - profilesテーブルのavatar_urlを使用:', profile.avatar_url.substring(0, 50))
               setProfileAvatarUrl(profile.avatar_url)
             } else {
               // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-              console.error('[Header] profilesテーブルにavatar_urlなし')
+              console.error('[Header] loadUser - profilesテーブルにavatar_urlなし')
               setProfileAvatarUrl(null)
             }
           } catch (error) {
-            console.error('[Header] プロフィール取得例外:', error)
+            console.error('[Header] loadUser - プロフィール取得例外:', error)
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           }
