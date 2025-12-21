@@ -58,12 +58,12 @@ export default function Header() {
               // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
               setProfileAvatarUrl(null)
             }
-          } catch (error) {
+          } catch (_error) {
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           }
         }
-      } catch (error) {
+      } catch (_error) {
         setUser(null)
       } finally {
         setLoading(false)
