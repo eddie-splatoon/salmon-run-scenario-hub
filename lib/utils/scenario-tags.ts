@@ -32,10 +32,23 @@ export function calculateScenarioTags(scenario: ScenarioInfo): ScenarioTags {
   const tags: string[] = []
   const tagColors: Record<string, string> = {}
 
-  // クマフェス: 全てのブキが黄色ランダム
-  // オルラン: 全てのブキが緑ランダム
-  // 注意: 武器の色情報は武器名から判定する必要があるため、ここでは実装しない
-  // 将来的に武器マスタに色情報を追加したら実装する
+  // クマフェス: 全てのブキが黄色ランダム（黄ランダム）
+  if (scenario.weapons.length > 0) {
+    const yellowRandomWeapons = scenario.weapons.filter((w) => w.weapon_name === '黄ランダム')
+    if (yellowRandomWeapons.length === scenario.weapons.length) {
+      tags.push('クマフェス')
+      tagColors['クマフェス'] = 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50'
+    }
+  }
+
+  // オルラン: 全てのブキが緑ランダム（緑ランダム）
+  if (scenario.weapons.length > 0) {
+    const greenRandomWeapons = scenario.weapons.filter((w) => w.weapon_name === '緑ランダム')
+    if (greenRandomWeapons.length === scenario.weapons.length) {
+      tags.push('オルラン')
+      tagColors['オルラン'] = 'bg-green-500/20 text-green-300 border-green-500/50'
+    }
+  }
 
   // 初心者向け: キケン度160%未満
   if (scenario.danger_rate < 160) {
