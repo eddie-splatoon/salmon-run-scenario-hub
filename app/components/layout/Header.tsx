@@ -104,18 +104,23 @@ export default function Header() {
       if (currentUser) {
         console.error('[Header] onAuthStateChange - プロフィール取得開始, user_id:', currentUser.id)
         try {
+          console.error('[Header] onAuthStateChange - supabase.from呼び出し前')
           // profilesテーブルから取得を試みる
-          const { data: profile, error: profileError } = await supabase
+          const profileResult = await supabase
             .from('profiles')
             .select('avatar_url')
             .eq('user_id', currentUser.id)
             .maybeSingle()
           
+          console.error('[Header] onAuthStateChange - supabase.from呼び出し後')
+          const { data: profile, error: profileError } = profileResult
+          
           console.error('[Header] onAuthStateChange - プロフィール取得結果:', { 
             hasProfile: !!profile, 
             hasAvatarUrl: !!profile?.avatar_url,
             avatarUrlLength: profile?.avatar_url?.length || 0,
-            error: profileError 
+            error: profileError,
+            errorMessage: profileError?.message
           })
           
           if (profileError) {
