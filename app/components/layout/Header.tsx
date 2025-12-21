@@ -102,6 +102,7 @@ export default function Header() {
       
       // プロフィール情報を再取得
       if (currentUser) {
+        console.error('[Header] onAuthStateChange - プロフィール取得開始, user_id:', currentUser.id)
         try {
           // profilesテーブルから取得を試みる
           const { data: profile, error: profileError } = await supabase
@@ -110,16 +111,22 @@ export default function Header() {
             .eq('user_id', currentUser.id)
             .maybeSingle()
           
+          console.error('[Header] onAuthStateChange - プロフィール取得結果:', { 
+            hasProfile: !!profile, 
+            hasAvatarUrl: !!profile?.avatar_url,
+            avatarUrlLength: profile?.avatar_url?.length || 0,
+            error: profileError 
+          })
+          
           if (profileError) {
-            console.error('[Header] プロフィール取得エラー:', profileError)
+            console.error('[Header] onAuthStateChange - プロフィール取得エラー:', profileError)
             // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
             setProfileAvatarUrl(null)
           } else if (profile?.avatar_url) {
+            console.error('[Header] onAuthStateChange - avatar_urlを設定:', profile.avatar_url.substring(0, 50))
             setProfileAvatarUrl(profile.avatar_url)
-          } else if (currentUser.user_metadata?.picture) {
-            // Googleアカウントのデフォルト画像を使用
-            setProfileAvatarUrl(currentUser.user_metadata.picture)
           } else {
+            console.error('[Header] onAuthStateChange - avatar_urlをnullに設定（profilesテーブルにデータなし）')
             setProfileAvatarUrl(null)
           }
         } catch (error) {
