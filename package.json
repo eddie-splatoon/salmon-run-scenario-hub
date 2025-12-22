@@ -10,6 +10,8 @@
     "lint:eslint": "eslint .",
     "lint:fix": "volta run npm -- run lint:fix:eslint",
     "lint:fix:eslint": "eslint . --fix",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
