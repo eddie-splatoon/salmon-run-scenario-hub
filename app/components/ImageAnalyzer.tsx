@@ -635,9 +635,7 @@ export default function ImageAnalyzer() {
               </Typography>
               <Grid container spacing={2}>
                 {/* 1行目: シナリオコード、ステージ */}
-                {/* @ts-expect-error - Material-UI Grid type issue */}
-                
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <TextField
                     fullWidth
                     label="シナリオコード"
@@ -649,7 +647,7 @@ export default function ImageAnalyzer() {
                   />
                 </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <Autocomplete
                     fullWidth
                     options={stages}
@@ -671,7 +669,7 @@ export default function ImageAnalyzer() {
                 </Grid>
                 {/* 2行目: キケン度、スコア */}
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <TextField
                     fullWidth
                     label="キケン度"
@@ -689,8 +687,7 @@ export default function ImageAnalyzer() {
                   />
                 </Grid>
                 {editableData.score !== undefined && (
-                
-                <Grid item xs={12} md={6}>
+                  <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                     <TextField
                       fullWidth
                       label="スコア"
@@ -717,7 +714,7 @@ export default function ImageAnalyzer() {
               <Grid container spacing={2}>
                 {editableData.weapons.map((weapon, index) => (
                 
-                <Grid item xs={12} sm={6} key={index}>
+                <Grid {...({ item: true, xs: 12, sm: 6 } as any)} key={index}>
                     <Autocomplete
                       fullWidth
                       options={weapons}
@@ -769,7 +766,7 @@ export default function ImageAnalyzer() {
                       </Typography>
                       <Grid container spacing={2}>
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                           <Autocomplete
                             fullWidth
                             options={tideOptions}
@@ -790,7 +787,7 @@ export default function ImageAnalyzer() {
                           />
                         </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                           {isExWave ? (
                             <Autocomplete
                               fullWidth
@@ -834,7 +831,7 @@ export default function ImageAnalyzer() {
                         {!isExWave && (
                           <>
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                               <TextField
                                 fullWidth
                                 label="納品数"
@@ -862,7 +859,7 @@ export default function ImageAnalyzer() {
                               />
                             </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                               <TextField
                                 fullWidth
                                 label="ノルマ"
@@ -892,7 +889,7 @@ export default function ImageAnalyzer() {
                         )}
                         {wave.cleared !== undefined && (
                 
-                <Grid item xs={12}>
+                <Grid {...({ item: true, xs: 12 } as any)}>
                             <FormControlLabel
                               control={
                                 <Checkbox
