@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/app/types/database.types'
 
 interface UpdateProfileRequest {
   name?: string
@@ -96,7 +97,8 @@ export async function PUT(
 
     // profilesテーブルも更新（nameのみ、avatar_urlは別APIで管理）
     if (body.name !== undefined) {
-      const { error: profileUpdateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: profileUpdateError } = await (supabase as any)
         .from('profiles')
         .update({ display_name: trimmedName })
         .eq('user_id', user.id)

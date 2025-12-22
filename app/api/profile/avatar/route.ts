@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/app/types/database.types'
 
 interface UploadAvatarResponse {
   success: boolean
@@ -66,17 +67,16 @@ export async function POST(
 
     // profilesテーブルのみを更新（user_metadataには保存しない - Cookieサイズ制限を回避）
     // upsertを使用して、レコードが存在しない場合は作成、存在する場合は更新
-    const { error: profileUpdateError } = await supabase
+    const profileData: Database['public']['Tables']['profiles']['Insert'] = {
+      user_id: user.id,
+      avatar_url: dataUrl,
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: profileUpdateError } = await (supabase as any)
       .from('profiles')
-      .upsert(
-        { 
-          user_id: user.id,
-          avatar_url: dataUrl,
-        },
-        { 
-          onConflict: 'user_id',
-        }
-      )
+      .upsert(profileData, { 
+        onConflict: 'user_id',
+      })
 
     if (profileUpdateError) {
       console.error('[POST /api/profile/avatar] profilesテーブル更新エラー:', profileUpdateError)

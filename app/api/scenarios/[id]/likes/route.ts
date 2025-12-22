@@ -35,7 +35,8 @@ export async function POST(
     }
 
     // シナリオの存在確認
-    const { data: scenario, error: scenarioError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select('code')
       .eq('code', scenarioCode)
@@ -49,7 +50,8 @@ export async function POST(
     }
 
     // 既存のいいねを確認
-    const { data: existingLike, error: checkError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingLike, error: checkError } = await (supabase as any)
       .from('likes')
       .select('id')
       .eq('scenario_code', scenarioCode)
@@ -70,7 +72,8 @@ export async function POST(
 
     if (existingLike) {
       // いいねを削除
-      const { error: deleteError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: deleteError } = await (supabase as any)
         .from('likes')
         .delete()
         .eq('scenario_code', scenarioCode)
@@ -88,7 +91,8 @@ export async function POST(
       }
     } else {
       // いいねを追加
-      const { error: insertError } = await supabase.from('likes').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: insertError } = await (supabase as any).from('likes').insert({
         scenario_code: scenarioCode,
         user_id: user.id,
       })
@@ -106,7 +110,8 @@ export async function POST(
     }
 
     // いいね数を取得
-    const { count: likeCount, error: countError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: likeCount, error: countError } = await (supabase as any)
       .from('likes')
       .select('*', { count: 'exact', head: true })
       .eq('scenario_code', scenarioCode)
