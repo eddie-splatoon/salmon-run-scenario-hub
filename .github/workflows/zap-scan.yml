@@ -90,7 +90,17 @@ jobs:
         with:
           target: ${{ steps.target.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+          cmd_options: '-a -J'
+
+      - name: Check if SARIF file exists
+        id: check_sarif
+        if: always()
+        run: |
+          if [ -f zap_report.sarif ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Archive ZAP results
         uses: actions/upload-artifact@v4
@@ -101,11 +111,14 @@ jobs:
             zap_report.html
             zap_report.json
             zap_report.md
+            zap_report.sarif
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload ZAP results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.check_sarif.outputs.exists == 'true'
+        continue-on-error: true
         with:
           sarif_file: zap_report.sarif
           wait-for-processing: true
