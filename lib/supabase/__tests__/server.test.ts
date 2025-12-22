@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createClient } from '../server'
 
 // モック設定
-const { mockGetAll, mockSet, mockCookieStore, mockCreateServerClient } = vi.hoisted(() => {
+const { mockGetAll, mockSet, mockCookieStore, mockCreateServerClient, mockCookies } = vi.hoisted(() => {
   const mockGetAll = vi.fn(() => [])
   const mockSet = vi.fn()
 
@@ -18,16 +18,19 @@ const { mockGetAll, mockSet, mockCookieStore, mockCreateServerClient } = vi.hois
     type: 'server',
   }))
 
+  const mockCookies = vi.fn(() => Promise.resolve(mockCookieStore))
+
   return {
     mockGetAll,
     mockSet,
     mockCookieStore,
     mockCreateServerClient,
+    mockCookies,
   }
 })
 
 vi.mock('next/headers', () => ({
-  cookies: vi.fn(() => Promise.resolve(mockCookieStore)),
+  cookies: mockCookies,
 }))
 
 vi.mock('@supabase/ssr', () => ({
@@ -202,10 +205,7 @@ describe('createClient (server)', () => {
   describe('非同期処理', () => {
     it('awaits cookies() before creating client', async () => {
       let cookiesCalled = false
-      const { cookies } = await import('next/headers')
-      const originalCookies = vi.mocked(cookies)
-
-      vi.mocked(cookies).mockImplementation(() => {
+      mockCookies.mockImplementationOnce(() => {
         cookiesCalled = true
         return Promise.resolve(mockCookieStore)
       })
@@ -214,9 +214,7 @@ describe('createClient (server)', () => {
 
       // cookies()が呼ばれたことを確認
       expect(cookiesCalled).toBe(true)
-      expect(vi.mocked(cookies)).toHaveBeenCalled()
-
-      vi.mocked(cookies).mockImplementation(originalCookies)
+      expect(mockCookies).toHaveBeenCalled()
     })
 
     it('creates new client instance on each call', async () => {
@@ -243,8 +241,7 @@ describe('createClient (server)', () => {
 
   describe('エラーハンドリング', () => {
     it('handles cookie store errors gracefully', async () => {
-      const { cookies } = await import('next/headers')
-      vi.mocked(cookies).mockRejectedValueOnce(new Error('Cookie store error'))
+      mockCookies.mockRejectedValueOnce(new Error('Cookie store error'))
 
       await expect(createClient()).rejects.toThrow('Cookie store error')
     })
