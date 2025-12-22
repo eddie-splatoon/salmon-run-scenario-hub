@@ -48,7 +48,8 @@ async function getUserScenarios(userId: string): Promise<UserScenario[]> {
     const supabase = await createClient()
 
     // ユーザーの投稿を取得
-    const { data: scenarios, error: scenariosError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: scenarios, error: scenariosError } = await (supabase as any)
       .from('scenarios')
       .select(`
         code,
@@ -148,7 +149,8 @@ async function getStatisticsData(userId: string): Promise<StatisticsData | null>
     const supabase = await createClient()
 
     // ユーザーの投稿データを取得（集計用）
-    const { data: userScenarios, error: scenariosError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: userScenariosRaw, error: scenariosError } = await (supabase as any)
       .from('scenarios')
       .select('total_golden_eggs, stage_id')
       .eq('author_id', userId)
@@ -158,19 +160,24 @@ async function getStatisticsData(userId: string): Promise<StatisticsData | null>
       return null
     }
 
+    // 型を明示的に指定
+    type UserScenario = { total_golden_eggs?: number | null; stage_id: number }
+    const userScenarios = (userScenariosRaw || []) as UserScenario[]
+
     // 集計計算
-    const totalScenarios = userScenarios?.length || 0
+    const totalScenarios = userScenarios.length
     let averageGoldenEggs = 0
     let maxGoldenEggs = 0
 
-    if (totalScenarios > 0 && userScenarios) {
-      const sum = userScenarios.reduce((acc, s) => acc + (s.total_golden_eggs || 0), 0)
+    if (totalScenarios > 0) {
+      const sum = userScenarios.reduce((acc: number, s) => acc + (s.total_golden_eggs || 0), 0)
       averageGoldenEggs = Math.round((sum / totalScenarios) * 10) / 10 // 小数点第1位まで
       maxGoldenEggs = Math.max(...userScenarios.map((s) => s.total_golden_eggs || 0))
     }
 
     // ステージ別投稿数を取得
-    const { data: stageStatsRaw, error: stageStatsError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: stageStatsRaw, error: stageStatsError } = await (supabase as any)
       .from('scenarios')
       .select('stage_id, m_stages!inner(name)')
       .eq('author_id', userId)
@@ -201,7 +208,8 @@ async function getStatisticsData(userId: string): Promise<StatisticsData | null>
     }))
 
     // お気に入り（いいねした）シナリオを取得
-    const { data: likes, error: likesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: likes, error: likesError } = await (supabase as any)
       .from('likes')
       .select('scenario_code')
       .eq('user_id', userId)
@@ -211,12 +219,13 @@ async function getStatisticsData(userId: string): Promise<StatisticsData | null>
       console.error('いいね取得エラー:', likesError)
     }
 
-    const likedScenarioCodes = (likes || []).map((l) => l.scenario_code)
+    const likedScenarioCodes = ((likes || []) as Array<{ scenario_code: string }>).map((l) => l.scenario_code)
 
     let likedScenarios: LikedScenario[] = []
     if (likedScenarioCodes.length > 0) {
       // いいねしたシナリオの詳細を取得
-      const { data: likedScenariosData, error: likedScenariosError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: likedScenariosData, error: likedScenariosError } = await (supabase as any)
         .from('scenarios')
         .select(`
           code,
@@ -321,11 +330,16 @@ export default async function ProfilePage() {
   const statisticsData = await getStatisticsData(user.id)
 
   // プロフィール情報を取得（profilesテーブルから）
-  const { data: profile } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profileRaw } = await (supabase as any)
     .from('profiles')
     .select('display_name, avatar_url')
     .eq('user_id', user.id)
     .maybeSingle()
+
+  // 型を明示的に指定
+  type Profile = { display_name: string | null; avatar_url: string | null } | null
+  const profile = profileRaw as Profile
 
   return (
     <ProfileClient

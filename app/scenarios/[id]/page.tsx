@@ -40,12 +40,14 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     const supabase = await createClient()
 
     // 認証情報を取得（いいね状態を確認するため）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await (supabase as any).auth.getUser()
 
     // シナリオ基本情報を取得
-    const { data: scenario, error: scenarioError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select(`
         code,
@@ -79,7 +81,8 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     const typedScenario = scenario as ScenarioWithStage
 
     // WAVE情報を取得
-    const { data: waves, error: wavesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: wavesRaw, error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .select('*')
       .eq('scenario_code', scenarioCode)
@@ -90,8 +93,20 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
       return null
     }
 
+    // 型を明示的に指定
+    type Wave = {
+      wave_number: number
+      tide: 'low' | 'normal' | 'high'
+      event: string | null
+      delivered_count: number
+      quota: number
+      cleared: boolean
+    }
+    const waves = (wavesRaw || []) as Wave[]
+
     // 武器情報を取得
-    const { data: scenarioWeapons, error: weaponsError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: scenarioWeapons, error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .select(`
         weapon_id,
@@ -116,7 +131,8 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
     // いいね数を取得
-    const { count: likeCount, error: likeCountError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: likeCount, error: likeCountError } = await (supabase as any)
       .from('likes')
       .select('*', { count: 'exact', head: true })
       .eq('scenario_code', scenarioCode)
@@ -126,7 +142,8 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     }
 
     // コメント数を取得
-    const { count: commentCount, error: commentCountError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: commentCount, error: commentCountError } = await (supabase as any)
       .from('comments')
       .select('*', { count: 'exact', head: true })
       .eq('scenario_code', scenarioCode)
@@ -138,7 +155,8 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     // 現在のユーザーがいいねしているか確認
     let isLiked = false
     if (user) {
-      const { data: like, error: likeError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: like, error: likeError } = await (supabase as any)
         .from('likes')
         .select('id')
         .eq('scenario_code', scenarioCode)
@@ -160,7 +178,7 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
       total_power_eggs: typedScenario.total_power_eggs,
       created_at: typedScenario.created_at,
       author_id: typedScenario.author_id,
-      waves: (waves || []).map((wave) => ({
+      waves: waves.map((wave) => ({
         wave_number: wave.wave_number,
         tide: wave.tide,
         event: wave.event,
