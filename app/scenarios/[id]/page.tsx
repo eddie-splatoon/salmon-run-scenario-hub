@@ -40,9 +40,9 @@ async function getScenarioDetail(scenarioCode: string): Promise<ScenarioDetail |
     const supabase = await createClient()
 
     // 認証情報を取得（いいね状態を確認するため）
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const {
       data: { user },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = await (supabase as any).auth.getUser()
 
     // シナリオ基本情報を取得
