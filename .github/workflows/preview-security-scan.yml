@@ -1,0 +1,213 @@
+name: Preview Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview-security-scan:
+    runs-on: ubuntu-latest
+    name: Deploy Preview and ZAP Scan
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+      actions: read
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.1'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel Preview
+        id: deploy
+        run: |
+          # vercel deployを実行し、JSON形式で出力を取得
+          DEPLOYMENT_OUTPUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} --json 2>&1)
+          
+          # JSONからURLを抽出（複数のフィールドを試行）
+          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.url // .deploymentUrl // .previewUrl // empty' 2>/dev/null || echo "")
+          
+          # JSON形式で取得できない場合、標準出力から直接取得を試行
+          if [ -z "$DEPLOYMENT_URL" ] || [ "$DEPLOYMENT_URL" = "null" ] || [ "$DEPLOYMENT_URL" = "" ]; then
+            # 標準出力からURLを抽出（vercel.appを含む行を探す）
+            DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | head -1 || echo "")
+          fi
+          
+          # URLが取得できない場合、エラーを出力
+          if [ -z "$DEPLOYMENT_URL" ] || [ "$DEPLOYMENT_URL" = "null" ]; then
+            echo "Error: Failed to extract deployment URL from Vercel output"
+            echo "Vercel output: $DEPLOYMENT_OUTPUT"
+            exit 1
+          fi
+          
+          # 出力を設定（後続のステップで使用）
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployment URL: $DEPLOYMENT_URL"
+          
+          # 環境変数にも設定（デバッグ用）
+          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_ENV
+
+      - name: Wait for deployment to be ready
+        run: |
+          TARGET_URL="${{ steps.deploy.outputs.url }}"
+          echo "Waiting for deployment to be ready: $TARGET_URL"
+          
+          MAX_RETRIES=30
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -f -s -o /dev/null -w "%{http_code}" "$TARGET_URL" | grep -q "200\|301\|302"; then
+              echo "Deployment is ready!"
+              exit 0
+            fi
+            echo "Waiting for deployment... ($RETRY_COUNT/$MAX_RETRIES)"
+            sleep 10
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+          done
+          
+          echo "Warning: Deployment may not be ready, proceeding with scan anyway"
+
+      - name: ZAP Baseline Scan
+        id: zap_scan
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ steps.deploy.outputs.url }}
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: Check if SARIF file exists
+        id: check_sarif
+        if: always()
+        run: |
+          if [ -f zap_report.sarif ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Archive ZAP results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report-${{ github.run_number }}
+          path: |
+            zap_report.html
+            zap_report.json
+            zap_report.md
+            zap_report.sarif
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload ZAP results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.check_sarif.outputs.exists == 'true'
+        continue-on-error: true
+        with:
+          sarif_file: zap_report.sarif
+          wait-for-processing: true
+
+      - name: Parse ZAP scan results
+        id: parse_results
+        if: always()
+        run: |
+          # zap_report.jsonから結果を解析
+          if [ -f zap_report.json ]; then
+            # 重大な問題の数をカウント
+            HIGH_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 3)] | length' zap_report.json || echo "0")
+            MEDIUM_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 2)] | length' zap_report.json || echo "0")
+            LOW_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 1)] | length' zap_report.json || echo "0")
+            INFO_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 0)] | length' zap_report.json || echo "0")
+            
+            echo "high_issues=$HIGH_ISSUES" >> $GITHUB_OUTPUT
+            echo "medium_issues=$MEDIUM_ISSUES" >> $GITHUB_OUTPUT
+            echo "low_issues=$LOW_ISSUES" >> $GITHUB_OUTPUT
+            echo "info_issues=$INFO_ISSUES" >> $GITHUB_OUTPUT
+            
+            # 重大な問題がある場合は失敗フラグを設定
+            if [ "$HIGH_ISSUES" -gt 0 ]; then
+              echo "has_critical_issues=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "high_issues=0" >> $GITHUB_OUTPUT
+            echo "medium_issues=0" >> $GITHUB_OUTPUT
+            echo "low_issues=0" >> $GITHUB_OUTPUT
+            echo "info_issues=0" >> $GITHUB_OUTPUT
+            echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if ZAP report exists
+        id: check_report
+        if: always()
+        run: |
+          if [ -f zap_report.md ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or update PR comment with detailed report
+        if: always() && steps.check_report.outputs.exists == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: zap_report.md
+          edit-mode: replace
+          comment-tag: zap-scan-results
+
+      - name: Post scan summary comment
+        if: always()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🔒 OWASP ZAP Security Scan Results
+            
+            **Deployment URL:** ${{ steps.deploy.outputs.url }}
+            
+            ### Scan Summary
+            - 🔴 **High Risk Issues:** ${{ steps.parse_results.outputs.high_issues }}
+            - 🟡 **Medium Risk Issues:** ${{ steps.parse_results.outputs.medium_issues }}
+            - 🟠 **Low Risk Issues:** ${{ steps.parse_results.outputs.low_issues }}
+            - 🔵 **Info Issues:** ${{ steps.parse_results.outputs.info_issues }}
+            
+            ${{ steps.parse_results.outputs.has_critical_issues == 'true' && '### ⚠️ **WARNING: Critical security issues detected!**' || '### ✅ No critical security issues detected' }}
+            
+            ${{ steps.check_report.outputs.exists == 'true' && '**Detailed Report:** See the full report in the comment above or check the workflow artifacts for HTML/JSON reports.' || '**Note:** Detailed report is not available. Check the workflow artifacts for scan results.' }}
+            
+            ---
+            *This scan was automatically triggered by the preview deployment.*
+          edit-mode: replace
+          comment-tag: zap-scan-summary
+
+      - name: Fail if critical issues found
+        if: steps.parse_results.outputs.has_critical_issues == 'true'
+        run: |
+          echo "Critical security issues detected. Failing the workflow."
+          exit 1
+
