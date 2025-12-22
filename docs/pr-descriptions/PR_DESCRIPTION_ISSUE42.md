@@ -31,20 +31,37 @@
 - 各セキュリティヘッダーが正しく設定されていることを確認
 - HTTPS/HTTPリクエストでの動作を確認
 
+### 4. 重複デプロイの回避
+
+- `.github/workflows/preview-security-scan.yml`を`workflow_run`トリガーに変更
+- `deploy.yml`の完了を待つように変更し、重複デプロイを回避
+- デプロイステップを削除し、`deploy.yml`のデプロイURLをPRコメントから取得
+
+### 5. TypeScript型エラーの修正
+
+- `npm run build`で発生していた型エラーを修正
+- `app/profile/page.tsx`: Supabaseクエリに型アサーションを追加
+- `app/scenarios/[id]/page.tsx`: Supabaseクエリに型アサーションを追加
+- `vitest.setup.ts`: `globalThis`の型エラーを修正
+
 ## 処理フロー
 
 ```mermaid
 sequenceDiagram
     participant Developer
     participant GitHub
+    participant Deploy
     participant Vercel
     participant ZAP
     participant Artifacts
     
     Developer->>GitHub: Pull Request作成
-    GitHub->>Vercel: プレビューデプロイ開始
-    Vercel-->>GitHub: プレビューデプロイ完了（URLをコメント）
-    GitHub->>ZAP: ZAPスキャン開始
+    GitHub->>Deploy: deploy.ymlワークフロー開始
+    Deploy->>Vercel: プレビューデプロイ開始
+    Vercel-->>Deploy: プレビューデプロイ完了
+    Deploy->>GitHub: デプロイURLをPRコメントに投稿
+    GitHub->>ZAP: zap-scan.ymlワークフロー開始（workflow_run）
+    ZAP->>GitHub: PRコメントからデプロイURLを取得
     ZAP->>Vercel: セキュリティスキャン実行
     Vercel-->>ZAP: レスポンス
     ZAP->>ZAP: 脆弱性分析
