@@ -55,7 +55,8 @@ export async function GET(): Promise<NextResponse<StatsResponse>> {
     }
 
     // ユーザーの投稿データを取得（集計用）
-    const { data: userScenarios, error: scenariosError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: userScenarios, error: scenariosError } = await (supabase as any)
       .from('scenarios')
       .select('total_golden_eggs, stage_id')
       .eq('author_id', user.id)
@@ -77,13 +78,14 @@ export async function GET(): Promise<NextResponse<StatsResponse>> {
     let maxGoldenEggs = 0
 
     if (totalScenarios > 0 && userScenarios) {
-      const sum = userScenarios.reduce((acc, s) => acc + (s.total_golden_eggs || 0), 0)
+      const sum = (userScenarios as Array<{ total_golden_eggs?: number }>).reduce((acc: number, s) => acc + (s.total_golden_eggs || 0), 0)
       averageGoldenEggs = Math.round((sum / totalScenarios) * 10) / 10 // 小数点第1位まで
-      maxGoldenEggs = Math.max(...userScenarios.map((s) => s.total_golden_eggs || 0))
+      maxGoldenEggs = Math.max(...(userScenarios as Array<{ total_golden_eggs?: number }>).map((s) => s.total_golden_eggs || 0))
     }
 
     // ステージ別投稿数を取得
-    const { data: stageStatsRaw, error: stageStatsError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: stageStatsRaw, error: stageStatsError } = await (supabase as any)
       .from('scenarios')
       .select('stage_id, m_stages!inner(name)')
       .eq('author_id', user.id)
@@ -115,7 +117,8 @@ export async function GET(): Promise<NextResponse<StatsResponse>> {
     }))
 
     // お気に入り（いいねした）シナリオを取得
-    const { data: likes, error: likesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: likes, error: likesError } = await (supabase as any)
       .from('likes')
       .select('scenario_code')
       .eq('user_id', user.id)
@@ -126,12 +129,13 @@ export async function GET(): Promise<NextResponse<StatsResponse>> {
       // エラーでも続行（空配列を返す）
     }
 
-    const likedScenarioCodes = (likes || []).map((l) => l.scenario_code)
+    const likedScenarioCodes = ((likes || []) as Array<{ scenario_code: string }>).map((l) => l.scenario_code)
 
     let likedScenarios: LikedScenario[] = []
     if (likedScenarioCodes.length > 0) {
       // いいねしたシナリオの詳細を取得
-      const { data: likedScenariosData, error: likedScenariosError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: likedScenariosData, error: likedScenariosError } = await (supabase as any)
         .from('scenarios')
         .select(`
           code,
