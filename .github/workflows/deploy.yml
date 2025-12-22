@@ -44,8 +44,36 @@ jobs:
             vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
           fi
 
+      - name: Verify Vercel Configuration
+        run: |
+          # .vercelディレクトリが作成されているか確認
+          if [ ! -d ".vercel" ]; then
+            echo "Error: .vercel directory not found after vercel pull"
+            exit 1
+          fi
+          
+          # project.jsonが存在するか確認
+          if [ ! -f ".vercel/project.json" ]; then
+            echo "Error: .vercel/project.json not found"
+            exit 1
+          fi
+          
+          # 環境変数ファイルが存在するか確認
+          ENV_FILES=$(find .vercel -name ".env.*" -type f | wc -l)
+          if [ "$ENV_FILES" -eq 0 ]; then
+            echo "Warning: No .env files found in .vercel directory"
+          else
+            echo "Found $ENV_FILES environment variable file(s)"
+          fi
+          
+          echo "Vercel configuration verified successfully"
+          echo "Project configuration:"
+          cat .vercel/project.json
+
       - name: Build Project Artifacts
         run: |
+          # vercel buildは.vercelディレクトリの設定を自動的に参照します
+          # --local-configオプションは存在しないため、.vercelディレクトリの設定が自動的に使用されます
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             vercel build --token=${{ secrets.VERCEL_TOKEN }}
           else
