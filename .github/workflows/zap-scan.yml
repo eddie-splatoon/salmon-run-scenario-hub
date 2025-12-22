@@ -1,8 +1,10 @@
 name: OWASP ZAP Security Scan
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["Deploy to Vercel"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       target_url:
@@ -14,25 +16,47 @@ jobs:
   zap_scan:
     runs-on: ubuntu-latest
     name: ZAP Scan
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
       security-events: write
       actions: read
+      pull-requests: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get Vercel Preview URL from PR comments
-        id: vercel_url
-        if: github.event_name == 'pull_request'
+      - name: Get PR number from workflow run
+        id: pr_number
+        if: github.event_name == 'workflow_run'
         uses: actions/github-script@v7
         with:
           script: |
+            // workflow_runイベントからPR番号を取得
+            const pullRequests = ${{ toJSON(github.event.workflow_run.pull_requests) }};
+            const prNumber = pullRequests && pullRequests.length > 0 ? pullRequests[0].number : null;
+            
+            if (!prNumber) {
+              core.setFailed('PR number not found in workflow_run event');
+              return;
+            }
+            
+            core.setOutput('pr_number', prNumber);
+
+      - name: Get Vercel Preview URL from PR comments
+        id: vercel_url
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr_number.outputs.pr_number }};
+            
+            // PRコメントからVercelのプレビューURLを取得
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: parseInt(prNumber),
             });
             
             // VercelのプレビューURLをPRコメントから取得
@@ -49,7 +73,6 @@ jobs:
             }
             
             // コメントから取得できない場合、デフォルトのパターンを使用
-            const prNumber = context.issue.number;
             const defaultUrl = `https://salmon-run-scenario-hub-git-${prNumber}-eddie-splatoons-projects.vercel.app`;
             core.setOutput('url', defaultUrl);
 
@@ -65,10 +88,10 @@ jobs:
           echo "Target URL: ${{ steps.target.outputs.url }}"
 
       - name: Wait for deployment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_run'
         run: |
           echo "Waiting for Vercel deployment to be ready..."
-          MAX_RETRIES=30
+          MAX_RETRIES=20
           RETRY_COUNT=0
           TARGET_URL="${{ steps.target.outputs.url }}"
           
