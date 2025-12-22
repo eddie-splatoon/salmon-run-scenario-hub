@@ -53,10 +53,10 @@ export async function GET(
     // 認証情報を取得（いいね状態を確認するため）
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await (supabase as any).auth.getUser()
 
     // シナリオ基本情報を取得
-    const { data: scenario, error: scenarioError } = await supabase
+    const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select(`
         code,
@@ -97,7 +97,7 @@ export async function GET(
     const typedScenario = scenario as ScenarioWithStage
 
     // WAVE情報を取得
-    const { data: waves, error: wavesError } = await supabase
+    const { data: waves, error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .select('*')
       .eq('scenario_code', scenarioCode)
@@ -115,7 +115,7 @@ export async function GET(
     }
 
     // 武器情報を取得
-    const { data: scenarioWeapons, error: weaponsError } = await supabase
+    const { data: scenarioWeapons, error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .select(`
         weapon_id,
@@ -146,7 +146,7 @@ export async function GET(
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
     // いいね数を取得
-    const { count: likeCount, error: likeCountError } = await supabase
+    const { count: likeCount, error: likeCountError } = await (supabase as any)
       .from('likes')
       .select('*', { count: 'exact', head: true })
       .eq('scenario_code', scenarioCode)
@@ -157,7 +157,7 @@ export async function GET(
     }
 
     // コメント数を取得
-    const { count: commentCount, error: commentCountError } = await supabase
+    const { count: commentCount, error: commentCountError } = await (supabase as any)
       .from('comments')
       .select('*', { count: 'exact', head: true })
       .eq('scenario_code', scenarioCode)
@@ -170,7 +170,7 @@ export async function GET(
     // 現在のユーザーがいいねしているか確認
     let isLiked = false
     if (user) {
-      const { data: like, error: likeError } = await supabase
+      const { data: like, error: likeError } = await (supabase as any)
         .from('likes')
         .select('id')
         .eq('scenario_code', scenarioCode)
@@ -192,9 +192,9 @@ export async function GET(
       total_power_eggs: typedScenario.total_power_eggs,
       created_at: typedScenario.created_at,
       author_id: typedScenario.author_id,
-      waves: (waves || []).map((wave) => ({
+      waves: ((waves || []) as Array<{ wave_number: number; tide: 'low' | 'normal' | 'high'; event: string | null; delivered_count: number; quota: number; cleared: boolean }>).map((wave) => ({
         wave_number: wave.wave_number,
-        tide: wave.tide,
+        tide: wave.tide as 'low' | 'normal' | 'high',
         event: wave.event,
         delivered_count: wave.delivered_count,
         quota: wave.quota,
@@ -254,7 +254,7 @@ export async function DELETE(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await (supabase as any).auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
@@ -264,7 +264,7 @@ export async function DELETE(
     }
 
     // シナリオの存在確認と所有者確認
-    const { data: scenario, error: scenarioError } = await supabase
+    const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select('code, author_id')
       .eq('code', scenarioCode)
@@ -300,7 +300,7 @@ export async function DELETE(
     }
 
     // シナリオを削除（CASCADEにより関連データも自動削除される）
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('scenarios')
       .delete()
       .eq('code', scenarioCode)

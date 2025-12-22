@@ -51,7 +51,8 @@ export async function GET(
     }
 
     // コメントを取得
-    const { data: comments, error: commentsError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: comments, error: commentsError } = await (supabase as any)
       .from('comments')
       .select('id, user_id, content, created_at, updated_at')
       .eq('scenario_code', scenarioCode)
@@ -157,7 +158,8 @@ export async function POST(
     }
 
     // コメントを追加
-    const { data: comment, error: insertError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: comment, error: insertError } = await (supabase as any)
       .from('comments')
       .insert({
         scenario_code: scenarioCode,

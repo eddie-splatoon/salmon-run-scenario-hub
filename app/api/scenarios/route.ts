@@ -89,7 +89,7 @@ export async function POST(
 
     // 重複チェック
     console.warn('[POST /api/scenarios] 重複チェック開始:', body.scenario_code)
-    const { data: existingScenarios, error: checkError } = await supabase
+    const { data: existingScenarios, error: checkError } = await (supabase as any)
       .from('scenarios')
       .select('code')
       .eq('code', body.scenario_code)
@@ -126,9 +126,10 @@ export async function POST(
 
     // ステージIDの取得（名寄せ）
     console.warn('[POST /api/scenarios] ステージID取得開始:', body.stage_name)
-    let stageId = body.stage_id
+    let stageId: number | undefined = body.stage_id
     if (!stageId) {
-      stageId = await lookupStageId(body.stage_name)
+      const lookedUpStageId = await lookupStageId(body.stage_name)
+      stageId = lookedUpStageId ?? undefined
       if (!stageId) {
         console.error('[POST /api/scenarios] ステージが見つかりません:', body.stage_name)
         return NextResponse.json(
@@ -141,15 +142,16 @@ export async function POST(
 
     // 武器IDの取得（名寄せ）
     console.warn('[POST /api/scenarios] 武器ID取得開始:', body.weapons)
-    let weaponIds = body.weapon_ids
+    let weaponIds: number[] | (number | null)[] = body.weapon_ids || []
     if (!weaponIds || weaponIds.length === 0) {
-      weaponIds = await lookupWeaponIds(body.weapons)
-      const validWeaponIds = weaponIds.filter((id): id is number => id !== null)
+      const lookedUpWeaponIds = await lookupWeaponIds(body.weapons)
+      weaponIds = lookedUpWeaponIds
+      const validWeaponIds = lookedUpWeaponIds.filter((id): id is number => id !== null)
       if (validWeaponIds.length !== body.weapons.length) {
         console.error('[POST /api/scenarios] 武器が見つかりません:', {
           requested: body.weapons,
           found: validWeaponIds,
-          missing: body.weapons.filter((_, i) => weaponIds[i] === null),
+          missing: body.weapons.filter((_, i) => lookedUpWeaponIds[i] === null),
         })
         return NextResponse.json(
           {
@@ -159,7 +161,7 @@ export async function POST(
           { status: 400 }
         )
       }
-      weaponIds = validWeaponIds
+      weaponIds = validWeaponIds as number[]
     } else {
       // weapon_idsが提供されている場合、長さの検証
       if (weaponIds.length !== body.weapons.length) {
@@ -229,7 +231,8 @@ export async function POST(
     }
     console.warn('[POST /api/scenarios] scenarios挿入データ:', scenarioInsert)
 
-    const { error: scenarioError } = await supabase.from('scenarios').insert(scenarioInsert)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: scenarioError } = await (supabase as any).from('scenarios').insert(scenarioInsert)
 
     if (scenarioError) {
       console.error('[POST /api/scenarios] scenarios保存エラー:', {
@@ -263,7 +266,8 @@ export async function POST(
     console.warn('[POST /api/scenarios] scenarios保存成功')
 
     console.warn('[POST /api/scenarios] scenario_wavesテーブルに保存開始:', waveInserts)
-    const { error: wavesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .insert(waveInserts)
 
@@ -276,7 +280,7 @@ export async function POST(
         details: wavesError.details,
         hint: wavesError.hint,
       })
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('scenarios')
         .delete()
         .eq('code', body.scenario_code)
@@ -304,9 +308,13 @@ export async function POST(
       scenario_code: string
       weapon_id: number
       display_order: number
-    }> = []
+    }> = [] as Array<{
+      scenario_code: string
+      weapon_id: number
+      display_order: number
+    }>
 
-    weaponIds.forEach((weaponId, index) => {
+    (weaponIds as number[]).forEach((weaponId: number, index: number) => {
       // まだ見ていない武器IDの場合のみ追加
       if (!seenWeaponIds.has(weaponId)) {
         seenWeaponIds.set(weaponId, index + 1)
@@ -320,7 +328,7 @@ export async function POST(
 
     console.warn('[POST /api/scenarios] scenario_weaponsテーブルに保存開始:', weaponInserts)
 
-    const { error: weaponsError } = await supabase
+    const { error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .insert(weaponInserts)
 
@@ -335,7 +343,7 @@ export async function POST(
       })
       
       // scenario_wavesを削除
-      const { error: deleteWavesError } = await supabase
+      const { error: deleteWavesError } = await (supabase as any)
         .from('scenario_waves')
         .delete()
         .eq('scenario_code', body.scenario_code)
@@ -344,7 +352,7 @@ export async function POST(
       }
       
       // scenariosを削除
-      const { error: deleteScenariosError } = await supabase
+      const { error: deleteScenariosError } = await (supabase as any)
         .from('scenarios')
         .delete()
         .eq('code', body.scenario_code)
@@ -491,7 +499,7 @@ export async function GET(
     const scenarioCodes = typedScenarios.map((s) => s.code)
 
     // 武器情報を取得
-    const { data: scenarioWeapons, error: weaponsError } = await supabase
+    const { data: scenarioWeapons, error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .select(`
         scenario_code,
@@ -525,7 +533,7 @@ export async function GET(
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
     // WAVE情報を取得（ハッシュタグ判定に必要）
-    const { data: scenarioWaves, error: wavesError } = await supabase
+    const { data: scenarioWaves, error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .select('scenario_code, wave_number, event, cleared')
       .in('scenario_code', scenarioCodes)

@@ -27,7 +27,8 @@ export async function GET(
     const supabase = await createClient()
 
     // プロフィールテーブルから情報を取得
-    const { data: profile, error: profileError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile, error: profileError } = await (supabase as any)
       .from('profiles')
       .select('user_id, display_name, avatar_url')
       .eq('user_id', userId)
