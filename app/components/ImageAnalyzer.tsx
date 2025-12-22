@@ -635,6 +635,7 @@ export default function ImageAnalyzer() {
               </Typography>
               <Grid container spacing={2}>
                 {/* 1行目: シナリオコード、ステージ */}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <TextField
                     fullWidth
@@ -647,6 +648,7 @@ export default function ImageAnalyzer() {
                   />
                 </Grid>
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <Autocomplete
                     fullWidth
@@ -669,6 +671,7 @@ export default function ImageAnalyzer() {
                 </Grid>
                 {/* 2行目: キケン度、スコア */}
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                   <TextField
                     fullWidth
@@ -687,6 +690,7 @@ export default function ImageAnalyzer() {
                   />
                 </Grid>
                 {editableData.score !== undefined && (
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                     <TextField
                       fullWidth
@@ -713,8 +717,8 @@ export default function ImageAnalyzer() {
               </Typography>
               <Grid container spacing={2}>
                 {editableData.weapons.map((weapon, index) => (
-                
-                <Grid {...({ item: true, xs: 12, sm: 6 } as any)} key={index}>
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  <Grid {...({ item: true, xs: 12, sm: 6 } as any)} key={index}>
                     <Autocomplete
                       fullWidth
                       options={weapons}
@@ -766,6 +770,7 @@ export default function ImageAnalyzer() {
                       </Typography>
                       <Grid container spacing={2}>
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                           <Autocomplete
                             fullWidth
@@ -787,6 +792,7 @@ export default function ImageAnalyzer() {
                           />
                         </Grid>
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                           {isExWave ? (
                             <Autocomplete
@@ -831,6 +837,7 @@ export default function ImageAnalyzer() {
                         {!isExWave && (
                           <>
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                               <TextField
                                 fullWidth
@@ -859,6 +866,7 @@ export default function ImageAnalyzer() {
                               />
                             </Grid>
                 
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
                               <TextField
                                 fullWidth
@@ -888,8 +896,8 @@ export default function ImageAnalyzer() {
                           </>
                         )}
                         {wave.cleared !== undefined && (
-                
-                <Grid {...({ item: true, xs: 12 } as any)}>
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          <Grid {...({ item: true, xs: 12 } as any)}>
                             <FormControlLabel
                               control={
                                 <Checkbox

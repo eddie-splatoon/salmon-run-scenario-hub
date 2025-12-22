@@ -53,9 +53,11 @@ export async function GET(
     // 認証情報を取得（いいね状態を確認するため）
     const {
       data: { user },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = await (supabase as any).auth.getUser()
 
     // シナリオ基本情報を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select(`
@@ -97,6 +99,7 @@ export async function GET(
     const typedScenario = scenario as ScenarioWithStage
 
     // WAVE情報を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: waves, error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .select('*')
@@ -115,6 +118,7 @@ export async function GET(
     }
 
     // 武器情報を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: scenarioWeapons, error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .select(`
@@ -146,6 +150,7 @@ export async function GET(
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
     // いいね数を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: likeCount, error: likeCountError } = await (supabase as any)
       .from('likes')
       .select('*', { count: 'exact', head: true })
@@ -157,6 +162,7 @@ export async function GET(
     }
 
     // コメント数を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: commentCount, error: commentCountError } = await (supabase as any)
       .from('comments')
       .select('*', { count: 'exact', head: true })
@@ -170,6 +176,7 @@ export async function GET(
     // 現在のユーザーがいいねしているか確認
     let isLiked = false
     if (user) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: like, error: likeError } = await (supabase as any)
         .from('likes')
         .select('id')
@@ -254,6 +261,7 @@ export async function DELETE(
     const {
       data: { user },
       error: authError,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = await (supabase as any).auth.getUser()
 
     if (authError || !user) {
@@ -264,6 +272,7 @@ export async function DELETE(
     }
 
     // シナリオの存在確認と所有者確認
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: scenario, error: scenarioError } = await (supabase as any)
       .from('scenarios')
       .select('code, author_id')
@@ -300,6 +309,7 @@ export async function DELETE(
     }
 
     // シナリオを削除（CASCADEにより関連データも自動削除される）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: deleteError } = await (supabase as any)
       .from('scenarios')
       .delete()

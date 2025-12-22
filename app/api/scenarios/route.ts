@@ -89,6 +89,7 @@ export async function POST(
 
     // 重複チェック
     console.warn('[POST /api/scenarios] 重複チェック開始:', body.scenario_code)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingScenarios, error: checkError } = await (supabase as any)
       .from('scenarios')
       .select('code')
@@ -280,6 +281,7 @@ export async function POST(
         details: wavesError.details,
         hint: wavesError.hint,
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: deleteError } = await (supabase as any)
         .from('scenarios')
         .delete()
@@ -328,6 +330,7 @@ export async function POST(
 
     console.warn('[POST /api/scenarios] scenario_weaponsテーブルに保存開始:', weaponInserts)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .insert(weaponInserts)
@@ -343,6 +346,7 @@ export async function POST(
       })
       
       // scenario_wavesを削除
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: deleteWavesError } = await (supabase as any)
         .from('scenario_waves')
         .delete()
@@ -352,6 +356,7 @@ export async function POST(
       }
       
       // scenariosを削除
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: deleteScenariosError } = await (supabase as any)
         .from('scenarios')
         .delete()
@@ -499,6 +504,7 @@ export async function GET(
     const scenarioCodes = typedScenarios.map((s) => s.code)
 
     // 武器情報を取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: scenarioWeapons, error: weaponsError } = await (supabase as any)
       .from('scenario_weapons')
       .select(`
@@ -533,6 +539,7 @@ export async function GET(
     const typedScenarioWeapons = (scenarioWeapons || []) as ScenarioWeaponWithWeapon[]
 
     // WAVE情報を取得（ハッシュタグ判定に必要）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: scenarioWaves, error: wavesError } = await (supabase as any)
       .from('scenario_waves')
       .select('scenario_code, wave_number, event, cleared')
