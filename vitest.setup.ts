@@ -7,38 +7,56 @@ import { cleanup } from '@testing-library/react'
 // clearTimeoutとsetTimeoutをグローバルスコープで利用可能にする
 if (typeof globalThis.clearTimeout === 'undefined') {
   try {
-    // @ts-expect-error - clearTimeoutはNode.js環境で利用可能
     const clearTimeoutFn = typeof clearTimeout !== 'undefined' ? clearTimeout : (() => {})
-    globalThis.clearTimeout = clearTimeoutFn
-    // @ts-expect-error
-    global.clearTimeout = clearTimeoutFn
-    // @ts-expect-error
-    if (typeof window !== 'undefined') window.clearTimeout = clearTimeoutFn
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).clearTimeout = clearTimeoutFn
+    if (typeof global !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(global as any).clearTimeout = clearTimeoutFn
+    }
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).clearTimeout = clearTimeoutFn
+    }
   } catch {
     // clearTimeoutが利用できない場合は空関数を設定
-    globalThis.clearTimeout = () => {}
-    // @ts-expect-error
-    if (typeof global !== 'undefined') global.clearTimeout = () => {}
-    // @ts-expect-error
-    if (typeof window !== 'undefined') window.clearTimeout = () => {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).clearTimeout = () => {}
+    if (typeof global !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(global as any).clearTimeout = () => {}
+    }
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).clearTimeout = () => {}
+    }
   }
 }
 if (typeof globalThis.setTimeout === 'undefined') {
   try {
-    // @ts-expect-error - setTimeoutはNode.js環境で利用可能
     const setTimeoutFn = typeof setTimeout !== 'undefined' ? setTimeout : (() => {})
-    globalThis.setTimeout = setTimeoutFn
-    // @ts-expect-error
-    global.setTimeout = setTimeoutFn
-    // @ts-expect-error
-    if (typeof window !== 'undefined') window.setTimeout = setTimeoutFn
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).setTimeout = setTimeoutFn
+    if (typeof global !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(global as any).setTimeout = setTimeoutFn
+    }
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).setTimeout = setTimeoutFn
+    }
   } catch {
     // setTimeoutが利用できない場合は空関数を設定
-    globalThis.setTimeout = () => {}
-    // @ts-expect-error
-    if (typeof global !== 'undefined') global.setTimeout = () => {}
-    // @ts-expect-error
-    if (typeof window !== 'undefined') window.setTimeout = () => {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).setTimeout = () => {}
+    if (typeof global !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(global as any).setTimeout = () => {}
+    }
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).setTimeout = () => {}
+    }
   }
 }
 

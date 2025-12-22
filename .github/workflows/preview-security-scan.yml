@@ -1,84 +1,102 @@
 name: Preview Security Scan
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["Deploy to Vercel"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan'
+        required: true
+        type: string
 
 jobs:
   preview-security-scan:
     runs-on: ubuntu-latest
-    name: Deploy Preview and ZAP Scan
+    name: ZAP Security Scan
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
       pull-requests: write
       security-events: write
       actions: read
 
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Get PR number from workflow run
+        id: pr_number
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v7
         with:
-          node-version: '24.11.1'
-          cache: 'npm'
+          script: |
+            // workflow_runイベントからPR番号を取得
+            const pullRequests = ${{ toJSON(github.event.workflow_run.pull_requests) }};
+            const prNumber = pullRequests && pullRequests.length > 0 ? pullRequests[0].number : null;
+            
+            if (!prNumber) {
+              core.setFailed('PR number not found in workflow_run event');
+              return;
+            }
+            
+            core.setOutput('pr_number', prNumber);
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Get Vercel Preview URL from PR comments
+        id: vercel_url
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.pr_number.outputs.pr_number }};
+            
+            // PRコメントからVercelのプレビューURLを取得
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(prNumber),
+            });
+            
+            // VercelのプレビューURLをPRコメントから取得
+            const vercelComment = comments.find(comment => 
+              comment.body && comment.body.includes('vercel.app')
+            );
+            
+            if (vercelComment) {
+              const urlMatch = vercelComment.body.match(/https:\/\/[^\s]+\.vercel\.app/);
+              if (urlMatch) {
+                core.setOutput('url', urlMatch[0]);
+                return;
+              }
+            }
+            
+            // コメントから取得できない場合、デフォルトのパターンを使用
+            const defaultUrl = `https://salmon-run-scenario-hub-git-${prNumber}-eddie-splatoons-projects.vercel.app`;
+            core.setOutput('url', defaultUrl);
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to Vercel Preview
-        id: deploy
+      - name: Set target URL
+        id: target
         run: |
-          # vercel deployを実行し、JSON形式で出力を取得
-          DEPLOYMENT_OUTPUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} --json 2>&1)
-          
-          # JSONからURLを抽出（複数のフィールドを試行）
-          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.url // .deploymentUrl // .previewUrl // empty' 2>/dev/null || echo "")
-          
-          # JSON形式で取得できない場合、標準出力から直接取得を試行
-          if [ -z "$DEPLOYMENT_URL" ] || [ "$DEPLOYMENT_URL" = "null" ] || [ "$DEPLOYMENT_URL" = "" ]; then
-            # 標準出力からURLを抽出（vercel.appを含む行を探す）
-            DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | head -1 || echo "")
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "url=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "url=${{ steps.vercel_url.outputs.url }}" >> $GITHUB_OUTPUT
           fi
           
-          # URLが取得できない場合、エラーを出力
-          if [ -z "$DEPLOYMENT_URL" ] || [ "$DEPLOYMENT_URL" = "null" ]; then
-            echo "Error: Failed to extract deployment URL from Vercel output"
-            echo "Vercel output: $DEPLOYMENT_OUTPUT"
-            exit 1
-          fi
-          
-          # 出力を設定（後続のステップで使用）
-          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "Deployment URL: $DEPLOYMENT_URL"
-          
-          # 環境変数にも設定（デバッグ用）
-          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_ENV
+          echo "Target URL: ${{ steps.target.outputs.url }}"
 
       - name: Wait for deployment to be ready
+        if: github.event_name == 'workflow_run'
         run: |
-          TARGET_URL="${{ steps.deploy.outputs.url }}"
-          echo "Waiting for deployment to be ready: $TARGET_URL"
-          
-          MAX_RETRIES=30
+          echo "Waiting for Vercel deployment to be ready..."
+          MAX_RETRIES=20
           RETRY_COUNT=0
+          TARGET_URL="${{ steps.target.outputs.url }}"
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -f -s -o /dev/null -w "%{http_code}" "$TARGET_URL" | grep -q "200\|301\|302"; then
+            if curl -f -s -o /dev/null "$TARGET_URL"; then
               echo "Deployment is ready!"
               exit 0
             fi
@@ -94,7 +112,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
-          target: ${{ steps.deploy.outputs.url }}
+          target: ${{ steps.target.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a -J'
           fail_action: false
@@ -172,23 +190,23 @@ jobs:
           fi
 
       - name: Create or update PR comment with detailed report
-        if: always() && steps.check_report.outputs.exists == 'true'
+        if: always() && steps.check_report.outputs.exists == 'true' && github.event_name == 'workflow_run'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ steps.pr_number.outputs.pr_number }}
           body-path: zap_report.md
           edit-mode: replace
           comment-tag: zap-scan-results
 
       - name: Post scan summary comment
-        if: always()
+        if: always() && github.event_name == 'workflow_run'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ steps.pr_number.outputs.pr_number }}
           body: |
             ## 🔒 OWASP ZAP Security Scan Results
             
-            **Deployment URL:** ${{ steps.deploy.outputs.url }}
+            **Deployment URL:** ${{ steps.target.outputs.url }}
             
             ### Scan Summary
             - 🔴 **High Risk Issues:** ${{ steps.parse_results.outputs.high_issues }}

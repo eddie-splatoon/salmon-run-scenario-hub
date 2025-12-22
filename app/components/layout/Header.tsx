@@ -41,7 +41,8 @@ export default function Header() {
           // 新しいSupabaseクライアントインスタンスを作成
           const profileSupabase = createClient()
           try {
-            const profileResult = await profileSupabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const profileResult = await (profileSupabase as any)
               .from('profiles')
               .select('avatar_url')
               .eq('user_id', user.id)
@@ -104,7 +105,8 @@ export default function Header() {
         }
         
         try {
-          const { data: profile, error: profileError } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: profile, error: profileError } = await (supabase as any)
             .from('profiles')
             .select('avatar_url')
             .eq('user_id', user.id)

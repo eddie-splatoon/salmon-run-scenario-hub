@@ -190,7 +190,8 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
     weekStart.setHours(0, 0, 0, 0)
 
     // 今週のいいねを取得
-    const { data: weeklyLikes, error: likesError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: weeklyLikes, error: likesError } = await (supabase as any)
       .from('likes')
       .select('scenario_code')
       .gte('created_at', weekStart.toISOString())
@@ -202,7 +203,7 @@ async function getTrendingScenarios(limit: number = 6): Promise<TrendingScenario
 
     // シナリオコードごとにいいね数を集計
     const likeCounts = new Map<string, number>()
-    weeklyLikes?.forEach((like) => {
+    weeklyLikes?.forEach((like: { scenario_code: string }) => {
       const count = likeCounts.get(like.scenario_code) || 0
       likeCounts.set(like.scenario_code, count + 1)
     })
