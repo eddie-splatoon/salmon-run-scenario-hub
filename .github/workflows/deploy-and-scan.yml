@@ -337,10 +337,10 @@ jobs:
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
             # 重大な問題の数をカウント
-            HIGH_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 3)] | length' zap_report.json || echo "0")
-            MEDIUM_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 2)] | length' zap_report.json || echo "0")
-            LOW_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 1)] | length' zap_report.json || echo "0")
-            INFO_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 0)] | length' zap_report.json || echo "0")
+            HIGH_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "3")] | length' zap_report.json || echo "0")
+            MEDIUM_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "2")] | length' zap_report.json || echo "0")
+            LOW_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "1")] | length' zap_report.json || echo "0")
+            INFO_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "0")] | length' zap_report.json || echo "0")
             
             echo "high_issues=$HIGH_ISSUES" >> $GITHUB_OUTPUT
             echo "medium_issues=$MEDIUM_ISSUES" >> $GITHUB_OUTPUT
@@ -749,10 +749,10 @@ jobs:
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
             # 重大な問題の数をカウント
-            HIGH_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 3)] | length' zap_report.json || echo "0")
-            MEDIUM_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 2)] | length' zap_report.json || echo "0")
-            LOW_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 1)] | length' zap_report.json || echo "0")
-            INFO_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == 0)] | length' zap_report.json || echo "0")
+            HIGH_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "3")] | length' zap_report.json || echo "0")
+            MEDIUM_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "2")] | length' zap_report.json || echo "0")
+            LOW_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "1")] | length' zap_report.json || echo "0")
+            INFO_ISSUES=$(jq '[.site[]?.alerts[]? | select(.riskcode == "0")] | length' zap_report.json || echo "0")
             
             echo "high_issues=$HIGH_ISSUES" >> $GITHUB_OUTPUT
             echo "medium_issues=$MEDIUM_ISSUES" >> $GITHUB_OUTPUT
