@@ -16,8 +16,8 @@ export default function Header() {
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchCode, setSearchCode] = useState('')
-  const [avatarError, setAvatarError] = useState(false)
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null)
+  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -36,7 +36,7 @@ export default function Header() {
         
         setUser(user)
         
-        // プロフィール情報を取得（profilesテーブル優先、なければuser_metadata）
+        // プロフィール情報を取得（profilesテーブルから取得、user_metadataは使わない）
         if (user) {
           // 新しいSupabaseクライアントインスタンスを作成
           const profileSupabase = createClient()
@@ -44,24 +44,25 @@ export default function Header() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const profileResult = await (profileSupabase as any)
               .from('profiles')
-              .select('avatar_url')
+              .select('avatar_url, display_name')
               .eq('user_id', user.id)
               .maybeSingle()
             
             const { data: profile, error: profileError } = profileResult
             
             if (profileError) {
-              // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+              // エラーが発生した場合はnullを設定（user_metadataは使わない）
               setProfileAvatarUrl(null)
-          } else if (profile?.avatar_url) {
-              setProfileAvatarUrl(profile.avatar_url)
-            } else {
-              // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-              setProfileAvatarUrl(null)
+              setProfileDisplayName(null)
+          } else {
+              // profilesテーブルから取得した値を使用（user_metadataは使わない）
+              setProfileAvatarUrl(profile?.avatar_url || null)
+              setProfileDisplayName(profile?.display_name || null)
             }
           } catch (_error) {
-            // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+            // エラーが発生した場合はnullを設定（user_metadataは使わない）
             setProfileAvatarUrl(null)
+            setProfileDisplayName(null)
           }
         }
       } catch (_error) {
@@ -84,6 +85,7 @@ export default function Header() {
       // ログアウト時はプロフィールをクリア
       if (!currentUser) {
         setProfileAvatarUrl(null)
+        setProfileDisplayName(null)
       }
     })
 
@@ -108,22 +110,23 @@ export default function Header() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data: profile, error: profileError } = await (supabase as any)
             .from('profiles')
-            .select('avatar_url')
+            .select('avatar_url, display_name')
             .eq('user_id', user.id)
             .maybeSingle()
           
           if (profileError) {
-            // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+            // エラーが発生した場合はnullを設定（user_metadataは使わない）
             setProfileAvatarUrl(null)
-          } else if (profile?.avatar_url) {
-            setProfileAvatarUrl(profile.avatar_url)
+            setProfileDisplayName(null)
           } else {
-            // profilesテーブルにavatar_urlがない場合はnullを設定（user_metadata.pictureは使わない）
-            setProfileAvatarUrl(null)
+            // profilesテーブルから取得した値を使用（user_metadataは使わない）
+            setProfileAvatarUrl(profile?.avatar_url || null)
+            setProfileDisplayName(profile?.display_name || null)
           }
         } catch (_error) {
-          // エラーが発生した場合はnullを設定（user_metadata.pictureは使わない）
+          // エラーが発生した場合はnullを設定（user_metadataは使わない）
           setProfileAvatarUrl(null)
+          setProfileDisplayName(null)
         }
       } catch (_error) {
         setProfileAvatarUrl(null)
@@ -145,12 +148,14 @@ export default function Header() {
       await signOut()
       setUser(null)
       setProfileAvatarUrl(null)
+      setProfileDisplayName(null)
       router.push('/')
       router.refresh()
     } catch (_error) {
       // エラーが発生しても、ローカル状態をクリアしてリダイレクト
       setUser(null)
       setProfileAvatarUrl(null)
+      setProfileDisplayName(null)
       router.push('/')
       router.refresh()
     }
@@ -246,25 +251,19 @@ export default function Header() {
                       {profileAvatarUrl ? (
                         <img
                           src={profileAvatarUrl}
-                          alt={user.user_metadata?.full_name || 'ユーザー'}
+                          alt={profileDisplayName || 'ユーザー'}
                           className="w-full h-full object-cover"
                           onError={() => {
-                            setAvatarError(true)
+                            // 画像の読み込みに失敗した場合は、代替アイコンを表示するためにURLをクリア
+                            setProfileAvatarUrl(null)
                           }}
-                        />
-                      ) : user.user_metadata?.picture && !avatarError ? (
-                        <img
-                          src={user.user_metadata.picture}
-                          alt={user.user_metadata?.full_name || 'ユーザー'}
-                          className="w-full h-full object-cover"
-                          onError={() => setAvatarError(true)}
                         />
                       ) : (
                         <UserIcon className="h-4 w-4 text-gray-300" />
                       )}
                     </div>
                     <span className="hidden lg:block text-sm text-gray-300">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー'}
+                      {profileDisplayName || ''}
                     </span>
                   </button>
                 </DropdownMenu.Trigger>
@@ -280,7 +279,7 @@ export default function Header() {
                     >
                       <UserIcon className="h-4 w-4" />
                       <span className="truncate">
-                        {user.user_metadata?.full_name || 'ユーザー'}
+                        {profileDisplayName || ''}
                       </span>
                     </DropdownMenu.Item>
                     <DropdownMenu.Separator className="my-1 h-px bg-gray-700" />
@@ -386,7 +385,7 @@ export default function Header() {
               ) : user ? (
                 <>
                   <div className="px-3 py-2 text-sm text-gray-400">
-                    {user.user_metadata?.full_name || 'ユーザー'}
+                    {profileDisplayName || ''}
                   </div>
                   <Link
                     href="/profile"
