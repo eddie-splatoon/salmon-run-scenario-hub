@@ -685,8 +685,34 @@ export default function ImageAnalyzer() {
             backgroundColor: '#1f2937',
             border: '1px solid #374151',
             borderRadius: '8px',
+            position: 'relative',
           }}
         >
+          {/* 保存中のローディング表示 */}
+          {isSaving && (
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(17, 24, 39, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px',
+                zIndex: 1,
+              }}
+            >
+              <Box sx={{ textAlign: 'center', px: 2 }}>
+                <CircularProgress sx={{ mb: 2, color: '#16a34a' }} />
+                <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  保存中...
+                </Typography>
+                <Typography sx={{ color: '#9ca3af', fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: 1 }}>
+                  しばらくお待ちください
+                </Typography>
+              </Box>
+            </Box>
+          )}
           <Typography 
             variant="h5" 
             component="h3" 
@@ -753,7 +779,7 @@ export default function ImageAnalyzer() {
                 {/* 2行目: キケン度、スコア */}
                 
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
+                <Grid {...({ item: true, xs: 7, md: 6 } as any)}>
                   <TextField
                     fullWidth
                     label="キケン度"
@@ -772,7 +798,7 @@ export default function ImageAnalyzer() {
                 </Grid>
                 {editableData.score !== undefined && (
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
+                  <Grid {...({ item: true, xs: 5, md: 6 } as any)}>
                     <TextField
                       fullWidth
                       label="スコア"

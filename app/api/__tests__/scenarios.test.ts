@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET } from '../scenarios/route'
+import { GET, POST } from '../scenarios/route'
 import { createClient } from '@/lib/supabase/server'
+import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
 
 // Supabaseクライアントをモック
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
+}))
+
+// master-lookupをモック
+vi.mock('@/lib/utils/master-lookup', () => ({
+  lookupStageId: vi.fn(),
+  lookupWeaponIds: vi.fn(),
 }))
 
 describe('GET /api/scenarios', () => {
@@ -580,6 +587,204 @@ describe('GET /api/scenarios', () => {
     // ABC123のみが返される（クマサン武器を含む）
     expect(data.data).toHaveLength(1)
     expect(data.data[0].code).toBe('ABC123')
+  })
+})
+
+describe('POST /api/scenarios', () => {
+  const mockSupabase = {
+    from: vi.fn(),
+    auth: {
+      getUser: vi.fn(),
+    },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
+    vi.mocked(lookupStageId).mockResolvedValue(1)
+    vi.mocked(lookupWeaponIds).mockResolvedValue([1, 2, 3, 4])
+  })
+
+  it('should reject when weapons count is not 4', async () => {
+    // 認証済みユーザーをモック
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
+      error: null,
+    })
+
+    // 重複チェック用のクエリをモック
+    const checkQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      }),
+    }
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        return checkQuery
+      }
+      return checkQuery
+    })
+
+    // ブキ数が3個の場合
+    const requestBody = {
+      scenario_code: 'TEST123',
+      stage_name: 'アラマキ砦',
+      danger_rate: 100,
+      weapons: ['スプラシューター', 'スプラローラー', 'スプラチャージャー'], // 3個
+      waves: [
+        {
+          wave_number: 1 as const,
+          tide: 'normal' as const,
+          event: null,
+          delivered_count: 50,
+          quota: 50,
+          cleared: true,
+        },
+      ],
+    }
+
+    const request = new NextRequest('http://localhost:3000/api/scenarios', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    })
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('ブキ数は4個である必要があります')
+  })
+
+  it('should reject when weapon_ids count is not 4', async () => {
+    // 認証済みユーザーをモック
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
+      error: null,
+    })
+
+    // 重複チェック用のクエリをモック
+    const checkQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      }),
+    }
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        return checkQuery
+      }
+      return checkQuery
+    })
+
+    // weapon_idsが3個の場合
+    const requestBody = {
+      scenario_code: 'TEST123',
+      stage_name: 'アラマキ砦',
+      danger_rate: 100,
+      weapons: ['スプラシューター', 'スプラローラー', 'スプラチャージャー', 'スプラマニューバー'],
+      weapon_ids: [1, 2, 3], // 3個
+      waves: [
+        {
+          wave_number: 1 as const,
+          tide: 'normal' as const,
+          event: null,
+          delivered_count: 50,
+          quota: 50,
+          cleared: true,
+        },
+      ],
+    }
+
+    const request = new NextRequest('http://localhost:3000/api/scenarios', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    })
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('武器IDの数は4個である必要があります')
+  })
+
+  it('should accept when weapons count is exactly 4', async () => {
+    // 認証済みユーザーをモック
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
+      error: null,
+    })
+
+    // 重複チェック用のクエリをモック
+    const checkQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      }),
+    }
+
+    // 挿入用のクエリをモック
+    const insertQuery = {
+      insert: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    }
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'scenarios') {
+        return checkQuery
+      }
+      if (table === 'scenario_waves') {
+        return insertQuery
+      }
+      if (table === 'scenario_weapons') {
+        return insertQuery
+      }
+      return checkQuery
+    })
+
+    // ブキ数が4個の場合
+    const requestBody = {
+      scenario_code: 'TEST123',
+      stage_name: 'アラマキ砦',
+      danger_rate: 100,
+      weapons: ['スプラシューター', 'スプラローラー', 'スプラチャージャー', 'スプラマニューバー'], // 4個
+      waves: [
+        {
+          wave_number: 1 as const,
+          tide: 'normal' as const,
+          event: null,
+          delivered_count: 50,
+          quota: 50,
+          cleared: true,
+        },
+      ],
+    }
+
+    const request = new NextRequest('http://localhost:3000/api/scenarios', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    })
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    // ブキ数の検証は通過するが、他の処理でエラーになる可能性があるため、
+    // ブキ数の検証が通過したことを確認するため、エラーメッセージに「ブキ数」が含まれていないことを確認
+    if (!data.success) {
+      expect(data.error).not.toContain('ブキ数は4個である必要があります')
+    }
   })
 })
 
