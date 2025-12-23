@@ -352,6 +352,60 @@ Closes #1
 - 設定変更: セットアップ手順を更新
 - アーキテクチャ変更: アーキテクチャ図を更新
 
+## プライバシー保護（必須遵守）
+
+**重要**: ユーザーのプライバシー保護は、このアプリケーション開発において最優先事項です。以下のルールは絶対に遵守してください。
+
+### 1. Googleのデフォルト情報の非表示（必須）
+
+- **`user.user_metadata.picture`（Googleのデフォルトアイコン）を絶対に表示しない**
+  - ユーザーがアップロードしたアイコンに切り替わる前に、Googleのデフォルトアイコンが一瞬でも表示されることを防ぐ
+  - `profileAvatarUrl`がない場合は、代替アイコン（UserIconなど）を表示する
+- **`user.user_metadata.full_name`（Googleのデフォルト名、本名の可能性）を絶対に表示しない**
+  - 本名が表示されることで、ユーザーに多大な損害を与える可能性がある
+  - profilesテーブルの`display_name`のみを使用する
+
+### 2. emailアドレスの非表示（必須）
+
+- **emailアドレスを画面に表示しない**
+  - emailアドレスは秘匿性の高い情報であり、表示することでユーザーが不安になる可能性がある
+  - emailの@より前の部分も表示しない
+  - マイページなど、どの画面でもemailアドレスは表示しない
+
+### 3. プロフィール情報の取得方法（必須）
+
+- **profilesテーブルから取得した情報のみを使用する**
+  - `display_name`: ユーザーが設定したニックネーム（表示名）
+  - `avatar_url`: ユーザーがアップロードしたアバター画像のURL
+- **`user.user_metadata`の情報は使用しない**
+  - `user.user_metadata.picture`は使用しない
+  - `user.user_metadata.full_name`は使用しない
+  - `user.email`は表示に使用しない（認証や内部処理でのみ使用）
+
+### 4. 実装パターン
+
+```typescript
+// ❌ 間違い: user_metadataを使用
+const displayName = user.user_metadata?.full_name || 'ユーザー'
+const avatarUrl = user.user_metadata?.picture || null
+
+// ✅ 正しい: profilesテーブルから取得
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('display_name, avatar_url')
+  .eq('user_id', user.id)
+  .maybeSingle()
+
+const displayName = profile?.display_name || ''  // 空文字を表示（emailは使わない）
+const avatarUrl = profile?.avatar_url || null    // nullの場合は代替アイコンを表示
+```
+
+### 5. テスト時の注意
+
+- テストでも`user.user_metadata`を使用しない
+- profilesテーブルから取得するモックを正しく設定する
+- emailアドレスを表示するテストは作成しない
+
 ## 開発時の推奨事項
 
 1. **小さなコミット**: 機能ごとにコミットを分ける
@@ -359,4 +413,5 @@ Closes #1
 3. **型安全性**: TypeScriptの型を活用
 4. **エラーハンドリング**: 適切なエラーハンドリングを実装
 5. **ドキュメント更新**: 機能追加時はWikiも更新
+6. **プライバシー保護**: 上記のプライバシー保護ルールを必ず遵守する
 
