@@ -344,13 +344,20 @@ export default function ImageAnalyzer() {
     setSuccessMessage(null)
 
     try {
-      console.warn('[ImageAnalyzer] 保存開始:', editableData)
+      // weapon_idsをクリアして、API側で武器名から再計算させる
+      // これにより、武器名が変更された場合でも正しいweapon_idsが設定される
+      const dataToSave = {
+        ...editableData,
+        weapon_ids: undefined, // weapon_idsをクリア
+      }
+      
+      console.warn('[ImageAnalyzer] 保存開始:', dataToSave)
       const response = await fetch('/api/scenarios', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editableData),
+        body: JSON.stringify(dataToSave),
       })
 
       const data = await response.json()
