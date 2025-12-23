@@ -145,19 +145,150 @@ const { data: { user } } = await supabase.auth.getUser()
 
 このリポジトリでは、GitHub Actionsを利用してCI/CDパイプラインを構築しています。
 
+### ワークフロー概要
+
+```mermaid
+graph TB
+    A[Git Push / PR] --> B{ブランチ/イベント}
+    B -->|main/staging push or PR| C[CI Workflow]
+    B -->|main push| D[Docker Publish Workflow]
+    B -->|main push + docs-wiki/**| E[Sync Wiki Workflow]
+    
+    C --> C1[セキュリティ監査]
+    C1 --> C2[Lint実行]
+    C2 --> C3[テスト実行]
+    C3 --> C4[カバレッジレポート<br/>Codecovにアップロード]
+    
+    D --> D1[Docker Buildx設定]
+    D1 --> D2[GitHub Container Registry<br/>ログイン]
+    D2 --> D3[Docker Hubログイン]
+    D3 --> D4[メタデータ抽出]
+    D4 --> D5[イメージビルド & Push]
+    D5 --> D6[GitHub Container Registry]
+    D5 --> D7[Docker Hub]
+    
+    E --> E1[docs-wiki存在確認]
+    E1 --> E2[Git設定]
+    E2 --> E3[変更検知]
+    E3 --> E4[GitHub Wikiに同期]
+```
+
 ### CI (継続的インテグレーション)
-- `main`または`staging`ブランチへのプルリクエスト時、および`main`ブランチへのプッシュ時に自動実行
-- Lintとテストが実行されます
-- カバレッジレポートがCodecovにアップロードされます
+
+**ワークフロー**: `.github/workflows/ci.yml`
+
+**トリガー**:
+- `main`または`staging`ブランチへのpush
+- `main`または`staging`ブランチへのプルリクエスト
+
+**実行内容**:
+1. **セキュリティ監査**: `npm audit --audit-level=high`で高レベルの脆弱性をチェック
+2. **Lint実行**: ESLintによるコード品質チェック
+3. **テスト実行**: Vitestによる単体テストとカバレッジ計測
+4. **カバレッジレポート**: Codecovにテスト結果とカバレッジレポートをアップロード
+
+**必要なSecrets**:
+- `CODECOV_TOKEN`: Codecovへのアップロード用トークン
 
 ### CD (継続的デリバリー)
-- `main`ブランチへのマージをトリガーとして、Dockerイメージがビルドされます
-- DockerイメージはGitHub Container Registryに自動的にプッシュされます
+
+**ワークフロー**: `.github/workflows/docker-publish.yml`
+
+**トリガー**:
+- `main`ブランチへのpush
+
+**実行内容**:
+1. **Docker Buildx設定**: マルチプラットフォームビルドの準備
+2. **レジストリログイン**:
+   - GitHub Container Registry (`ghcr.io`)
+   - Docker Hub
+3. **メタデータ抽出**: イメージタグの自動生成
+   - ブランチ名タグ
+   - SHAプレフィックス付きタグ
+   - `latest`タグ（`main`ブランチの場合のみ）
+4. **イメージビルド & Push**: 
+   - GitHub Container RegistryとDocker Hubの両方に同じイメージをpush
+   - GitHub Actionsキャッシュを活用した高速ビルド
+
+**必要なSecrets**:
+- `DOCKERHUB_USERNAME`: Docker Hubのユーザー名
+- `DOCKERHUB_TOKEN`: Docker Hubのアクセストークン
+
+**イメージタグ形式**:
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:main`
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:main-<sha>`
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:latest` (mainブランチのみ)
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:main`
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:main-<sha>`
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:latest` (mainブランチのみ)
 
 ### Wiki同期
-- `docs-wiki`ディレクトリ（submodule）の変更を検知して、自動的にGitHub Wikiに同期されます
-- `main`ブランチへのマージ時、または`docs-wiki/**`パスへの変更時に実行されます
-- **セットアップ**: GitHubリポジトリのSettings > Secrets and variables > Actionsに`WIKI_SYNC_TOKEN`（Personal Access Token）を設定してください
+
+**ワークフロー**: `.github/workflows/sync-wiki.yml`
+
+**トリガー**:
+- `main`ブランチへのpush（`docs-wiki/**`パスへの変更時）
+- 手動実行（`workflow_dispatch`）
+
+**実行内容**:
+1. **サブモジュールチェックアウト**: `docs-wiki`サブモジュールを取得
+2. **存在確認**: `docs-wiki`ディレクトリの存在を確認
+3. **Git設定**: Wikiリポジトリへのアクセス用にGit設定
+4. **変更検知**: `docs-wiki`内の変更を検知
+5. **Wiki同期**: 変更がある場合、GitHub Wikiリポジトリに自動的に同期
+
+**必要なSecrets**:
+- `WIKI_SYNC_TOKEN`: GitHub Wikiへの書き込み権限を持つPersonal Access Token
+
+**セットアップ手順**:
+1. GitHubリポジトリのSettings > Secrets and variables > Actionsに移動
+2. `WIKI_SYNC_TOKEN`を追加（Personal Access Token、`repo`スコープが必要）
+3. `docs-wiki`サブモジュールを設定（既に設定済みの場合は不要）
+
+### ワークフロー実行フロー
+
+```mermaid
+sequenceDiagram
+    participant Dev as 開発者
+    participant GitHub as GitHub
+    participant CI as CI Workflow
+    participant Docker as Docker Publish
+    participant Wiki as Sync Wiki
+    participant GCR as GitHub Container Registry
+    participant DH as Docker Hub
+    participant Codecov as Codecov
+    
+    Dev->>GitHub: Push to main/staging or PR
+    GitHub->>CI: トリガー
+    CI->>CI: セキュリティ監査
+    CI->>CI: Lint実行
+    CI->>CI: テスト実行
+    CI->>Codecov: カバレッジレポート送信
+    
+    alt mainブランチへのpush
+        GitHub->>Docker: トリガー
+        Docker->>GCR: ログイン
+        Docker->>DH: ログイン
+        Docker->>Docker: イメージビルド
+        Docker->>GCR: イメージpush
+        Docker->>DH: イメージpush
+        
+        alt docs-wiki/**の変更あり
+            GitHub->>Wiki: トリガー
+            Wiki->>Wiki: サブモジュール取得
+            Wiki->>GitHub: Wikiに同期
+        end
+    end
+```
+
+### ワークフロー実行状況の確認
+
+GitHubリポジトリの**Actions**タブから、各ワークフローの実行状況を確認できます。
+
+- ✅ **緑**: 成功
+- ❌ **赤**: 失敗
+- 🟡 **黄**: 実行中
+- ⚪ **グレー**: スキップまたはキャンセル
 
 ## 次のステップ
 
