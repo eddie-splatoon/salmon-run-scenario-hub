@@ -143,6 +143,7 @@ jobs:
       - name: Wait for deployment to be ready
         env:
           TARGET_URL: ${{ needs.deploy-preview.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           echo "Waiting for Vercel deployment to be ready..."
           echo "Target URL: $TARGET_URL"
@@ -150,8 +151,21 @@ jobs:
           RETRY_COUNT=0
           WAIT_INTERVAL=15
 
+          # Vercel Automation Bypassヘッダーを設定
+          BYPASS_HEADER=""
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            BYPASS_HEADER="-H \"x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET\""
+            echo "Using Vercel Automation Bypass header"
+          else
+            echo "Warning: VERCEL_AUTOMATION_BYPASS_SECRET is not set"
+          fi
+
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$TARGET_URL" || echo "000")
+            else
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            fi
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "Deployment is ready! HTTP Status: $HTTP_CODE"
@@ -181,9 +195,54 @@ jobs:
             echo "ZAP rules file not found: .zap/rules.tsv (will use default rules)"
           fi
 
-      - name: ZAP Baseline Scan (with rules file)
+      - name: Create ZAP context file for Vercel authentication bypass
+        id: create_zap_context
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          TARGET_URL: ${{ needs.deploy-preview.outputs.url }}
+        run: |
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            mkdir -p .zap
+            # ZAPのコンテキストファイルを作成（認証ヘッダーを含む）
+            cat > .zap/context.json <<EOF
+          {
+            "contexts": [
+              {
+                "name": "Vercel Preview",
+                "url": "$TARGET_URL",
+                "authentication": {
+                  "method": "header",
+                  "headerName": "x-vercel-protection-bypass",
+                  "headerValue": "$VERCEL_AUTOMATION_BYPASS_SECRET"
+                }
+              }
+            ]
+          }
+          EOF
+            echo "context_file=.zap/context.json" >> $GITHUB_OUTPUT
+            echo "has_context=true" >> $GITHUB_OUTPUT
+            echo "Created ZAP context file with Vercel authentication bypass header"
+          else
+            echo "context_file=" >> $GITHUB_OUTPUT
+            echo "has_context=false" >> $GITHUB_OUTPUT
+            echo "Warning: VERCEL_AUTOMATION_BYPASS_SECRET is not set, skipping context file creation"
+          fi
+
+      - name: ZAP Baseline Scan (with rules file and context)
         id: zap_scan_with_rules
-        if: steps.check_zap_rules.outputs.exists == 'true'
+        if: steps.check_zap_rules.outputs.exists == 'true' && steps.create_zap_context.outputs.has_context == 'true'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-preview.outputs.url }}
+          rules_file_name: '.zap/rules.tsv'
+          context_file: ${{ steps.create_zap_context.outputs.context_file }}
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (with rules file, without context)
+        id: zap_scan_with_rules_no_context
+        if: steps.check_zap_rules.outputs.exists == 'true' && steps.create_zap_context.outputs.has_context == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
@@ -192,9 +251,20 @@ jobs:
           cmd_options: '-a -J'
           fail_action: false
 
-      - name: ZAP Baseline Scan (without rules file)
+      - name: ZAP Baseline Scan (without rules file, with context)
         id: zap_scan_no_rules
-        if: steps.check_zap_rules.outputs.exists == 'false'
+        if: steps.check_zap_rules.outputs.exists == 'false' && steps.create_zap_context.outputs.has_context == 'true'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-preview.outputs.url }}
+          context_file: ${{ steps.create_zap_context.outputs.context_file }}
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (without rules file and context)
+        id: zap_scan_no_rules_no_context
+        if: steps.check_zap_rules.outputs.exists == 'false' && steps.create_zap_context.outputs.has_context == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
@@ -237,13 +307,19 @@ jobs:
         id: check_zap_scan
         if: always()
         run: |
-          # ZAPスキャンが実行されたか確認
+          # ZAPスキャンが実行されたか確認（複数のステップのいずれかが実行されたか確認）
           if [ "${{ steps.zap_scan_with_rules.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules.outcome }}" == "failure" ]; then
             echo "scan_executed=true" >> $GITHUB_OUTPUT
             echo "scan_outcome=${{ steps.zap_scan_with_rules.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_with_rules_no_context.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules_no_context.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_with_rules_no_context.outcome }}" >> $GITHUB_OUTPUT
           elif [ "${{ steps.zap_scan_no_rules.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules.outcome }}" == "failure" ]; then
             echo "scan_executed=true" >> $GITHUB_OUTPUT
             echo "scan_outcome=${{ steps.zap_scan_no_rules.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_no_rules_no_context.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules_no_context.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_no_rules_no_context.outcome }}" >> $GITHUB_OUTPUT
           else
             echo "scan_executed=false" >> $GITHUB_OUTPUT
             echo "scan_outcome=skipped" >> $GITHUB_OUTPUT
@@ -478,6 +554,7 @@ jobs:
       - name: Wait for deployment to be ready
         env:
           TARGET_URL: ${{ needs.deploy-production.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           echo "Waiting for Vercel deployment to be ready..."
           echo "Target URL: $TARGET_URL"
@@ -485,8 +562,19 @@ jobs:
           RETRY_COUNT=0
           WAIT_INTERVAL=15
 
+          # Vercel Automation Bypassヘッダーを設定
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "Using Vercel Automation Bypass header"
+          else
+            echo "Warning: VERCEL_AUTOMATION_BYPASS_SECRET is not set"
+          fi
+
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$TARGET_URL" || echo "000")
+            else
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            fi
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "Deployment is ready! HTTP Status: $HTTP_CODE"
@@ -516,9 +604,54 @@ jobs:
             echo "ZAP rules file not found: .zap/rules.tsv (will use default rules)"
           fi
 
-      - name: ZAP Baseline Scan (with rules file)
+      - name: Create ZAP context file for Vercel authentication bypass
+        id: create_zap_context_prod
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          TARGET_URL: ${{ needs.deploy-production.outputs.url }}
+        run: |
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            mkdir -p .zap
+            # ZAPのコンテキストファイルを作成（認証ヘッダーを含む）
+            cat > .zap/context-prod.json <<EOF
+          {
+            "contexts": [
+              {
+                "name": "Vercel Production",
+                "url": "$TARGET_URL",
+                "authentication": {
+                  "method": "header",
+                  "headerName": "x-vercel-protection-bypass",
+                  "headerValue": "$VERCEL_AUTOMATION_BYPASS_SECRET"
+                }
+              }
+            ]
+          }
+          EOF
+            echo "context_file=.zap/context-prod.json" >> $GITHUB_OUTPUT
+            echo "has_context=true" >> $GITHUB_OUTPUT
+            echo "Created ZAP context file with Vercel authentication bypass header"
+          else
+            echo "context_file=" >> $GITHUB_OUTPUT
+            echo "has_context=false" >> $GITHUB_OUTPUT
+            echo "Warning: VERCEL_AUTOMATION_BYPASS_SECRET is not set, skipping context file creation"
+          fi
+
+      - name: ZAP Baseline Scan (with rules file and context)
         id: zap_scan_with_rules_prod
-        if: steps.check_zap_rules_prod.outputs.exists == 'true'
+        if: steps.check_zap_rules_prod.outputs.exists == 'true' && steps.create_zap_context_prod.outputs.has_context == 'true'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-production.outputs.url }}
+          rules_file_name: '.zap/rules.tsv'
+          context_file: ${{ steps.create_zap_context_prod.outputs.context_file }}
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (with rules file, without context)
+        id: zap_scan_with_rules_prod_no_context
+        if: steps.check_zap_rules_prod.outputs.exists == 'true' && steps.create_zap_context_prod.outputs.has_context == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
@@ -527,9 +660,20 @@ jobs:
           cmd_options: '-a -J'
           fail_action: false
 
-      - name: ZAP Baseline Scan (without rules file)
+      - name: ZAP Baseline Scan (without rules file, with context)
         id: zap_scan_no_rules_prod
-        if: steps.check_zap_rules_prod.outputs.exists == 'false'
+        if: steps.check_zap_rules_prod.outputs.exists == 'false' && steps.create_zap_context_prod.outputs.has_context == 'true'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-production.outputs.url }}
+          context_file: ${{ steps.create_zap_context_prod.outputs.context_file }}
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (without rules file and context)
+        id: zap_scan_no_rules_prod_no_context
+        if: steps.check_zap_rules_prod.outputs.exists == 'false' && steps.create_zap_context_prod.outputs.has_context == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
@@ -572,13 +716,19 @@ jobs:
         id: check_zap_scan_prod
         if: always()
         run: |
-          # ZAPスキャンが実行されたか確認
+          # ZAPスキャンが実行されたか確認（複数のステップのいずれかが実行されたか確認）
           if [ "${{ steps.zap_scan_with_rules_prod.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules_prod.outcome }}" == "failure" ]; then
             echo "scan_executed=true" >> $GITHUB_OUTPUT
             echo "scan_outcome=${{ steps.zap_scan_with_rules_prod.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_with_rules_prod_no_context.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules_prod_no_context.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_with_rules_prod_no_context.outcome }}" >> $GITHUB_OUTPUT
           elif [ "${{ steps.zap_scan_no_rules_prod.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules_prod.outcome }}" == "failure" ]; then
             echo "scan_executed=true" >> $GITHUB_OUTPUT
             echo "scan_outcome=${{ steps.zap_scan_no_rules_prod.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_no_rules_prod_no_context.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules_prod_no_context.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_no_rules_prod_no_context.outcome }}" >> $GITHUB_OUTPUT
           else
             echo "scan_executed=false" >> $GITHUB_OUTPUT
             echo "scan_outcome=skipped" >> $GITHUB_OUTPUT
