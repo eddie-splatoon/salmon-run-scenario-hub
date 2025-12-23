@@ -236,6 +236,10 @@ describe('Header', () => {
         data: { user: mockUser },
         error: null,
       })
+      mockMaybeSingle.mockResolvedValue({
+        data: { display_name: 'Test User', avatar_url: null },
+        error: null,
+      })
 
       render(<Header />)
 
@@ -244,7 +248,7 @@ describe('Header', () => {
       })
     })
 
-    it('should display email prefix when full_name is not available', async () => {
+    it('should display empty string when display_name is not available', async () => {
       const mockUser = createMockUser({
         user_metadata: {},
       })
@@ -252,11 +256,19 @@ describe('Header', () => {
         data: { user: mockUser },
         error: null,
       })
+      mockMaybeSingle.mockResolvedValue({
+        data: null,
+        error: null,
+      })
 
       render(<Header />)
 
       await waitFor(() => {
-        expect(screen.getByText('test')).toBeInTheDocument()
+        const userMenuButton = screen.getByLabelText('ユーザーメニュー')
+        expect(userMenuButton).toBeInTheDocument()
+        // display_nameがない場合は空文字が表示される（非表示）
+        const nameSpan = userMenuButton.querySelector('span')
+        expect(nameSpan?.textContent).toBe('')
       })
     })
 
@@ -324,7 +336,7 @@ describe('Header', () => {
         error: null,
       })
       mockMaybeSingle.mockResolvedValue({
-        data: { avatar_url: 'https://example.com/profile-avatar.jpg' },
+        data: { avatar_url: 'https://example.com/profile-avatar.jpg', display_name: 'Test User' },
         error: null,
       })
 
@@ -336,7 +348,7 @@ describe('Header', () => {
       })
     })
 
-    it('should fallback to user_metadata.picture when profile avatar is not available', async () => {
+    it('should show user icon when profile avatar is not available', async () => {
       const mockUser = createMockUser()
       mockGetUser.mockResolvedValue({
         data: { user: mockUser },
@@ -350,8 +362,12 @@ describe('Header', () => {
       render(<Header />)
 
       await waitFor(() => {
-        const avatarImage = screen.getByAltText('Test User')
-        expect(avatarImage).toHaveAttribute('src', 'https://example.com/avatar.jpg')
+        // ユーザーアイコンはSVG要素として表示される（user_metadata.pictureは使わない）
+        const userIcon = document.querySelector('svg')
+        expect(userIcon).toBeInTheDocument()
+        // 画像は表示されない
+        const avatarImages = screen.queryAllByAltText('Test User')
+        expect(avatarImages.length).toBe(0)
       })
     })
 
@@ -374,6 +390,9 @@ describe('Header', () => {
         // ユーザーアイコンはSVG要素として表示される
         const userIcon = document.querySelector('svg')
         expect(userIcon).toBeInTheDocument()
+        // 画像は表示されない
+        const avatarImages = screen.queryAllByAltText(/.*/)
+        expect(avatarImages.length).toBe(0)
       })
     })
 
@@ -384,7 +403,7 @@ describe('Header', () => {
         error: null,
       })
       mockMaybeSingle.mockResolvedValue({
-        data: { avatar_url: 'https://example.com/invalid-avatar.jpg' },
+        data: { avatar_url: 'https://example.com/invalid-avatar.jpg', display_name: 'Test User' },
         error: null,
       })
 
@@ -400,9 +419,12 @@ describe('Header', () => {
       fireEvent.error(avatarImage!)
 
       await waitFor(() => {
-        // エラー後はuser_metadata.pictureが表示される
-        const images = screen.getAllByAltText('Test User')
-        expect(images.length).toBeGreaterThan(0)
+        // エラー後は代替アイコン（UserIcon）が表示される（user_metadata.pictureは使わない）
+        const userIcon = document.querySelector('svg')
+        expect(userIcon).toBeInTheDocument()
+        // 画像は表示されない
+        const images = screen.queryAllByAltText('Test User')
+        expect(images.length).toBe(0)
       })
     })
 
@@ -413,7 +435,7 @@ describe('Header', () => {
         error: null,
       })
       mockMaybeSingle.mockResolvedValue({
-        data: { avatar_url: 'https://example.com/old-avatar.jpg' },
+        data: { avatar_url: 'https://example.com/old-avatar.jpg', display_name: 'Test User' },
         error: null,
       })
 
@@ -427,7 +449,7 @@ describe('Header', () => {
       mockPathname = vi.fn(() => '/profile')
       ;(usePathname as ReturnType<typeof vi.fn>).mockReturnValue('/profile')
       mockMaybeSingle.mockResolvedValue({
-        data: { avatar_url: 'https://example.com/new-avatar.jpg' },
+        data: { avatar_url: 'https://example.com/new-avatar.jpg', display_name: 'Test User' },
         error: null,
       })
 
