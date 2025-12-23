@@ -313,11 +313,70 @@ try {
 
 ## CI/CD
 
-### 自動実行
+このプロジェクトでは、GitHub Actionsを使用してCI/CDパイプラインを構築しています。
 
-- **CI**: プルリクエスト時にLint + Test
-- **CD**: mainブランチにマージ時にDockerイメージをビルド
-- **Wiki同期**: docs-wikiの変更を自動同期
+### ワークフロー一覧
+
+#### 1. CI Workflow (`.github/workflows/ci.yml`)
+
+**トリガー**:
+- `main`または`staging`ブランチへのpush
+- `main`または`staging`ブランチへのプルリクエスト
+
+**実行内容**:
+1. **セキュリティ監査**: `npm audit --audit-level=high`で高レベルの脆弱性をチェック
+2. **Lint実行**: ESLintによるコード品質チェック
+3. **テスト実行**: Vitestによる単体テストとカバレッジ計測
+4. **カバレッジレポート**: Codecovにテスト結果とカバレッジレポートをアップロード
+
+**必要なSecrets**:
+- `CODECOV_TOKEN`: Codecovへのアップロード用トークン
+
+#### 2. Docker Publish Workflow (`.github/workflows/docker-publish.yml`)
+
+**トリガー**:
+- `main`ブランチへのpush
+
+**実行内容**:
+1. **Docker Buildx設定**: マルチプラットフォームビルドの準備
+2. **レジストリログイン**:
+   - GitHub Container Registry (`ghcr.io`)
+   - Docker Hub
+3. **メタデータ抽出**: イメージタグの自動生成
+   - ブランチ名タグ
+   - SHAプレフィックス付きタグ
+   - `latest`タグ（`main`ブランチの場合のみ）
+4. **イメージビルド & Push**: 
+   - GitHub Container RegistryとDocker Hubの両方に同じイメージをpush
+   - GitHub Actionsキャッシュを活用した高速ビルド
+
+**必要なSecrets**:
+- `DOCKERHUB_USERNAME`: Docker Hubのユーザー名
+- `DOCKERHUB_TOKEN`: Docker Hubのアクセストークン
+
+**イメージタグ形式**:
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:main`
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:main-<sha>`
+- `ghcr.io/eddie-splatoon/salmon-run-scenario-hub:latest` (mainブランチのみ)
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:main`
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:main-<sha>`
+- `{DOCKERHUB_USERNAME}/salmon-run-scenario-hub:latest` (mainブランチのみ)
+
+#### 3. Sync Wiki Workflow (`.github/workflows/sync-wiki.yml`)
+
+**トリガー**:
+- `main`ブランチへのpush（`docs-wiki/**`パスへの変更時）
+- 手動実行（`workflow_dispatch`）
+
+**実行内容**:
+1. **サブモジュールチェックアウト**: `docs-wiki`サブモジュールを取得
+2. **存在確認**: `docs-wiki`ディレクトリの存在を確認
+3. **Git設定**: Wikiリポジトリへのアクセス用にGit設定
+4. **変更検知**: `docs-wiki`内の変更を検知
+5. **Wiki同期**: 変更がある場合、GitHub Wikiリポジトリに自動的に同期
+
+**必要なSecrets**:
+- `WIKI_SYNC_TOKEN`: GitHub Wikiへの書き込み権限を持つPersonal Access Token
 
 ### 手動実行
 
@@ -326,6 +385,10 @@ try {
 npm run lint
 npm run test -- --run
 ```
+
+### ワークフロー実行状況の確認
+
+GitHubリポジトリの**Actions**タブから、各ワークフローの実行状況を確認できます。
 
 ## ドキュメント
 

@@ -542,6 +542,34 @@ Issue対応時は、以下のチェックリストを確認してください：
 - [ ] 指定されたIssue番号を記述した
 - [ ] 必要に応じて`GEMINI.md`と`CLAUDE.md`を修正した
 
+## CI/CD
+
+このプロジェクトでは、GitHub Actionsを使用してCI/CDパイプラインを構築しています。
+
+### ワークフロー一覧
+
+1. **CI Workflow** (`.github/workflows/ci.yml`)
+   - トリガー: `main`/`staging`へのpush、PR
+   - 実行内容: セキュリティ監査、Lint、テスト、カバレッジレポートのアップロード
+   - 必要なSecrets: `CODECOV_TOKEN`
+
+2. **Docker Publish Workflow** (`.github/workflows/docker-publish.yml`)
+   - トリガー: `main`ブランチへのpush
+   - 実行内容: Dockerイメージのビルドとpush（GitHub Container RegistryとDocker Hubの両方）
+   - 必要なSecrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`
+
+3. **Sync Wiki Workflow** (`.github/workflows/sync-wiki.yml`)
+   - トリガー: `main`ブランチへのpush（`docs-wiki/**`パスへの変更時）、または手動実行
+   - 実行内容: `docs-wiki`サブモジュールの変更をGitHub Wikiに同期
+   - 必要なSecrets: `WIKI_SYNC_TOKEN`
+
+### ワークフロー実行時の注意事項
+
+- CIワークフローは、プルリクエスト作成時と`main`/`staging`ブランチへのpush時に自動実行されます
+- Docker Publishワークフローは、`main`ブランチへのpush時のみ実行されます
+- Sync Wikiワークフローは、`docs-wiki/**`パスへの変更がある場合のみ実行されます
+- 各ワークフローで必要なSecretsが設定されていることを確認してください
+
 ## ファイル構成
 
 ```
@@ -550,6 +578,10 @@ lib/                    # 共有ライブラリ
   auth/                 # 認証ロジック
   supabase/             # Supabaseクライアント
 proxy.ts               # リクエストミドルウェア
+.github/workflows/     # GitHub Actionsワークフロー
+  ci.yml               # CIワークフロー
+  docker-publish.yml   # Dockerイメージビルド&プッシュ
+  sync-wiki.yml        # Wiki同期ワークフロー
 docs/                  # ドキュメント
   pr-descriptions/     # Pull Request説明ファイル
 docs-wiki/             # ドキュメント（submodule）
@@ -559,7 +591,7 @@ docs-wiki/             # ドキュメント（submodule）
 
 - `CLAUDE.md` - Claude AIエージェント向け詳細情報
 - `GEMINI.md` - Gemini AIエージェント向け詳細情報
-- `README.md` - プロジェクトの概要
+- `README.md` - プロジェクトの概要（CI/CDワークフローの詳細含む）
 - `docs/pr-descriptions/` - Pull Request説明ファイル
 - `docs-wiki/` - 詳細なドキュメント
 
