@@ -2,7 +2,7 @@ name: Vercel Security Scan
 
 on:
   workflow_run:
-    workflows: ["Deploy to Vercel", "Deploy to Vercel Production"]
+    workflows: ["Deploy to Vercel Preview", "Deploy to Vercel Production"]
     types:
       - completed
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
             echo "is_production=false" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
             # mainブランチpush時は、ワークフロー名を確認して環境を判定
-            # "Deploy to Vercel Production"の場合は本番環境、"Deploy to Vercel"の場合はプレビュー環境
+            # "Deploy to Vercel Production"の場合は本番環境、"Deploy to Vercel Preview"の場合はプレビュー環境
             WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
             if [ "$WORKFLOW_NAME" == "Deploy to Vercel Production" ]; then
               echo "environment=production" >> $GITHUB_OUTPUT
