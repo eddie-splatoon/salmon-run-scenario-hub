@@ -43,25 +43,31 @@ jobs:
 
       - name: Determine scan environment and deployment info
         id: scan_info
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+          INPUT_ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            ENV="${{ github.event.inputs.environment }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            ENV="$INPUT_ENVIRONMENT"
             if [ -z "$ENV" ]; then
               ENV="preview"
             fi
             echo "environment=$ENV" >> $GITHUB_OUTPUT
             echo "is_preview=$([ "$ENV" == "preview" ] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
             echo "is_production=$([ "$ENV" == "production" ] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.workflow_run.event }}" == "pull_request" ]; then
+          elif [ "$WORKFLOW_RUN_EVENT" = "pull_request" ]; then
             # PR時は常にプレビュー環境
             echo "environment=preview" >> $GITHUB_OUTPUT
             echo "is_preview=true" >> $GITHUB_OUTPUT
             echo "is_production=false" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
+          elif [ "$WORKFLOW_RUN_EVENT" = "push" ] && [ "$WORKFLOW_RUN_HEAD_BRANCH" = "main" ]; then
             # mainブランチpush時は、ワークフロー名を確認して環境を判定
             # "Deploy to Vercel Production"の場合は本番環境、"Deploy to Vercel Preview"の場合はプレビュー環境
-            WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
-            if [ "$WORKFLOW_NAME" == "Deploy to Vercel Production" ]; then
+            WORKFLOW_NAME="$WORKFLOW_RUN_NAME"
+            if [ "$WORKFLOW_NAME" = "Deploy to Vercel Production" ]; then
               echo "environment=production" >> $GITHUB_OUTPUT
               echo "is_preview=false" >> $GITHUB_OUTPUT
               echo "is_production=true" >> $GITHUB_OUTPUT
