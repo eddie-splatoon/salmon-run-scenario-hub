@@ -120,33 +120,82 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate deployment URL
+        id: validate_url
+        env:
+          TARGET_URL: ${{ needs.deploy-preview.outputs.url }}
+        run: |
+          if [ -z "$TARGET_URL" ]; then
+            echo "Error: Deployment URL is empty"
+            exit 1
+          fi
+          
+          if [[ ! "$TARGET_URL" =~ ^https?:// ]]; then
+            echo "Error: Invalid URL format: $TARGET_URL"
+            exit 1
+          fi
+          
+          echo "Deployment URL validated: $TARGET_URL"
+
       - name: Wait for deployment to be ready
         env:
           TARGET_URL: ${{ needs.deploy-preview.outputs.url }}
         run: |
           echo "Waiting for Vercel deployment to be ready..."
-          MAX_RETRIES=20
+          echo "Target URL: $TARGET_URL"
+          MAX_RETRIES=30
           RETRY_COUNT=0
+          WAIT_INTERVAL=15
 
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -f -s -o /dev/null "$TARGET_URL"; then
-              echo "Deployment is ready!"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Deployment is ready! HTTP Status: $HTTP_CODE"
               exit 0
+            elif [ "$HTTP_CODE" = "000" ]; then
+              echo "Connection failed (retry $RETRY_COUNT/$MAX_RETRIES)"
+            else
+              echo "HTTP Status: $HTTP_CODE (retry $RETRY_COUNT/$MAX_RETRIES)"
             fi
-            echo "Waiting for deployment... ($RETRY_COUNT/$MAX_RETRIES)"
-            sleep 10
+            
+            sleep $WAIT_INTERVAL
             RETRY_COUNT=$((RETRY_COUNT + 1))
           done
 
-          echo "Warning: Deployment may not be ready, proceeding with scan anyway"
+          echo "Error: Deployment did not become ready after $((MAX_RETRIES * WAIT_INTERVAL)) seconds"
+          echo "Last HTTP Status: $HTTP_CODE"
+          exit 1
 
-      - name: ZAP Baseline Scan
-        id: zap_scan
+      - name: Check if ZAP rules file exists
+        id: check_zap_rules
+        run: |
+          if [ -f ".zap/rules.tsv" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "ZAP rules file found: .zap/rules.tsv"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "ZAP rules file not found: .zap/rules.tsv (will use default rules)"
+          fi
+
+      - name: ZAP Baseline Scan (with rules file)
+        id: zap_scan_with_rules
+        if: steps.check_zap_rules.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
           target: ${{ needs.deploy-preview.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (without rules file)
+        id: zap_scan_no_rules
+        if: steps.check_zap_rules.outputs.exists == 'false'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-preview.outputs.url }}
           cmd_options: '-a -J'
           fail_action: false
 
@@ -181,9 +230,27 @@ jobs:
           sarif_file: zap_report.sarif
           wait-for-processing: true
 
+      - name: Check ZAP scan result
+        id: check_zap_scan
+        if: always()
+        run: |
+          # ZAPスキャンが実行されたか確認
+          if [ "${{ steps.zap_scan_with_rules.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_with_rules.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_no_rules.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_no_rules.outcome }}" >> $GITHUB_OUTPUT
+          else
+            echo "scan_executed=false" >> $GITHUB_OUTPUT
+            echo "scan_outcome=skipped" >> $GITHUB_OUTPUT
+            echo "Error: ZAP scan was not executed"
+            exit 1
+          fi
+
       - name: Parse ZAP scan results
         id: parse_results
-        if: always()
+        if: always() && steps.check_zap_scan.outputs.scan_executed == 'true'
         run: |
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
@@ -207,12 +274,14 @@ jobs:
               echo "scan_passed=true" >> $GITHUB_OUTPUT
             fi
           else
+            echo "Error: zap_report.json not found. ZAP scan may have failed."
             echo "high_issues=0" >> $GITHUB_OUTPUT
             echo "medium_issues=0" >> $GITHUB_OUTPUT
             echo "low_issues=0" >> $GITHUB_OUTPUT
             echo "info_issues=0" >> $GITHUB_OUTPUT
             echo "has_critical_issues=false" >> $GITHUB_OUTPUT
-            echo "scan_passed=true" >> $GITHUB_OUTPUT
+            echo "scan_passed=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       - name: Create or update PR comment with detailed report
@@ -276,11 +345,24 @@ jobs:
             fi
           fi
 
-      - name: Fail if critical issues found
-        if: steps.parse_results.outputs.has_critical_issues == 'true'
+      - name: Fail if critical issues found or scan failed
+        if: always()
         run: |
-          echo "Critical security issues detected. Failing the workflow."
-          exit 1
+          if [ "${{ steps.check_zap_scan.outputs.scan_executed }}" != "true" ]; then
+            echo "Error: ZAP scan was not executed"
+            exit 1
+          fi
+          
+          if [ "${{ steps.parse_results.outputs.scan_passed }}" == "false" ]; then
+            if [ "${{ steps.parse_results.outputs.has_critical_issues }}" == "true" ]; then
+              echo "Critical security issues detected. Failing the workflow."
+            else
+              echo "ZAP scan failed or report not found. Failing the workflow."
+            fi
+            exit 1
+          fi
+          
+          echo "ZAP scan completed successfully"
 
   deploy-production:
     runs-on: ubuntu-latest
@@ -370,33 +452,82 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate deployment URL
+        id: validate_url_prod
+        env:
+          TARGET_URL: ${{ needs.deploy-production.outputs.url }}
+        run: |
+          if [ -z "$TARGET_URL" ]; then
+            echo "Error: Deployment URL is empty"
+            exit 1
+          fi
+          
+          if [[ ! "$TARGET_URL" =~ ^https?:// ]]; then
+            echo "Error: Invalid URL format: $TARGET_URL"
+            exit 1
+          fi
+          
+          echo "Deployment URL validated: $TARGET_URL"
+
       - name: Wait for deployment to be ready
         env:
           TARGET_URL: ${{ needs.deploy-production.outputs.url }}
         run: |
           echo "Waiting for Vercel deployment to be ready..."
-          MAX_RETRIES=20
+          echo "Target URL: $TARGET_URL"
+          MAX_RETRIES=30
           RETRY_COUNT=0
+          WAIT_INTERVAL=15
 
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -f -s -o /dev/null "$TARGET_URL"; then
-              echo "Deployment is ready!"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Deployment is ready! HTTP Status: $HTTP_CODE"
               exit 0
+            elif [ "$HTTP_CODE" = "000" ]; then
+              echo "Connection failed (retry $RETRY_COUNT/$MAX_RETRIES)"
+            else
+              echo "HTTP Status: $HTTP_CODE (retry $RETRY_COUNT/$MAX_RETRIES)"
             fi
-            echo "Waiting for deployment... ($RETRY_COUNT/$MAX_RETRIES)"
-            sleep 10
+            
+            sleep $WAIT_INTERVAL
             RETRY_COUNT=$((RETRY_COUNT + 1))
           done
 
-          echo "Warning: Deployment may not be ready, proceeding with scan anyway"
+          echo "Error: Deployment did not become ready after $((MAX_RETRIES * WAIT_INTERVAL)) seconds"
+          echo "Last HTTP Status: $HTTP_CODE"
+          exit 1
 
-      - name: ZAP Baseline Scan
-        id: zap_scan
+      - name: Check if ZAP rules file exists
+        id: check_zap_rules_prod
+        run: |
+          if [ -f ".zap/rules.tsv" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "ZAP rules file found: .zap/rules.tsv"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "ZAP rules file not found: .zap/rules.tsv (will use default rules)"
+          fi
+
+      - name: ZAP Baseline Scan (with rules file)
+        id: zap_scan_with_rules_prod
+        if: steps.check_zap_rules_prod.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
           target: ${{ needs.deploy-production.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -J'
+          fail_action: false
+
+      - name: ZAP Baseline Scan (without rules file)
+        id: zap_scan_no_rules_prod
+        if: steps.check_zap_rules_prod.outputs.exists == 'false'
+        uses: zaproxy/action-baseline@v0.12.0
+        continue-on-error: true
+        with:
+          target: ${{ needs.deploy-production.outputs.url }}
           cmd_options: '-a -J'
           fail_action: false
 
@@ -431,9 +562,27 @@ jobs:
           sarif_file: zap_report.sarif
           wait-for-processing: true
 
+      - name: Check ZAP scan result
+        id: check_zap_scan_prod
+        if: always()
+        run: |
+          # ZAPスキャンが実行されたか確認
+          if [ "${{ steps.zap_scan_with_rules_prod.outcome }}" == "success" ] || [ "${{ steps.zap_scan_with_rules_prod.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_with_rules_prod.outcome }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.zap_scan_no_rules_prod.outcome }}" == "success" ] || [ "${{ steps.zap_scan_no_rules_prod.outcome }}" == "failure" ]; then
+            echo "scan_executed=true" >> $GITHUB_OUTPUT
+            echo "scan_outcome=${{ steps.zap_scan_no_rules_prod.outcome }}" >> $GITHUB_OUTPUT
+          else
+            echo "scan_executed=false" >> $GITHUB_OUTPUT
+            echo "scan_outcome=skipped" >> $GITHUB_OUTPUT
+            echo "Error: ZAP scan was not executed"
+            exit 1
+          fi
+
       - name: Parse ZAP scan results
         id: parse_results
-        if: always()
+        if: always() && steps.check_zap_scan_prod.outputs.scan_executed == 'true'
         run: |
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
@@ -457,13 +606,34 @@ jobs:
               echo "scan_passed=true" >> $GITHUB_OUTPUT
             fi
           else
+            echo "Error: zap_report.json not found. ZAP scan may have failed."
             echo "high_issues=0" >> $GITHUB_OUTPUT
             echo "medium_issues=0" >> $GITHUB_OUTPUT
             echo "low_issues=0" >> $GITHUB_OUTPUT
             echo "info_issues=0" >> $GITHUB_OUTPUT
             echo "has_critical_issues=false" >> $GITHUB_OUTPUT
-            echo "scan_passed=true" >> $GITHUB_OUTPUT
+            echo "scan_passed=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
+
+      - name: Fail if scan failed
+        if: always()
+        run: |
+          if [ "${{ steps.check_zap_scan_prod.outputs.scan_executed }}" != "true" ]; then
+            echo "Error: ZAP scan was not executed"
+            exit 1
+          fi
+          
+          if [ "${{ steps.parse_results.outputs.scan_passed }}" == "false" ]; then
+            if [ "${{ steps.parse_results.outputs.has_critical_issues }}" == "true" ]; then
+              echo "Critical security issues detected in production environment."
+            else
+              echo "ZAP scan failed or report not found."
+            fi
+            exit 1
+          fi
+          
+          echo "ZAP scan completed successfully"
 
       - name: Post production scan summary
         if: always()
