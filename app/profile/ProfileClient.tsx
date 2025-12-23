@@ -188,7 +188,7 @@ export default function ProfileClient({
     setCrop(crop)
   }
 
-  const getCroppedImg = async (image: HTMLImageElement, crop: Crop): Promise<string> => {
+  const getCroppedImg = async (image: HTMLImageElement, crop: Crop): Promise<Blob> => {
     const canvas = document.createElement('canvas')
     const scaleX = image.naturalWidth / image.width
     const scaleY = image.naturalHeight / image.height
@@ -227,10 +227,7 @@ export default function ProfileClient({
             reject(new Error('Canvas is empty'))
             return
           }
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
+          resolve(blob)
         },
         'image/png',
         1
@@ -245,9 +242,7 @@ export default function ProfileClient({
     }
 
     try {
-      const croppedImageUrl = await getCroppedImg(imgRef.current, completedCrop)
-      const response = await fetch(croppedImageUrl)
-      const blob = await response.blob()
+      const blob = await getCroppedImg(imgRef.current, completedCrop)
       const file = new File([blob], 'avatar.png', { type: 'image/png' })
 
       const formData = new FormData()
@@ -358,7 +353,6 @@ export default function ProfileClient({
                 {!isEditingProfile ? (
                   <div>
                     <p className="text-lg text-gray-300 mb-1">{user.name}</p>
-                    <p className="text-sm text-gray-400">{user.email}</p>
                   </div>
                 ) : (
                   <div>
@@ -370,7 +364,6 @@ export default function ProfileClient({
                       className="w-full md:w-64 bg-gray-700 text-gray-100 rounded-lg p-2 border border-gray-600 focus:border-orange-500 focus:outline-none mb-2"
                       maxLength={50}
                     />
-                    <p className="text-sm text-gray-400">{user.email}</p>
                   </div>
                 )}
               </div>
