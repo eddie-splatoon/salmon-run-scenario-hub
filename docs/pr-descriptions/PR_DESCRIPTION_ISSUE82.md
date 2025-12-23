@@ -17,6 +17,11 @@ Analyze画面の挙動を修正しました。ブキ数の検証処理を4個固
   - フォーム全体をオーバーレイで覆い、CircularProgressとメッセージを表示
   - `app/components/ImageAnalyzer.tsx`に保存中のローディング表示を追加
 
+- **weapon_idsの修正**
+  - 保存時に`weapon_ids`をクリアして、API側で武器名から再計算させるように修正
+  - 武器名が変更された場合でも、正しい`weapon_ids`が設定されるようになりました
+  - `app/components/ImageAnalyzer.tsx`の`handleSave`関数を修正
+
 - **テストを追加**
   - ブキ数の検証処理のテストを追加
   - `app/api/__tests__/scenarios.test.ts`にPOSTメソッドのテストを追加
@@ -36,8 +41,10 @@ sequenceDiagram
     ImageAnalyzer->>ImageAnalyzer: 解析結果を表示（キケン度とスコアを横並び）
     User->>ImageAnalyzer: 情報を編集して保存
     ImageAnalyzer->>ImageAnalyzer: ローディング表示を開始
-    ImageAnalyzer->>API: POST /api/scenarios
+    ImageAnalyzer->>ImageAnalyzer: weapon_idsをクリア
+    ImageAnalyzer->>API: POST /api/scenarios (weapon_idsなし)
     API->>API: ブキ数が4個であることを検証
+    API->>API: 武器名からweapon_idsを再計算
     alt ブキ数が4個でない場合
         API-->>ImageAnalyzer: エラーを返す
         ImageAnalyzer->>User: エラーメッセージを表示
