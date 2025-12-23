@@ -184,32 +184,45 @@ jobs:
 
       - name: Set target URL
         id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TARGET_URL: ${{ github.event.inputs.target_url }}
+          IS_PRODUCTION: ${{ steps.scan_info.outputs.is_production }}
+          IS_PREVIEW: ${{ steps.scan_info.outputs.is_preview }}
+          WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          VERCEL_PRODUCTION_URL: ${{ steps.vercel_production_url.outputs.url }}
+          VERCEL_PREVIEW_URL: ${{ steps.vercel_preview_url.outputs.url }}
+          VERCEL_PREVIEW_URL_MAIN: ${{ steps.vercel_preview_url_main.outputs.url }}
+          TARGET_URL_OUTPUT: ${{ steps.target.outputs.url }}
+          ENVIRONMENT: ${{ steps.scan_info.outputs.environment }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "url=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.scan_info.outputs.is_production }}" == "true" ]; then
-            echo "url=${{ steps.vercel_production_url.outputs.url }}" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.scan_info.outputs.is_preview }}" == "true" ]; then
-            if [ "${{ github.event.workflow_run.event }}" == "pull_request" ]; then
-              echo "url=${{ steps.vercel_preview_url.outputs.url }}" >> $GITHUB_OUTPUT
-            elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
-              echo "url=${{ steps.vercel_preview_url_main.outputs.url }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "url=$INPUT_TARGET_URL" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_PRODUCTION" = "true" ]; then
+            echo "url=$VERCEL_PRODUCTION_URL" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_PREVIEW" = "true" ]; then
+            if [ "$WORKFLOW_RUN_EVENT" = "pull_request" ]; then
+              echo "url=$VERCEL_PREVIEW_URL" >> "$GITHUB_OUTPUT"
+            elif [ "$WORKFLOW_RUN_EVENT" = "push" ] && [ "$WORKFLOW_RUN_HEAD_BRANCH" = "main" ]; then
+              echo "url=$VERCEL_PREVIEW_URL_MAIN" >> "$GITHUB_OUTPUT"
             else
-              echo "url=${{ steps.vercel_preview_url.outputs.url }}" >> $GITHUB_OUTPUT
+              echo "url=$VERCEL_PREVIEW_URL" >> "$GITHUB_OUTPUT"
             fi
           fi
-          
-          echo "Target URL: ${{ steps.target.outputs.url }}"
-          echo "Environment: ${{ steps.scan_info.outputs.environment }}"
+
+          echo "Target URL: $TARGET_URL_OUTPUT"
+          echo "Environment: $ENVIRONMENT"
 
       - name: Wait for deployment to be ready
         if: github.event_name == 'workflow_run'
+        env:
+          TARGET_URL: ${{ steps.target.outputs.url }}
         run: |
           echo "Waiting for Vercel deployment to be ready..."
           MAX_RETRIES=20
           RETRY_COUNT=0
-          TARGET_URL="${{ steps.target.outputs.url }}"
-          
+
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             if curl -f -s -o /dev/null "$TARGET_URL"; then
               echo "Deployment is ready!"
@@ -219,7 +232,7 @@ jobs:
             sleep 10
             RETRY_COUNT=$((RETRY_COUNT + 1))
           done
-          
+
           echo "Warning: Deployment may not be ready, proceeding with scan anyway"
 
       - name: ZAP Baseline Scan
