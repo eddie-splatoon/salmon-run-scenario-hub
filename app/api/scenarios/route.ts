@@ -87,6 +87,15 @@ export async function POST(
       )
     }
 
+    // waves配列が空でないことを確認（WAVE1だけでも保存可能）
+    if (!Array.isArray(body.waves) || body.waves.length === 0) {
+      console.error('[POST /api/scenarios] WAVE情報が不足しています')
+      return NextResponse.json(
+        { success: false, error: 'WAVE情報が不足しています（最低1つのWAVEが必要です）' },
+        { status: 400 }
+      )
+    }
+
     // 重複チェック
     console.warn('[POST /api/scenarios] 重複チェック開始:', body.scenario_code)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,14 +209,22 @@ export async function POST(
       const waveNumber = wave.wave_number === 'EX' ? 4 : wave.wave_number
       const isExWave = wave.wave_number === 'EX'
 
+      // 納品数 < ノルマの場合は、clearedをfalseに設定（未クリア状態）
+      const deliveredCount = isExWave ? 0 : (wave.delivered_count || 0)
+      const quota = isExWave ? 1 : (wave.quota || wave.delivered_count || 1)
+      // 納品数がノルマ未満の場合は、clearedをfalseに設定
+      const isCleared = isExWave 
+        ? (wave.cleared ?? false)
+        : (wave.cleared ?? (deliveredCount >= quota))
+
       return {
         scenario_code: body.scenario_code,
         wave_number: waveNumber,
         tide: wave.tide,
         event: wave.event || null, // WAVE EXの場合は選択されたオカシラの種類（ヨコヅナ、タツ、ジョー、オカシラ連合）
-        delivered_count: isExWave ? 0 : (wave.delivered_count || 0), // WAVE EXの場合は0
-        quota: isExWave ? 1 : (wave.quota || wave.delivered_count || 1), // WAVE EXの場合は1（制約を満たすため）
-        cleared: wave.cleared ?? false,
+        delivered_count: deliveredCount,
+        quota: quota,
+        cleared: isCleared,
       }
     })
     

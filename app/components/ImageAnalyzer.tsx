@@ -394,6 +394,7 @@ export default function ImageAnalyzer() {
       backgroundColor: '#374151',
       color: '#e5e7eb',
       width: '100%',
+      fontSize: { xs: '16px', sm: '16px' }, // スマホでのズーム防止
       '& fieldset': {
         borderColor: '#4b5563',
       },
@@ -405,10 +406,12 @@ export default function ImageAnalyzer() {
       },
       '& .MuiOutlinedInput-input': {
         width: '100%',
+        padding: { xs: '14px', sm: '16.5px' }, // タッチしやすく
       },
     },
     '& .MuiInputLabel-root': {
       color: '#9ca3af',
+      fontSize: { xs: '16px', sm: '16px' },
     },
     '& .MuiInputLabel-root.Mui-focused': {
       color: '#f97316',
@@ -425,9 +428,11 @@ export default function ImageAnalyzer() {
     },
     '& .MuiAutocomplete-inputRoot': {
       width: '100%',
+      fontSize: { xs: '16px', sm: '16px' }, // スマホでのズーム防止
       '& .MuiAutocomplete-input': {
         width: '100% !important',
         minWidth: '0 !important',
+        padding: { xs: '14px', sm: '16.5px' }, // タッチしやすく
       },
     },
   }
@@ -449,13 +454,22 @@ export default function ImageAnalyzer() {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '1400px', mx: 'auto', p: 3 }}>
-      <Typography variant="h4" component="h2" sx={{ mb: 3, color: '#e5e7eb', fontWeight: 'bold' }}>
+    <Box sx={{ width: '100%', maxWidth: '1400px', mx: 'auto', p: { xs: 2, sm: 3, md: 4 } }}>
+      <Typography 
+        variant="h4" 
+        component="h2" 
+        sx={{ 
+          mb: { xs: 2, sm: 3 }, 
+          color: '#e5e7eb', 
+          fontWeight: 'bold',
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+        }}
+      >
         画像解析
       </Typography>
 
       {/* 画像アップロード */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
         <input
           ref={fileInputRef}
           type="file"
@@ -470,8 +484,11 @@ export default function ImageAnalyzer() {
           startIcon={<Upload />}
           onClick={handleFileButtonClick}
           disabled={isAnalyzing}
+          fullWidth
           sx={{
             backgroundColor: '#3b82f6',
+            py: { xs: 1.5, sm: 1.75 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             '&:hover': {
               backgroundColor: '#2563eb',
             },
@@ -483,11 +500,17 @@ export default function ImageAnalyzer() {
 
       {/* プレビュー */}
       {previewUrl && (
-        <Box sx={{ mb: 3, position: 'relative', display: 'inline-block' }}>
+        <Box sx={{ mb: { xs: 2, sm: 3 }, position: 'relative', display: 'inline-block', width: '100%' }}>
           <img
             src={previewUrl}
             alt="プレビュー"
-            style={{ maxWidth: '100%', height: 'auto', border: '1px solid #374151', borderRadius: '8px' }}
+            style={{ 
+              maxWidth: '100%', 
+              height: 'auto', 
+              border: '1px solid #374151', 
+              borderRadius: '8px',
+              display: 'block'
+            }}
           />
           {isAnalyzing && (
             <Box
@@ -501,10 +524,12 @@ export default function ImageAnalyzer() {
                 borderRadius: '8px',
               }}
             >
-              <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ textAlign: 'center', px: 2 }}>
                 <CircularProgress sx={{ mb: 2, color: '#3b82f6' }} />
-                <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold' }}>クマサンが解析中...</Typography>
-                <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem', mt: 1 }}>
+                <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  クマサンが解析中...
+                </Typography>
+                <Typography sx={{ color: '#9ca3af', fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: 1 }}>
                   しばらくお待ちください
                 </Typography>
               </Box>
@@ -517,9 +542,9 @@ export default function ImageAnalyzer() {
       {isAnalyzing && !previewUrl && (
         <Box
           sx={{
-            mb: 3,
+            mb: { xs: 2, sm: 3 },
             width: '100%',
-            height: '256px',
+            height: { xs: '200px', sm: '256px' },
             backgroundColor: '#1f2937',
             border: '1px solid #374151',
             borderRadius: '8px',
@@ -528,10 +553,12 @@ export default function ImageAnalyzer() {
             justifyContent: 'center',
           }}
         >
-          <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ textAlign: 'center', px: 2 }}>
             <CircularProgress sx={{ mb: 2, color: '#3b82f6' }} />
-            <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold' }}>クマサンが解析中...</Typography>
-            <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem', mt: 1 }}>
+            <Typography sx={{ color: '#e5e7eb', fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+              クマサンが解析中...
+            </Typography>
+            <Typography sx={{ color: '#9ca3af', fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: 1 }}>
               しばらくお待ちください
             </Typography>
           </Box>
@@ -540,15 +567,31 @@ export default function ImageAnalyzer() {
 
       {/* エラー表示 */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, backgroundColor: 'rgba(127, 29, 29, 0.3)', color: '#fca5a5' }}>
-          <AlertTitle>エラー</AlertTitle>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: { xs: 2, sm: 2 }, 
+            backgroundColor: 'rgba(127, 29, 29, 0.3)', 
+            color: '#fca5a5',
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}
+        >
+          <AlertTitle sx={{ fontSize: { xs: '0.9375rem', sm: '1rem' } }}>エラー</AlertTitle>
           {error}
         </Alert>
       )}
 
       {/* 成功メッセージ */}
       {successMessage && (
-        <Alert severity="success" sx={{ mb: 2, backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#86efac' }}>
+        <Alert 
+          severity="success" 
+          sx={{ 
+            mb: { xs: 2, sm: 2 }, 
+            backgroundColor: 'rgba(20, 83, 45, 0.3)', 
+            color: '#86efac',
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}
+        >
           {successMessage}
         </Alert>
       )}
@@ -557,15 +600,24 @@ export default function ImageAnalyzer() {
       {duplicateWarning && (
         <Alert
           severity="warning"
-          sx={{ mb: 2, backgroundColor: 'rgba(113, 63, 18, 0.3)', color: '#fde047' }}
+          sx={{ 
+            mb: { xs: 2, sm: 2 }, 
+            backgroundColor: 'rgba(113, 63, 18, 0.3)', 
+            color: '#fde047',
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}
         >
-          <AlertTitle>警告</AlertTitle>
+          <AlertTitle sx={{ fontSize: { xs: '0.9375rem', sm: '1rem' } }}>警告</AlertTitle>
           {duplicateWarning}
           {duplicateScenarioCode && (
             <Box sx={{ mt: 1 }}>
               <Link
                 href={`/scenarios/${duplicateScenarioCode}`}
-                style={{ color: '#60a5fa', textDecoration: 'underline' }}
+                style={{ 
+                  color: '#60a5fa', 
+                  textDecoration: 'underline',
+                  fontSize: 'inherit'
+                }}
               >
                 既存のシナリオを確認する →
               </Link>
@@ -575,16 +627,22 @@ export default function ImageAnalyzer() {
       )}
 
       {/* 解析ボタン */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 }, display: 'flex', gap: { xs: 1, sm: 2 }, flexDirection: { xs: 'column', sm: 'row' } }}>
         <Button
           variant="contained"
           onClick={handleAnalyze}
           disabled={!selectedImage || isAnalyzing || isSaving}
           startIcon={isAnalyzing ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : null}
+          fullWidth
           sx={{
             backgroundColor: '#3b82f6',
+            py: { xs: 1.5, sm: 1.75 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             '&:hover': {
               backgroundColor: '#2563eb',
+            },
+            '@media (min-width:600px)': {
+              flex: 1,
             },
           }}
         >
@@ -596,12 +654,18 @@ export default function ImageAnalyzer() {
             onClick={handleClear}
             disabled={isAnalyzing}
             startIcon={<Clear />}
+            fullWidth
             sx={{
               color: '#e5e7eb',
               borderColor: '#4b5563',
+              py: { xs: 1.5, sm: 1.75 },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
               '&:hover': {
                 borderColor: '#6b7280',
                 backgroundColor: 'rgba(75, 85, 99, 0.1)',
+              },
+              '@media (min-width:600px)': {
+                flex: 1,
               },
             }}
           >
@@ -616,24 +680,41 @@ export default function ImageAnalyzer() {
           component="form"
           onSubmit={handleSave}
           sx={{
-            mt: 3,
-            p: 3,
+            mt: { xs: 2, sm: 3 },
+            p: { xs: 2, sm: 3, md: 4 },
             backgroundColor: '#1f2937',
             border: '1px solid #374151',
             borderRadius: '8px',
           }}
         >
-          <Typography variant="h5" component="h3" sx={{ mb: 3, color: '#e5e7eb', fontWeight: 'bold' }}>
+          <Typography 
+            variant="h5" 
+            component="h3" 
+            sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              color: '#e5e7eb', 
+              fontWeight: 'bold',
+              fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
+            }}
+          >
             解析結果の確認と編集
           </Typography>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2.5, sm: 3 } }}>
             {/* 基本情報 */}
             <Box>
-              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: { xs: 1.5, sm: 2 }, 
+                  color: '#e5e7eb', 
+                  fontWeight: 'semibold',
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
                 基本情報
               </Typography>
-              <Grid container spacing={2}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                 {/* 1行目: シナリオコード、ステージ */}
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
@@ -712,10 +793,18 @@ export default function ImageAnalyzer() {
 
             {/* 武器 */}
             <Box>
-              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: { xs: 1.5, sm: 2 }, 
+                  color: '#e5e7eb', 
+                  fontWeight: 'semibold',
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
                 武器
               </Typography>
-              <Grid container spacing={2}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                 {editableData.weapons.map((weapon, index) => (
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   <Grid {...({ item: true, xs: 12, sm: 6 } as any)} key={index}>
@@ -744,10 +833,18 @@ export default function ImageAnalyzer() {
 
             {/* WAVE情報 */}
             <Box>
-              <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: { xs: 1.5, sm: 2 }, 
+                  color: '#e5e7eb', 
+                  fontWeight: 'semibold',
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
                 WAVE情報
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
                 {editableData.waves.map((wave, index) => {
                   const isExWave = wave.wave_number === 'EX'
                   const tideOptions = [
@@ -759,16 +856,24 @@ export default function ImageAnalyzer() {
                     <Paper
                       key={index}
                       sx={{
-                        p: 2,
+                        p: { xs: 1.5, sm: 2 },
                         backgroundColor: 'rgba(55, 65, 81, 0.5)',
                         border: '1px solid #4b5563',
                         borderRadius: '8px',
                       }}
                     >
-                      <Typography variant="h6" sx={{ mb: 2, color: '#e5e7eb', fontWeight: 'semibold' }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          mb: { xs: 1.5, sm: 2 }, 
+                          color: '#e5e7eb', 
+                          fontWeight: 'semibold',
+                          fontSize: { xs: '0.9375rem', sm: '1.125rem' }
+                        }}
+                      >
                         WAVE {wave.wave_number}
                       </Typography>
-                      <Grid container spacing={2}>
+                      <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                 
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <Grid {...({ item: true, xs: 12, md: 6 } as any)}>
@@ -857,7 +962,7 @@ export default function ImageAnalyzer() {
                                   wave.quota !== undefined &&
                                   wave.delivered_count !== undefined &&
                                   wave.delivered_count < wave.quota
-                                    ? '⚠️ 納品数がノルマ未満です'
+                                    ? '⚠️ 納品数がノルマ未満です（未クリアとして保存されます）'
                                     : ''
                                 }
                                 FormHelperTextProps={{
@@ -885,7 +990,7 @@ export default function ImageAnalyzer() {
                                   wave.quota !== undefined &&
                                   wave.delivered_count !== undefined &&
                                   wave.delivered_count < wave.quota
-                                    ? '⚠️ 納品数がノルマ未満です'
+                                    ? '⚠️ 納品数がノルマ未満です（未クリアとして保存されます）'
                                     : ''
                                 }
                                 FormHelperTextProps={{
@@ -927,9 +1032,10 @@ export default function ImageAnalyzer() {
             <Box
               sx={{
                 display: 'flex',
-                gap: 2,
-                pt: 2,
+                gap: { xs: 1, sm: 2 },
+                pt: { xs: 2, sm: 2 },
                 borderTop: '1px solid #374151',
+                flexDirection: { xs: 'column', sm: 'row' },
               }}
             >
               <Button
@@ -937,10 +1043,16 @@ export default function ImageAnalyzer() {
                 variant="contained"
                 disabled={isSaving || (duplicateWarning !== null && duplicateScenarioCode !== null)}
                 startIcon={isSaving ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : <Save />}
+                fullWidth
                 sx={{
                   backgroundColor: '#16a34a',
+                  py: { xs: 1.5, sm: 1.75 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
                   '&:hover': {
                     backgroundColor: '#15803d',
+                  },
+                  '@media (min-width:600px)': {
+                    flex: 1,
                   },
                 }}
               >
@@ -952,12 +1064,18 @@ export default function ImageAnalyzer() {
                 onClick={handleClear}
                 disabled={isSaving}
                 startIcon={<Clear />}
+                fullWidth
                 sx={{
                   color: '#e5e7eb',
                   borderColor: '#4b5563',
+                  py: { xs: 1.5, sm: 1.75 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
                   '&:hover': {
                     borderColor: '#6b7280',
                     backgroundColor: 'rgba(75, 85, 99, 0.1)',
+                  },
+                  '@media (min-width:600px)': {
+                    flex: 1,
                   },
                 }}
               >

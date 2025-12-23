@@ -37,7 +37,9 @@ describe('AnalyzePage', () => {
     const { container } = render(<AnalyzePage />)
     const main = container.querySelector('main')
     expect(main).toBeInTheDocument()
-    expect(main).toHaveClass('flex', 'min-h-screen', 'flex-col', 'items-center', 'justify-center', 'p-24')
+    expect(main).toHaveClass('flex', 'min-h-screen', 'flex-col', 'items-center', 'justify-center')
+    // レスポンシブパディングクラスを確認
+    expect(main).toHaveClass('px-4', 'py-8')
   })
 })
 
