@@ -43,6 +43,8 @@ jobs:
 
       - name: Determine scan environment
         id: scan_env
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
@@ -52,7 +54,7 @@ jobs:
             echo "environment=$ENV" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.workflow_run.event }}" == "pull_request" ]; then
             echo "environment=preview" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
+          elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "$HEAD_BRANCH" == "main" ]; then
             # mainブランチのpush時は本番環境
             echo "environment=production" >> $GITHUB_OUTPUT
           else
