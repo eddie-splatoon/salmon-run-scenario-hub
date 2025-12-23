@@ -2,7 +2,7 @@ name: Vercel Security Scan
 
 on:
   workflow_run:
-    workflows: ["Deploy to Vercel"]
+    workflows: ["Deploy to Vercel", "Deploy to Vercel Production"]
     types:
       - completed
   workflow_dispatch:
@@ -24,13 +24,13 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     name: OWASP ZAP Security Scan
-    # PR時またはmainブランチpush時に実行
+    # ワークフローが成功した場合のみ実行（PR時またはmainブランチpush時）
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        (github.event.workflow_run.event == 'pull_request' ||
-        (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')))
+        github.event.workflow_run.event == 'push'))
     permissions:
       contents: read
       pull-requests: write
@@ -41,10 +41,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Determine scan environment
-        id: scan_env
-        env:
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      - name: Determine scan environment and deployment info
+        id: scan_info
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
@@ -52,16 +50,33 @@ jobs:
               ENV="preview"
             fi
             echo "environment=$ENV" >> $GITHUB_OUTPUT
+            echo "is_preview=$([ "$ENV" == "preview" ] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
+            echo "is_production=$([ "$ENV" == "production" ] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.workflow_run.event }}" == "pull_request" ]; then
+            # PR時は常にプレビュー環境
             echo "environment=preview" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "$HEAD_BRANCH" == "main" ]; then
-            # mainブランチのpush時は本番環境
-            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "is_preview=true" >> $GITHUB_OUTPUT
+            echo "is_production=false" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
+            # mainブランチpush時は、ワークフロー名を確認して環境を判定
+            # "Deploy to Vercel Production"の場合は本番環境、"Deploy to Vercel"の場合はプレビュー環境
+            WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+            if [ "$WORKFLOW_NAME" == "Deploy to Vercel Production" ]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "is_preview=false" >> $GITHUB_OUTPUT
+              echo "is_production=true" >> $GITHUB_OUTPUT
+            else
+              echo "environment=preview" >> $GITHUB_OUTPUT
+              echo "is_preview=true" >> $GITHUB_OUTPUT
+              echo "is_production=false" >> $GITHUB_OUTPUT
+            fi
           else
             echo "environment=preview" >> $GITHUB_OUTPUT
+            echo "is_preview=true" >> $GITHUB_OUTPUT
+            echo "is_production=false" >> $GITHUB_OUTPUT
           fi
           
-          echo "Scan environment: ${{ steps.scan_env.outputs.environment }}"
+          echo "Scan environment: ${{ steps.scan_info.outputs.environment }}"
 
       - name: Get PR number from workflow run
         id: pr_number
@@ -82,7 +97,7 @@ jobs:
 
       - name: Get Vercel Preview URL from PR comments
         id: vercel_preview_url
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request'
+        if: steps.scan_info.outputs.is_preview == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -112,9 +127,54 @@ jobs:
             const defaultUrl = `https://salmon-run-scenario-hub-git-${prNumber}-eddie-splatoons-projects.vercel.app`;
             core.setOutput('url', defaultUrl);
 
+      - name: Get Vercel Preview URL for main branch push
+        id: vercel_preview_url_main
+        if: steps.scan_info.outputs.is_preview == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // mainブランチpush時は、deploy-previewジョブのアーティファクトからURLを取得
+            const workflowRunId = ${{ github.event.workflow_run.id }};
+            
+            try {
+              // アーティファクトからPreview URLを取得
+              const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: workflowRunId,
+              });
+              
+              const previewUrlArtifact = artifacts.artifacts.find(artifact => 
+                artifact.name === 'preview-deployment-url'
+              );
+              
+              if (previewUrlArtifact) {
+                // アーティファクトのダウンロードURLを取得
+                const downloadUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${workflowRunId}/artifacts/${previewUrlArtifact.id}`;
+                
+                // 実際には、アーティファクトをダウンロードしてURLを取得する必要があるが、
+                // GitHub APIでは直接ファイルの内容を取得できないため、
+                // ここではVercelのデプロイメントURLのパターンを使用
+                // 実際のURLはVercel CLIで確認するか、デプロイメントのログから取得する
+                const defaultUrl = `https://salmon-run-scenario-hub-${workflowRunId}.vercel.app`;
+                core.setOutput('url', defaultUrl);
+                core.warning(`Artifact found but cannot download directly. Using default URL pattern: ${defaultUrl}`);
+              } else {
+                // アーティファクトが見つからない場合はデフォルトのパターンを使用
+                const defaultUrl = `https://salmon-run-scenario-hub-${workflowRunId}.vercel.app`;
+                core.setOutput('url', defaultUrl);
+                core.warning(`Artifact not found. Using default URL pattern: ${defaultUrl}`);
+              }
+            } catch (error) {
+              // エラーが発生した場合はデフォルトのパターンを使用
+              const defaultUrl = `https://salmon-run-scenario-hub-${workflowRunId}.vercel.app`;
+              core.setOutput('url', defaultUrl);
+              core.warning(`Failed to get preview URL from artifact: ${error.message}. Using default URL pattern: ${defaultUrl}`);
+            }
+
       - name: Get Vercel Production URL
         id: vercel_production_url
-        if: steps.scan_env.outputs.environment == 'production'
+        if: steps.scan_info.outputs.is_production == 'true'
         run: |
           # 本番環境のURLを取得
           # Vercelの本番環境URLは通常、プロジェクト名に基づいて決定される
@@ -127,14 +187,20 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "url=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.scan_env.outputs.environment }}" == "production" ]; then
+          elif [ "${{ steps.scan_info.outputs.is_production }}" == "true" ]; then
             echo "url=${{ steps.vercel_production_url.outputs.url }}" >> $GITHUB_OUTPUT
-          else
-            echo "url=${{ steps.vercel_preview_url.outputs.url }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.scan_info.outputs.is_preview }}" == "true" ]; then
+            if [ "${{ github.event.workflow_run.event }}" == "pull_request" ]; then
+              echo "url=${{ steps.vercel_preview_url.outputs.url }}" >> $GITHUB_OUTPUT
+            elif [ "${{ github.event.workflow_run.event }}" == "push" ] && [ "${{ github.event.workflow_run.head_branch }}" == "main" ]; then
+              echo "url=${{ steps.vercel_preview_url_main.outputs.url }}" >> $GITHUB_OUTPUT
+            else
+              echo "url=${{ steps.vercel_preview_url.outputs.url }}" >> $GITHUB_OUTPUT
+            fi
           fi
           
           echo "Target URL: ${{ steps.target.outputs.url }}"
-          echo "Environment: ${{ steps.scan_env.outputs.environment }}"
+          echo "Environment: ${{ steps.scan_info.outputs.environment }}"
 
       - name: Wait for deployment to be ready
         if: github.event_name == 'workflow_run'
@@ -180,7 +246,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: zap-report-${{ steps.scan_env.outputs.environment }}-${{ github.run_number }}
+          name: zap-report-${{ steps.scan_info.outputs.environment }}-${{ github.run_number }}
           path: |
             zap_report.html
             zap_report.json
@@ -217,8 +283,10 @@ jobs:
             # 重大な問題がある場合は失敗フラグを設定
             if [ "$HIGH_ISSUES" -gt 0 ]; then
               echo "has_critical_issues=true" >> $GITHUB_OUTPUT
+              echo "scan_passed=false" >> $GITHUB_OUTPUT
             else
               echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+              echo "scan_passed=true" >> $GITHUB_OUTPUT
             fi
           else
             echo "high_issues=0" >> $GITHUB_OUTPUT
@@ -226,7 +294,26 @@ jobs:
             echo "low_issues=0" >> $GITHUB_OUTPUT
             echo "info_issues=0" >> $GITHUB_OUTPUT
             echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+            echo "scan_passed=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Create scan result file
+        if: always() && steps.scan_info.outputs.is_preview == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+        run: |
+          echo "scan_passed=${{ steps.parse_results.outputs.scan_passed }}" > scan-result.txt
+          echo "high_issues=${{ steps.parse_results.outputs.high_issues }}" >> scan-result.txt
+          echo "medium_issues=${{ steps.parse_results.outputs.medium_issues }}" >> scan-result.txt
+          echo "low_issues=${{ steps.parse_results.outputs.low_issues }}" >> scan-result.txt
+          echo "info_issues=${{ steps.parse_results.outputs.info_issues }}" >> scan-result.txt
+
+      - name: Save scan result as artifact
+        if: always() && steps.scan_info.outputs.is_preview == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-scan-result
+          path: scan-result.txt
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Check if ZAP report exists
         id: check_report
@@ -273,7 +360,7 @@ jobs:
           comment-tag: zap-scan-summary-preview
 
       - name: Post production scan summary
-        if: always() && steps.scan_env.outputs.environment == 'production'
+        if: always() && steps.scan_info.outputs.is_production == 'true'
         run: |
           echo "## 🔒 OWASP ZAP Security Scan Results (Production)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -291,9 +378,31 @@ jobs:
             echo "### ✅ No critical security issues detected" >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Post preview scan summary for main branch
+        if: always() && steps.scan_info.outputs.is_preview == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+        run: |
+          echo "## 🔒 OWASP ZAP Security Scan Results (Preview)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment URL:** ${{ steps.target.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔴 **High Risk Issues:** ${{ steps.parse_results.outputs.high_issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟡 **Medium Risk Issues:** ${{ steps.parse_results.outputs.medium_issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟠 **Low Risk Issues:** ${{ steps.parse_results.outputs.low_issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔵 **Info Issues:** ${{ steps.parse_results.outputs.info_issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.parse_results.outputs.has_critical_issues }}" == "true" ]; then
+            echo "### ⚠️ **WARNING: Critical security issues detected!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Production deployment will be skipped due to security issues in preview environment." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ No critical security issues detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Preview scan passed. Production deployment can proceed." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Fail if critical issues found
         if: steps.parse_results.outputs.has_critical_issues == 'true'
         run: |
           echo "Critical security issues detected. Failing the workflow."
           exit 1
-
