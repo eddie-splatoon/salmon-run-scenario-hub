@@ -152,12 +152,28 @@ export async function POST(
 
     // 武器IDの取得（名寄せ）
     console.warn('[POST /api/scenarios] 武器ID取得開始:', body.weapons)
+    
+    // ブキ数は常に4個固定であることを確認
+    if (!Array.isArray(body.weapons) || body.weapons.length !== 4) {
+      console.error('[POST /api/scenarios] ブキ数が4個ではありません:', {
+        weapons_count: body.weapons?.length || 0,
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'ブキ数は4個である必要があります',
+        },
+        { status: 400 }
+      )
+    }
+    
     let weaponIds: number[] | (number | null)[] = body.weapon_ids || []
     if (!weaponIds || weaponIds.length === 0) {
       const lookedUpWeaponIds = await lookupWeaponIds(body.weapons)
       weaponIds = lookedUpWeaponIds
       const validWeaponIds = lookedUpWeaponIds.filter((id): id is number => id !== null)
-      if (validWeaponIds.length !== body.weapons.length) {
+      // ブキ数は4個固定なので、4個すべてが見つかることを確認
+      if (validWeaponIds.length !== 4) {
         console.error('[POST /api/scenarios] 武器が見つかりません:', {
           requested: body.weapons,
           found: validWeaponIds,
@@ -173,16 +189,15 @@ export async function POST(
       }
       weaponIds = validWeaponIds as number[]
     } else {
-      // weapon_idsが提供されている場合、長さの検証
-      if (weaponIds.length !== body.weapons.length) {
-        console.error('[POST /api/scenarios] 武器IDと武器名の数が一致しません:', {
-          weapons_count: body.weapons.length,
+      // weapon_idsが提供されている場合、ブキ数は4個固定であることを確認
+      if (weaponIds.length !== 4) {
+        console.error('[POST /api/scenarios] 武器IDの数が4個ではありません:', {
           weapon_ids_count: weaponIds.length,
         })
         return NextResponse.json(
           {
             success: false,
-            error: `武器IDの数（${weaponIds.length}）と武器名の数（${body.weapons.length}）が一致しません`,
+            error: `武器IDの数は4個である必要があります（現在: ${weaponIds.length}個）`,
           },
           { status: 400 }
         )
