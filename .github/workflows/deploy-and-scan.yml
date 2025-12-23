@@ -221,38 +221,70 @@ jobs:
         if: steps.check_zap_rules.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-preview.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
           cmd_options: ${{ steps.build_zap_options.outputs.cmd_options }}
           fail_action: false
           allow_issue_writing: false
-          artifact_name: ''
 
       - name: ZAP Baseline Scan (without rules file)
         id: zap_scan_no_rules
         if: steps.check_zap_rules.outputs.exists == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-preview.outputs.url }}
           cmd_options: ${{ steps.build_zap_options.outputs.cmd_options }}
           fail_action: false
           allow_issue_writing: false
-          artifact_name: ''
 
-      - name: Check if SARIF file exists
-        id: check_sarif
+      - name: Check ZAP output files
+        id: check_zap_files
         if: always()
         run: |
-          if [ -f zap_report.sarif ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Checking for ZAP output files..."
+          ls -la
+          echo ""
+          echo "Files matching *report*:"
+          ls -la *report* 2>/dev/null || echo "No files matching *report* found"
+          echo ""
+          echo "Files matching report_*:"
+          ls -la report_* 2>/dev/null || echo "No files matching report_* found"
+          echo ""
+          echo "Files matching zap_*:"
+          ls -la zap_* 2>/dev/null || echo "No files matching zap_* found"
+          
+          # ZAPアクションが生成する可能性のあるファイル名を確認
+          if [ -f "report_json.json" ]; then
+            echo "Found report_json.json, renaming to zap_report.json"
+            cp report_json.json zap_report.json
+          fi
+          if [ -f "report_md.md" ]; then
+            echo "Found report_md.md, renaming to zap_report.md"
+            cp report_md.md zap_report.md
+          fi
+          if [ -f "report_html.html" ]; then
+            echo "Found report_html.html, renaming to zap_report.html"
+            cp report_html.html zap_report.html
+          fi
+          
+          # SARIFファイルの確認
+          if [ -f "zap_report.sarif" ]; then
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
+          elif [ -f "report.sarif" ]; then
+            echo "Found report.sarif, renaming to zap_report.sarif"
+            cp report.sarif zap_report.sarif
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # JSONファイルの確認
+          if [ -f "zap_report.json" ]; then
+            echo "json_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "json_exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Archive ZAP results
@@ -265,6 +297,10 @@ jobs:
             zap_report.json
             zap_report.md
             zap_report.sarif
+            report_html.html
+            report_json.json
+            report_md.md
+            report.sarif
           retention-days: 30
           if-no-files-found: ignore
 
@@ -296,7 +332,7 @@ jobs:
 
       - name: Parse ZAP scan results
         id: parse_results
-        if: always() && steps.check_zap_scan.outputs.scan_executed == 'true'
+        if: always() && steps.check_zap_scan.outputs.scan_executed == 'true' && steps.check_zap_files.outputs.json_exists == 'true'
         run: |
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
@@ -597,38 +633,70 @@ jobs:
         if: steps.check_zap_rules_prod.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-production.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
           cmd_options: ${{ steps.build_zap_options_prod.outputs.cmd_options }}
           fail_action: false
           allow_issue_writing: false
-          artifact_name: ''
 
       - name: ZAP Baseline Scan (without rules file)
         id: zap_scan_no_rules_prod
         if: steps.check_zap_rules_prod.outputs.exists == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-production.outputs.url }}
           cmd_options: ${{ steps.build_zap_options_prod.outputs.cmd_options }}
           fail_action: false
           allow_issue_writing: false
-          artifact_name: ''
 
-      - name: Check if SARIF file exists
-        id: check_sarif
+      - name: Check ZAP output files
+        id: check_zap_files_prod
         if: always()
         run: |
-          if [ -f zap_report.sarif ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Checking for ZAP output files..."
+          ls -la
+          echo ""
+          echo "Files matching *report*:"
+          ls -la *report* 2>/dev/null || echo "No files matching *report* found"
+          echo ""
+          echo "Files matching report_*:"
+          ls -la report_* 2>/dev/null || echo "No files matching report_* found"
+          echo ""
+          echo "Files matching zap_*:"
+          ls -la zap_* 2>/dev/null || echo "No files matching zap_* found"
+          
+          # ZAPアクションが生成する可能性のあるファイル名を確認
+          if [ -f "report_json.json" ]; then
+            echo "Found report_json.json, renaming to zap_report.json"
+            cp report_json.json zap_report.json
+          fi
+          if [ -f "report_md.md" ]; then
+            echo "Found report_md.md, renaming to zap_report.md"
+            cp report_md.md zap_report.md
+          fi
+          if [ -f "report_html.html" ]; then
+            echo "Found report_html.html, renaming to zap_report.html"
+            cp report_html.html zap_report.html
+          fi
+          
+          # SARIFファイルの確認
+          if [ -f "zap_report.sarif" ]; then
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
+          elif [ -f "report.sarif" ]; then
+            echo "Found report.sarif, renaming to zap_report.sarif"
+            cp report.sarif zap_report.sarif
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # JSONファイルの確認
+          if [ -f "zap_report.json" ]; then
+            echo "json_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "json_exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Archive ZAP results
@@ -641,12 +709,16 @@ jobs:
             zap_report.json
             zap_report.md
             zap_report.sarif
+            report_html.html
+            report_json.json
+            report_md.md
+            report.sarif
           retention-days: 30
           if-no-files-found: ignore
 
       - name: Upload ZAP results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && steps.check_sarif.outputs.exists == 'true'
+        if: always() && steps.check_zap_files_prod.outputs.sarif_exists == 'true'
         continue-on-error: true
         with:
           sarif_file: zap_report.sarif
@@ -672,7 +744,7 @@ jobs:
 
       - name: Parse ZAP scan results
         id: parse_results
-        if: always() && steps.check_zap_scan_prod.outputs.scan_executed == 'true'
+        if: always() && steps.check_zap_scan_prod.outputs.scan_executed == 'true' && steps.check_zap_files_prod.outputs.json_exists == 'true'
         run: |
           # zap_report.jsonから結果を解析
           if [ -f zap_report.json ]; then
