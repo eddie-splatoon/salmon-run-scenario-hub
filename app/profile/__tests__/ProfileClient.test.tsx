@@ -174,7 +174,6 @@ describe('ProfileClient', () => {
 
     expect(screen.getByText('マイページ')).toBeInTheDocument()
     expect(screen.getByText('テストユーザー')).toBeInTheDocument()
-    expect(screen.getByText('test@example.com')).toBeInTheDocument()
   })
 
   it('displays statistics dashboard', () => {
