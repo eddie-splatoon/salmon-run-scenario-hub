@@ -221,21 +221,27 @@ jobs:
         if: steps.check_zap_rules.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-preview.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
           cmd_options: ${{ steps.build_zap_options.outputs.cmd_options }}
           fail_action: false
+          artifact_name: 'zap-report-preview'
 
       - name: ZAP Baseline Scan (without rules file)
         id: zap_scan_no_rules
         if: steps.check_zap_rules.outputs.exists == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-preview.outputs.url }}
           cmd_options: ${{ steps.build_zap_options.outputs.cmd_options }}
           fail_action: false
+          artifact_name: 'zap-report-preview'
 
       - name: Check if SARIF file exists
         id: check_sarif
@@ -589,21 +595,27 @@ jobs:
         if: steps.check_zap_rules_prod.outputs.exists == 'true'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-production.outputs.url }}
           rules_file_name: '.zap/rules.tsv'
           cmd_options: ${{ steps.build_zap_options_prod.outputs.cmd_options }}
           fail_action: false
+          artifact_name: 'zap-report-production'
 
       - name: ZAP Baseline Scan (without rules file)
         id: zap_scan_no_rules_prod
         if: steps.check_zap_rules_prod.outputs.exists == 'false'
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           target: ${{ needs.deploy-production.outputs.url }}
           cmd_options: ${{ steps.build_zap_options_prod.outputs.cmd_options }}
           fail_action: false
+          artifact_name: 'zap-report-production'
 
       - name: Check if SARIF file exists
         id: check_sarif
