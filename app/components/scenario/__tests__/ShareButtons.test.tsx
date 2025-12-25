@@ -24,7 +24,7 @@ describe('ShareButtons', () => {
   const defaultProps = {
     scenarioCode: 'ABC123',
     stageName: 'アラマキ砦',
-    totalGoldenEggs: 150,
+    dangerRate: 200,
   }
 
   it('should render all share buttons', () => {
@@ -48,9 +48,10 @@ describe('ShareButtons', () => {
     expect(url).toContain('https://x.com/intent/post')
     // URLをパースして検証
     const urlObj = new URL(url)
-    expect(urlObj.searchParams.get('text')).toContain('ステージ: アラマキ砦')
-    expect(urlObj.searchParams.get('text')).toContain('金イクラ: 150')
-    expect(urlObj.searchParams.get('text')).toContain('シナリオコード: ABC123')
+    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
+    expect(text).toContain('ステージ: アラマキ砦')
+    expect(text).toContain('キケン度: 200%')
+    expect(text).toContain('シナリオコード: ABC123')
     expect(urlObj.searchParams.get('url')).toContain('/scenarios/ABC123')
     expect(urlObj.searchParams.get('hashtags')).toContain('サーモンランNW')
     expect(callArgs[1]).toBe('_blank')
@@ -72,7 +73,7 @@ describe('ShareButtons', () => {
     const urlObj = new URL(url)
     const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
     expect(text).toContain('ステージ: アラマキ砦')
-    expect(text).toContain('金イクラ: 150')
+    expect(text).toContain('キケン度: 200%')
     expect(text).toContain('シナリオコード: ABC123')
     expect(text).toContain('/scenarios/ABC123')
     expect(callArgs[1]).toBe('_blank')
@@ -103,7 +104,7 @@ describe('ShareButtons', () => {
     const props = {
       scenarioCode: 'XYZ789',
       stageName: 'シェケナダム',
-      totalGoldenEggs: 200,
+      dangerRate: 300,
     }
     render(<ShareButtons {...props} />)
 
@@ -115,7 +116,7 @@ describe('ShareButtons', () => {
     const urlObj = new URL(url)
     const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
     expect(text).toContain('ステージ: シェケナダム')
-    expect(text).toContain('金イクラ: 200')
+    expect(text).toContain('キケン度: 300%')
     expect(text).toContain('シナリオコード: XYZ789')
     const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
     expect(shareUrl).toContain('/scenarios/XYZ789')

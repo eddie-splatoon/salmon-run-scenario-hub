@@ -292,7 +292,7 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
             <ShareButtons
               scenarioCode={scenario.code}
               stageName={scenario.stage_name}
-              totalGoldenEggs={scenario.total_golden_eggs}
+              dangerRate={scenario.danger_rate}
             />
           </div>
 
