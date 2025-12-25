@@ -26,6 +26,7 @@ vi.mock('lucide-react', () => ({
   MessageCircle: () => <span data-testid="message-icon">MessageCircle</span>,
   ArrowLeft: () => <span data-testid="arrow-left-icon">ArrowLeft</span>,
   User: () => <span data-testid="user-icon">User</span>,
+  Share2: () => <span data-testid="share-icon">Share2</span>,
 }))
 
 // scenario-tagsをモック
