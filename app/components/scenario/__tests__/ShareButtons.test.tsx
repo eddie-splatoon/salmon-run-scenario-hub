@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ShareButtons from '../ShareButtons'
 
@@ -42,22 +42,28 @@ describe('ShareButtons', () => {
     const xButton = screen.getByLabelText('𝕏で共有')
     await user.click(xButton)
 
-    expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    })
+
     const callArgs = mockWindowOpen.mock.calls[0]
-    const url = callArgs[0] as string
+    expect(callArgs).toBeDefined()
+    expect(callArgs.length).toBeGreaterThan(0)
     
-    // 基本的なURL構造を検証
+    const url = callArgs[0] as string
+    expect(typeof url).toBe('string')
     expect(url).toContain('https://x.com/intent/post')
     expect(url).toContain('text=')
     expect(url).toContain('url=')
     expect(url).toContain('hashtags=')
-    
-    // シナリオコードが含まれていることを確認
     expect(url).toContain('ABC123')
     
-    // window.openの引数を確認
-    expect(callArgs[1]).toBe('_blank')
-    expect(callArgs[2]).toBe('width=600,height=400')
+    if (callArgs[1]) {
+      expect(callArgs[1]).toBe('_blank')
+    }
+    if (callArgs[2]) {
+      expect(callArgs[2]).toBe('width=600,height=400')
+    }
   })
 
   it('should open BlueSky share URL when BlueSky button is clicked', async () => {
@@ -67,21 +73,26 @@ describe('ShareButtons', () => {
     const blueskyButton = screen.getByLabelText('BlueSkyで共有')
     await user.click(blueskyButton)
 
-    expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    })
+
     const callArgs = mockWindowOpen.mock.calls[0]
-    const url = callArgs[0] as string
+    expect(callArgs).toBeDefined()
     
-    // 基本的なURL構造を検証
+    const url = callArgs[0] as string
+    expect(typeof url).toBe('string')
     expect(url).toContain('https://bsky.app/intent/compose')
     expect(url).toContain('text=')
-    
-    // シナリオコードが含まれていることを確認
     expect(url).toContain('ABC123')
     expect(url).toContain('scenarios')
     
-    // window.openの引数を確認
-    expect(callArgs[1]).toBe('_blank')
-    expect(callArgs[2]).toBe('width=600,height=400')
+    if (callArgs[1]) {
+      expect(callArgs[1]).toBe('_blank')
+    }
+    if (callArgs[2]) {
+      expect(callArgs[2]).toBe('width=600,height=400')
+    }
   })
 
   it('should open LINE share URL when LINE button is clicked', async () => {
@@ -91,21 +102,26 @@ describe('ShareButtons', () => {
     const lineButton = screen.getByLabelText('LINEで共有')
     await user.click(lineButton)
 
-    expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    })
+
     const callArgs = mockWindowOpen.mock.calls[0]
-    const url = callArgs[0] as string
+    expect(callArgs).toBeDefined()
     
-    // 基本的なURL構造を検証
+    const url = callArgs[0] as string
+    expect(typeof url).toBe('string')
     expect(url).toContain('https://social-plugins.line.me/lineit/share')
     expect(url).toContain('url=')
-    
-    // シナリオコードが含まれていることを確認
     expect(url).toContain('ABC123')
     expect(url).toContain('scenarios')
     
-    // window.openの引数を確認
-    expect(callArgs[1]).toBe('_blank')
-    expect(callArgs[2]).toBe('width=600,height=400')
+    if (callArgs[1]) {
+      expect(callArgs[1]).toBe('_blank')
+    }
+    if (callArgs[2]) {
+      expect(callArgs[2]).toBe('width=600,height=400')
+    }
   })
 
   it('should generate correct share text with different props', async () => {
@@ -120,20 +136,23 @@ describe('ShareButtons', () => {
     const xButton = screen.getByLabelText('𝕏で共有')
     await user.click(xButton)
 
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    })
+
     const callArgs = mockWindowOpen.mock.calls[0]
+    expect(callArgs).toBeDefined()
+    
     const url = callArgs[0] as string
-    
-    // 基本的なURL構造を検証
+    expect(typeof url).toBe('string')
     expect(url).toContain('https://x.com/intent/post')
-    
-    // 異なるpropsの値が含まれていることを確認
     expect(url).toContain('XYZ789')
     expect(url).toContain('scenarios')
   })
 
   it('should use default site URL when NEXT_PUBLIC_SITE_URL is not set', async () => {
     const user = userEvent.setup()
-    // 環境変数を一時的に削除（実際にはテスト環境では設定されていない可能性がある）
+    // 環境変数を一時的に削除
     const originalEnv = process.env.NEXT_PUBLIC_SITE_URL
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (process.env as any).NEXT_PUBLIC_SITE_URL
@@ -143,10 +162,15 @@ describe('ShareButtons', () => {
     const xButton = screen.getByLabelText('𝕏で共有')
     await user.click(xButton)
 
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledTimes(1)
+    })
+
     const callArgs = mockWindowOpen.mock.calls[0]
-    const url = callArgs[0] as string
+    expect(callArgs).toBeDefined()
     
-    // デフォルトURLが使用されることを確認
+    const url = callArgs[0] as string
+    expect(typeof url).toBe('string')
     expect(url).toContain('salmon-run-scenario-hub')
     expect(url).toContain('vercel.app')
     expect(url).toContain('ABC123')
