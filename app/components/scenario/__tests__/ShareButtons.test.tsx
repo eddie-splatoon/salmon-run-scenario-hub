@@ -44,10 +44,15 @@ describe('ShareButtons', () => {
 
     expect(mockWindowOpen).toHaveBeenCalledTimes(1)
     const callArgs = mockWindowOpen.mock.calls[0]
-    expect(callArgs[0]).toContain('https://x.com/intent/post')
-    expect(callArgs[0]).toContain(encodeURIComponent('ステージ: アラマキ砦 / 金イクラ: 150 / シナリオコード: ABC123'))
-    expect(callArgs[0]).toContain(encodeURIComponent('/scenarios/ABC123'))
-    expect(callArgs[0]).toContain(encodeURIComponent('サーモンランNW,SalmonRunScenarioHub,サーモンランシナリオhub'))
+    const url = callArgs[0] as string
+    expect(url).toContain('https://x.com/intent/post')
+    // URLをパースして検証
+    const urlObj = new URL(url)
+    expect(urlObj.searchParams.get('text')).toContain('ステージ: アラマキ砦')
+    expect(urlObj.searchParams.get('text')).toContain('金イクラ: 150')
+    expect(urlObj.searchParams.get('text')).toContain('シナリオコード: ABC123')
+    expect(urlObj.searchParams.get('url')).toContain('/scenarios/ABC123')
+    expect(urlObj.searchParams.get('hashtags')).toContain('サーモンランNW')
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -61,9 +66,15 @@ describe('ShareButtons', () => {
 
     expect(mockWindowOpen).toHaveBeenCalledTimes(1)
     const callArgs = mockWindowOpen.mock.calls[0]
-    expect(callArgs[0]).toContain('https://bsky.app/intent/compose')
-    expect(callArgs[0]).toContain(encodeURIComponent('ステージ: アラマキ砦 / 金イクラ: 150 / シナリオコード: ABC123'))
-    expect(callArgs[0]).toContain(encodeURIComponent('/scenarios/ABC123'))
+    const url = callArgs[0] as string
+    expect(url).toContain('https://bsky.app/intent/compose')
+    // URLをパースして検証
+    const urlObj = new URL(url)
+    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
+    expect(text).toContain('ステージ: アラマキ砦')
+    expect(text).toContain('金イクラ: 150')
+    expect(text).toContain('シナリオコード: ABC123')
+    expect(text).toContain('/scenarios/ABC123')
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -77,8 +88,12 @@ describe('ShareButtons', () => {
 
     expect(mockWindowOpen).toHaveBeenCalledTimes(1)
     const callArgs = mockWindowOpen.mock.calls[0]
-    expect(callArgs[0]).toContain('https://social-plugins.line.me/lineit/share')
-    expect(callArgs[0]).toContain(encodeURIComponent('/scenarios/ABC123'))
+    const url = callArgs[0] as string
+    expect(url).toContain('https://social-plugins.line.me/lineit/share')
+    // URLをパースして検証
+    const urlObj = new URL(url)
+    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
+    expect(shareUrl).toContain('/scenarios/ABC123')
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -96,8 +111,14 @@ describe('ShareButtons', () => {
     await user.click(xButton)
 
     const callArgs = mockWindowOpen.mock.calls[0]
-    expect(callArgs[0]).toContain(encodeURIComponent('ステージ: シェケナダム / 金イクラ: 200 / シナリオコード: XYZ789'))
-    expect(callArgs[0]).toContain(encodeURIComponent('/scenarios/XYZ789'))
+    const url = callArgs[0] as string
+    const urlObj = new URL(url)
+    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
+    expect(text).toContain('ステージ: シェケナダム')
+    expect(text).toContain('金イクラ: 200')
+    expect(text).toContain('シナリオコード: XYZ789')
+    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
+    expect(shareUrl).toContain('/scenarios/XYZ789')
   })
 
   it('should use default site URL when NEXT_PUBLIC_SITE_URL is not set', async () => {
@@ -113,8 +134,12 @@ describe('ShareButtons', () => {
     await user.click(xButton)
 
     const callArgs = mockWindowOpen.mock.calls[0]
+    const url = callArgs[0] as string
+    const urlObj = new URL(url)
+    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
     // デフォルトURLが使用されることを確認
-    expect(callArgs[0]).toContain('https://salmon-run-scenario-hub.vercel.app/scenarios/ABC123')
+    expect(shareUrl).toContain('salmon-run-scenario-hub.vercel.app')
+    expect(shareUrl).toContain('/scenarios/ABC123')
 
     // 環境変数を復元
     if (originalEnv) {
