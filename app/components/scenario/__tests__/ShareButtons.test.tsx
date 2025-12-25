@@ -48,14 +48,26 @@ describe('ShareButtons', () => {
     expect(url).toContain('https://x.com/intent/post')
     // URLをパースして検証
     const urlObj = new URL(url)
-    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
-    expect(text).toContain('ステージ: アラマキ砦')
-    expect(text).toContain('キケン度: 200%')
-    expect(text).toContain('シナリオコード: ABC123')
-    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
-    expect(shareUrl).toContain('/scenarios/ABC123')
-    const hashtags = decodeURIComponent(urlObj.searchParams.get('hashtags') || '')
-    expect(hashtags).toContain('サーモンランNW')
+    const textParam = urlObj.searchParams.get('text')
+    expect(textParam).toBeTruthy()
+    if (textParam) {
+      const text = decodeURIComponent(textParam)
+      expect(text).toContain('ステージ: アラマキ砦')
+      expect(text).toContain('キケン度: 200%')
+      expect(text).toContain('シナリオコード: ABC123')
+    }
+    const urlParam = urlObj.searchParams.get('url')
+    expect(urlParam).toBeTruthy()
+    if (urlParam) {
+      const shareUrl = decodeURIComponent(urlParam)
+      expect(shareUrl).toContain('/scenarios/ABC123')
+    }
+    const hashtagsParam = urlObj.searchParams.get('hashtags')
+    expect(hashtagsParam).toBeTruthy()
+    if (hashtagsParam) {
+      const hashtags = decodeURIComponent(hashtagsParam)
+      expect(hashtags).toContain('サーモンランNW')
+    }
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -73,11 +85,15 @@ describe('ShareButtons', () => {
     expect(url).toContain('https://bsky.app/intent/compose')
     // URLをパースして検証
     const urlObj = new URL(url)
-    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
-    expect(text).toContain('ステージ: アラマキ砦')
-    expect(text).toContain('キケン度: 200%')
-    expect(text).toContain('シナリオコード: ABC123')
-    expect(text).toContain('/scenarios/ABC123')
+    const textParam = urlObj.searchParams.get('text')
+    expect(textParam).toBeTruthy()
+    if (textParam) {
+      const text = decodeURIComponent(textParam)
+      expect(text).toContain('ステージ: アラマキ砦')
+      expect(text).toContain('キケン度: 200%')
+      expect(text).toContain('シナリオコード: ABC123')
+      expect(text).toContain('/scenarios/ABC123')
+    }
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -95,8 +111,12 @@ describe('ShareButtons', () => {
     expect(url).toContain('https://social-plugins.line.me/lineit/share')
     // URLをパースして検証
     const urlObj = new URL(url)
-    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
-    expect(shareUrl).toContain('/scenarios/ABC123')
+    const urlParam = urlObj.searchParams.get('url')
+    expect(urlParam).toBeTruthy()
+    if (urlParam) {
+      const shareUrl = decodeURIComponent(urlParam)
+      expect(shareUrl).toContain('/scenarios/ABC123')
+    }
     expect(callArgs[1]).toBe('_blank')
     expect(callArgs[2]).toBe('width=600,height=400')
   })
@@ -116,12 +136,20 @@ describe('ShareButtons', () => {
     const callArgs = mockWindowOpen.mock.calls[0]
     const url = callArgs[0] as string
     const urlObj = new URL(url)
-    const text = decodeURIComponent(urlObj.searchParams.get('text') || '')
-    expect(text).toContain('ステージ: シェケナダム')
-    expect(text).toContain('キケン度: 300%')
-    expect(text).toContain('シナリオコード: XYZ789')
-    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
-    expect(shareUrl).toContain('/scenarios/XYZ789')
+    const textParam = urlObj.searchParams.get('text')
+    expect(textParam).toBeTruthy()
+    if (textParam) {
+      const text = decodeURIComponent(textParam)
+      expect(text).toContain('ステージ: シェケナダム')
+      expect(text).toContain('キケン度: 300%')
+      expect(text).toContain('シナリオコード: XYZ789')
+    }
+    const urlParam = urlObj.searchParams.get('url')
+    expect(urlParam).toBeTruthy()
+    if (urlParam) {
+      const shareUrl = decodeURIComponent(urlParam)
+      expect(shareUrl).toContain('/scenarios/XYZ789')
+    }
   })
 
   it('should use default site URL when NEXT_PUBLIC_SITE_URL is not set', async () => {
@@ -139,10 +167,14 @@ describe('ShareButtons', () => {
     const callArgs = mockWindowOpen.mock.calls[0]
     const url = callArgs[0] as string
     const urlObj = new URL(url)
-    const shareUrl = decodeURIComponent(urlObj.searchParams.get('url') || '')
-    // デフォルトURLが使用されることを確認
-    expect(shareUrl).toContain('salmon-run-scenario-hub.vercel.app')
-    expect(shareUrl).toContain('/scenarios/ABC123')
+    const urlParam = urlObj.searchParams.get('url')
+    expect(urlParam).toBeTruthy()
+    if (urlParam) {
+      const shareUrl = decodeURIComponent(urlParam)
+      // デフォルトURLが使用されることを確認
+      expect(shareUrl).toContain('salmon-run-scenario-hub.vercel.app')
+      expect(shareUrl).toContain('/scenarios/ABC123')
+    }
 
     // 環境変数を復元
     if (originalEnv) {
