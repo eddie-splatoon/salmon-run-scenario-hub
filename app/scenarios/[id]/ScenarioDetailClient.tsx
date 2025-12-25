@@ -6,6 +6,7 @@ import { Copy, Heart, MessageCircle, ArrowLeft, User } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { calculateScenarioTags } from '@/lib/utils/scenario-tags'
+import ShareButtons from '@/app/components/scenario/ShareButtons'
 
 interface WaveDetail {
   wave_number: number
@@ -284,6 +285,15 @@ export default function ScenarioDetailClient({ scenario: initialScenario }: Scen
                 コードをコピー
               </button>
             </div>
+          </div>
+
+          {/* 共有ボタン */}
+          <div className="mb-6">
+            <ShareButtons
+              scenarioCode={scenario.code}
+              stageName={scenario.stage_name}
+              totalGoldenEggs={scenario.total_golden_eggs}
+            />
           </div>
 
           {/* 基本情報 */}
