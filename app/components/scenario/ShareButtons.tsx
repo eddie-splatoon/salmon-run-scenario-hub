@@ -5,20 +5,20 @@ import { Share2 } from 'lucide-react'
 interface ShareButtonsProps {
   scenarioCode: string
   stageName: string
-  totalGoldenEggs: number
+  dangerRate: number
 }
 
 export default function ShareButtons({
   scenarioCode,
   stageName,
-  totalGoldenEggs,
+  dangerRate,
 }: ShareButtonsProps) {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || 'https://salmon-run-scenario-hub.vercel.app'
   const scenarioUrl = `${baseUrl}/scenarios/${scenarioCode}`
 
   // 投稿テキストを生成
-  const shareText = `ステージ: ${stageName} / 金イクラ: ${totalGoldenEggs} / シナリオコード: ${scenarioCode}`
+  const shareText = `ステージ: ${stageName} / キケン度: ${dangerRate}% / シナリオコード: ${scenarioCode}`
 
   // ハッシュタグ
   const hashtags = 'サーモンランNW,SalmonRunScenarioHub,サーモンランシナリオhub'
