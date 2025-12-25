@@ -57,8 +57,11 @@ describe('TermsPage', () => {
 
   it('renders GitHub Issues link', () => {
     render(<TermsPage />)
-    const link = screen.getByRole('link', { name: /GitHubのIssues/i })
-    expect(link).toBeInTheDocument()
+    // 「GitHubのIssues」というリンクが複数存在するため、getAllByRoleを使用
+    const links = screen.getAllByRole('link', { name: /GitHubのIssues/i })
+    expect(links.length).toBeGreaterThan(0)
+    // 最初のリンクを確認
+    const link = links[0]
     expect(link).toHaveAttribute('href', 'https://github.com/eddie-splatoon/salmon-run-scenario-hub/issues')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')

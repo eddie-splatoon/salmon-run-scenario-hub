@@ -1,6 +1,19 @@
 import '@testing-library/jest-dom'
 import { expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { webcrypto } from 'node:crypto'
+
+// crypto APIの設定（Vitest環境で必要）
+if (typeof globalThis.crypto === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(globalThis as any).crypto = webcrypto as any
+}
+
+// getRandomValuesが存在しない場合のフォールバック
+if (globalThis.crypto && !globalThis.crypto.getRandomValues) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(globalThis.crypto as any).getRandomValues = webcrypto.getRandomValues.bind(webcrypto)
+}
 
 // グローバルタイマー関数を確実に定義（vi.useFakeTimers()使用時の問題を回避）
 // Node.js環境では既に定義されているが、jsdom環境では明示的に定義する必要がある場合がある

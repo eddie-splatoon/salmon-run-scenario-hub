@@ -45,13 +45,17 @@ describe('PrivacyPage', () => {
   it('renders ad delivery section', () => {
     render(<PrivacyPage />)
     expect(screen.getByText('6. 広告配信について')).toBeInTheDocument()
-    expect(screen.getByText(/第三者広告配信事業者による広告を配信する場合があります/)).toBeInTheDocument()
+    // テキストが複数の要素に分割されている可能性があるため、より柔軟な検索を使用
+    expect(screen.getByText(/第三者広告配信事業者/)).toBeInTheDocument()
+    expect(screen.getByText(/広告を配信する場合があります/)).toBeInTheDocument()
   })
 
   it('renders detailed cookie section', () => {
     render(<PrivacyPage />)
     expect(screen.getByText('7. Cookieの使用')).toBeInTheDocument()
-    expect(screen.getByText(/認証状態の維持/)).toBeInTheDocument()
+    // 「認証状態の維持」が複数存在するため、getAllByTextを使用
+    const authMaintenanceElements = screen.getAllByText(/認証状態の維持/)
+    expect(authMaintenanceElements.length).toBeGreaterThan(0)
     expect(screen.getByText(/必須Cookie/)).toBeInTheDocument()
     expect(screen.getByText(/分析Cookie/)).toBeInTheDocument()
     expect(screen.getByText(/広告Cookie/)).toBeInTheDocument()
