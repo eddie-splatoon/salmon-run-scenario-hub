@@ -5,15 +5,20 @@ import ShareButtons from '../ShareButtons'
 
 describe('ShareButtons', () => {
   const mockWindowOpen = vi.fn()
-  const originalWindowOpen = window.open
 
   beforeEach(() => {
     vi.clearAllMocks()
-    window.open = mockWindowOpen
+    // window.openをモック
+    Object.defineProperty(window, 'open', {
+      value: mockWindowOpen,
+      writable: true,
+      configurable: true,
+    })
   })
 
   afterEach(() => {
-    window.open = originalWindowOpen
+    // window.openのモックを削除
+    delete (window as { open?: typeof window.open }).open
   })
 
   const defaultProps = {
@@ -99,7 +104,8 @@ describe('ShareButtons', () => {
     const user = userEvent.setup()
     // 環境変数を一時的に削除（実際にはテスト環境では設定されていない可能性がある）
     const originalEnv = process.env.NEXT_PUBLIC_SITE_URL
-    delete process.env.NEXT_PUBLIC_SITE_URL
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (process.env as any).NEXT_PUBLIC_SITE_URL
 
     render(<ShareButtons {...defaultProps} />)
 
@@ -113,6 +119,9 @@ describe('ShareButtons', () => {
     // 環境変数を復元
     if (originalEnv) {
       process.env.NEXT_PUBLIC_SITE_URL = originalEnv
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (process.env as any).NEXT_PUBLIC_SITE_URL
     }
   })
 })
