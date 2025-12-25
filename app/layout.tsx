@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
+import AdBanner from "./components/AdBanner";
 import { Toaster } from "sonner";
 import ThemeProvider from "./components/providers/ThemeProvider";
 
@@ -26,6 +27,12 @@ export default function RootLayout({
         <ThemeProvider>
           <Header />
           <main className="flex-1">{children}</main>
+          {/* 広告バナー（フッターの上） */}
+          <section className="py-8 bg-gray-800 border-t border-gray-700">
+            <div className="container mx-auto px-4">
+              <AdBanner size="leaderboard" adId="footer-top-ad" className="mx-auto" />
+            </div>
+          </section>
           <Footer />
           <Toaster position="top-center" richColors />
         </ThemeProvider>

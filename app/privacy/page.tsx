@@ -63,15 +63,51 @@ export default function PrivacyPage() {
             </section>
 
             <section className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-100 mb-3">6. Cookieの使用</h2>
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">6. 広告配信について</h2>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスは、サービス運営を継続するために、第三者広告配信事業者（以下「広告配信事業者」といいます）による広告を配信する場合があります。
+                広告配信事業者は、利用者の興味に応じた広告を表示するため、本サービスや他のウェブサイトにおける過去のアクセス情報に基づいて、広告を配信する場合があります。
+              </p>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                広告配信事業者は、利用者の個人を特定できる情報（氏名、住所、メールアドレス、電話番号など）を取得することはありません。
+                ただし、広告配信事業者は、利用者のブラウザにCookieを設定したり、既存のCookieを読み取ったりする場合があります。
+              </p>
               <p className="text-gray-300 leading-relaxed">
-                本サービスは、認証状態を維持するためにCookieを使用します。
-                ブラウザの設定により、Cookieの使用を制限することができますが、その場合、一部の機能が利用できなくなる可能性があります。
+                広告配信を停止したい場合は、各広告配信事業者のオプトアウトページから設定を行うか、ブラウザの設定によりCookieの使用を制限することができます。
+                ただし、Cookieの使用を制限した場合、本サービスの一部の機能が利用できなくなる可能性があります。
               </p>
             </section>
 
             <section className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-100 mb-3">7. プライバシーポリシーの変更</h2>
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">7. Cookieの使用</h2>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスは、以下の目的でCookieを使用します：
+              </p>
+              <ul className="list-disc list-inside text-gray-300 space-y-2 mb-3">
+                <li>認証状態の維持（ログイン状態の保持）</li>
+                <li>サービス利用状況の分析・改善</li>
+                <li>広告配信（広告配信事業者によるCookieの使用を含む）</li>
+              </ul>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                Cookieとは、ウェブサイトが利用者のコンピュータに送信する小さなテキストファイルです。
+                Cookieを使用することで、本サービスは利用者のブラウザを識別し、利用者の設定や利用履歴を保存することができます。
+              </p>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスで使用されるCookieには、以下の種類があります：
+              </p>
+              <ul className="list-disc list-inside text-gray-300 space-y-2 mb-3">
+                <li><strong>必須Cookie</strong>: 本サービスの基本的な機能を提供するために必要なCookie（認証状態の維持など）</li>
+                <li><strong>分析Cookie</strong>: サービス利用状況を分析し、サービス改善のために使用されるCookie</li>
+                <li><strong>広告Cookie</strong>: 広告配信事業者による、利用者の興味に応じた広告を表示するために使用されるCookie</li>
+              </ul>
+              <p className="text-gray-300 leading-relaxed">
+                ブラウザの設定により、Cookieの使用を制限することができますが、その場合、本サービスの一部の機能が利用できなくなる可能性があります。
+                また、Cookieの使用を制限した場合でも、広告は表示されますが、利用者の興味に応じた広告ではなく、一般的な広告が表示される場合があります。
+              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">8. プライバシーポリシーの変更</h2>
               <p className="text-gray-300 leading-relaxed">
                 本プライバシーポリシーは、予告なく変更することがあります。
                 変更後のプライバシーポリシーは、本サービス上に表示した時点から効力を生じるものとします。
@@ -79,7 +115,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-100 mb-3">8. お問い合わせ</h2>
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">9. お問い合わせ</h2>
               <p className="text-gray-300 leading-relaxed">
                 個人情報に関するお問い合わせは、
                 <a
@@ -95,7 +131,8 @@ export default function PrivacyPage() {
             </section>
 
             <p className="text-gray-400 text-sm mt-8">
-              制定日: 2025年12月20日
+              制定日: 2025年12月20日<br />
+              最終更新日: 2025年12月23日
             </p>
           </div>
         </div>
