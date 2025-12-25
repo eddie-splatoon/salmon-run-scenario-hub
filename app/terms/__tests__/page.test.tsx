@@ -35,9 +35,24 @@ describe('TermsPage', () => {
     expect(screen.getByText('2. サービスの内容')).toBeInTheDocument()
     expect(screen.getByText('3. 利用者の義務')).toBeInTheDocument()
     expect(screen.getByText('4. 知的財産権')).toBeInTheDocument()
-    expect(screen.getByText('5. 免責事項')).toBeInTheDocument()
-    expect(screen.getByText('6. 規約の変更')).toBeInTheDocument()
-    expect(screen.getByText('7. お問い合わせ')).toBeInTheDocument()
+    expect(screen.getByText('5. 任天堂に関する表記')).toBeInTheDocument()
+    expect(screen.getByText('6. 収益化に関する表記')).toBeInTheDocument()
+    expect(screen.getByText('7. 免責事項')).toBeInTheDocument()
+    expect(screen.getByText('8. 規約の変更')).toBeInTheDocument()
+    expect(screen.getByText('9. お問い合わせ')).toBeInTheDocument()
+  })
+
+  it('renders Nintendo disclaimer section', () => {
+    render(<TermsPage />)
+    expect(screen.getByText('5. 任天堂に関する表記')).toBeInTheDocument()
+    expect(screen.getByText(/本サービスは、任天堂株式会社/)).toBeInTheDocument()
+    expect(screen.getByText(/本サービスは、任天堂のファンコンテンツガイドラインに準拠/)).toBeInTheDocument()
+  })
+
+  it('renders monetization section', () => {
+    render(<TermsPage />)
+    expect(screen.getByText('6. 収益化に関する表記')).toBeInTheDocument()
+    expect(screen.getByText(/広告配信等による収益化を行っている場合があります/)).toBeInTheDocument()
   })
 
   it('renders GitHub Issues link', () => {
@@ -49,9 +64,10 @@ describe('TermsPage', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('renders establishment date', () => {
+  it('renders establishment date and last update date', () => {
     render(<TermsPage />)
     expect(screen.getByText(/制定日: 2025年12月20日/)).toBeInTheDocument()
+    expect(screen.getByText(/最終更新日: 2025年12月23日/)).toBeInTheDocument()
   })
 
   it('has correct layout structure', () => {

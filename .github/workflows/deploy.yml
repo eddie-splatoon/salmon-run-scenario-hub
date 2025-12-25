@@ -1,0 +1,108 @@
+name: Deploy to Vercel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Vercel
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          fi
+
+      - name: Verify Vercel Configuration
+        run: |
+          # .vercelディレクトリが作成されているか確認
+          if [ ! -d ".vercel" ]; then
+            echo "Error: .vercel directory not found after vercel pull"
+            exit 1
+          fi
+          
+          # project.jsonが存在するか確認
+          if [ ! -f ".vercel/project.json" ]; then
+            echo "Error: .vercel/project.json not found"
+            exit 1
+          fi
+          
+          # 環境変数ファイルが存在するか確認
+          ENV_FILES=$(find .vercel -name ".env.*" -type f | wc -l)
+          if [ "$ENV_FILES" -eq 0 ]; then
+            echo "Warning: No .env files found in .vercel directory"
+          else
+            echo "Found $ENV_FILES environment variable file(s)"
+          fi
+          
+          echo "Vercel configuration verified successfully"
+          echo "Project configuration:"
+          cat .vercel/project.json
+
+      - name: Build Project Artifacts
+        run: |
+          # vercel buildは.vercelディレクトリの設定を自動的に参照します
+          # --local-configオプションは存在しないため、.vercelディレクトリの設定が自動的に使用されます
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} | grep -o 'https://[^ ]*\.vercel\.app' | head -1)
+          else
+            DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} | grep -o 'https://[^ ]*\.vercel\.app' | head -1)
+          fi
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployment URL: $DEPLOYMENT_URL"
+
+      - name: Comment PR with deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            if (url) {
+              const body = `🚀 **Vercel Preview Deployment**\n\n🔗 Preview: ${url}\n\nThis deployment was created automatically by GitHub Actions.`;
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }

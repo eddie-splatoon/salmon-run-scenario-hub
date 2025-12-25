@@ -51,10 +51,80 @@ export default function TermsPage() {
             </section>
 
             <section className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-100 mb-3">5. 免責事項</h2>
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">5. 任天堂に関する表記</h2>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスは、任天堂株式会社（以下「任天堂」といいます）の公式サービスではありません。
+                本サービスは、任天堂のファンコンテンツガイドラインに準拠して運営されています。
+              </p>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスで使用されている「スプラトゥーン」「サーモンラン」などの名称、キャラクター、画像、音楽、その他のコンテンツは、任天堂の商標または著作物です。
+                これらは任天堂の知的財産であり、本サービスは任天堂の許可を得て運営されているものではありません。
+              </p>
               <p className="text-gray-300 leading-relaxed">
+                本サービスに関するお問い合わせは、任天堂ではなく、本サービスの運営者（
+                <a
+                  href="https://github.com/eddie-splatoon/salmon-run-scenario-hub/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 hover:text-orange-300 underline"
+                >
+                  GitHubのIssues
+                </a>
+                ）までお願いいたします。
+              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">6. 収益化に関する表記</h2>
+              <p className="text-gray-300 leading-relaxed mb-3">
+                本サービスは、広告配信等による収益化を行っている場合があります。
+                広告配信については、本サービスの運営を継続するために必要な措置であり、利用者に対して追加の費用を請求するものではありません。
+              </p>
+              <p className="text-gray-300 leading-relaxed">
+                広告配信に関する詳細については、
+                <Link
+                  href="/privacy"
+                  className="text-orange-400 hover:text-orange-300 underline"
+                >
+                  プライバシーポリシー
+                </Link>
+                をご確認ください。
+              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">7. 免責事項</h2>
+              <p className="text-gray-300 leading-relaxed mb-3">
                 本サービスは、現状有姿で提供されるものであり、その正確性、完全性、有用性等について一切保証するものではありません。
                 本サービスを利用したことにより生じた損害について、運営者は一切の責任を負いません。
+              </p>
+              <p className="text-gray-300 leading-relaxed">
+                本サービスは、任天堂の公式サービスではないため、任天堂のサポートや保証を受けることはできません。
+                本サービスの利用により生じた問題や損害について、任天堂に責任を求めることはできません。
+              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">8. 規約の変更</h2>
+              <p className="text-gray-300 leading-relaxed">
+                運営者は、本規約を予告なく変更することができるものとします。
+                変更後の規約は、本サービス上に表示した時点から効力を生じるものとします。
+              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 mb-3">9. お問い合わせ</h2>
+              <p className="text-gray-300 leading-relaxed">
+                本規約に関するお問い合わせは、
+                <a
+                  href="https://github.com/eddie-splatoon/salmon-run-scenario-hub/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 hover:text-orange-300 underline"
+                >
+                  GitHubのIssues
+                </a>
+                までお願いいたします。
               </p>
             </section>
 
@@ -83,7 +153,8 @@ export default function TermsPage() {
             </section>
 
             <p className="text-gray-400 text-sm mt-8">
-              制定日: 2025年12月20日
+              制定日: 2025年12月20日<br />
+              最終更新日: 2025年12月23日
             </p>
           </div>
         </div>

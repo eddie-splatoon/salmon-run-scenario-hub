@@ -5,6 +5,7 @@ import ScenarioCard from './components/ScenarioCard'
 import LogoIcon from './components/LogoIcon'
 import HomeFilterSection from './components/HomeFilterSection'
 import ScrollRestorer from './components/ScrollRestorer'
+import AdBanner from './components/AdBanner'
 import { Upload, Search, ArrowRight, TrendingUp } from 'lucide-react'
 
 interface Weapon {
@@ -365,6 +366,13 @@ export default async function Home({
         </div>
       </section>
 
+      {/* 広告バナー（ヒーローセクションの下） */}
+      <section className="py-8 bg-gray-900 border-b border-gray-700">
+        <div className="container mx-auto px-4">
+          <AdBanner size="leaderboard" adId="home-top-ad" className="mx-auto" />
+        </div>
+      </section>
+
       {/* 3ステップガイド */}
       <section className="py-16 md:py-24 bg-gray-800">
         <div className="container mx-auto px-4">
@@ -452,6 +460,13 @@ export default async function Home({
       <Suspense fallback={<div className="py-8 bg-gray-900 border-t border-gray-700"><div className="container mx-auto px-4">読み込み中...</div></div>}>
         <HomeFilterSection />
       </Suspense>
+
+      {/* 広告バナー（最新シナリオの前） */}
+      <section className="py-8 bg-gray-800 border-t border-gray-700">
+        <div className="container mx-auto px-4">
+          <AdBanner size="responsive" adId="home-middle-ad" className="mx-auto" />
+        </div>
+      </section>
 
       {/* 最新シナリオのプレビュー */}
       <section id="latest" className="py-16 md:py-24 bg-gray-900">

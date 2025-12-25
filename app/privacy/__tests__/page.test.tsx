@@ -36,9 +36,25 @@ describe('PrivacyPage', () => {
     expect(screen.getByText('3. 情報の利用目的')).toBeInTheDocument()
     expect(screen.getByText('4. 情報の管理')).toBeInTheDocument()
     expect(screen.getByText('5. 第三者への提供')).toBeInTheDocument()
-    expect(screen.getByText('6. Cookieの使用')).toBeInTheDocument()
-    expect(screen.getByText('7. プライバシーポリシーの変更')).toBeInTheDocument()
-    expect(screen.getByText('8. お問い合わせ')).toBeInTheDocument()
+    expect(screen.getByText('6. 広告配信について')).toBeInTheDocument()
+    expect(screen.getByText('7. Cookieの使用')).toBeInTheDocument()
+    expect(screen.getByText('8. プライバシーポリシーの変更')).toBeInTheDocument()
+    expect(screen.getByText('9. お問い合わせ')).toBeInTheDocument()
+  })
+
+  it('renders ad delivery section', () => {
+    render(<PrivacyPage />)
+    expect(screen.getByText('6. 広告配信について')).toBeInTheDocument()
+    expect(screen.getByText(/第三者広告配信事業者による広告を配信する場合があります/)).toBeInTheDocument()
+  })
+
+  it('renders detailed cookie section', () => {
+    render(<PrivacyPage />)
+    expect(screen.getByText('7. Cookieの使用')).toBeInTheDocument()
+    expect(screen.getByText(/認証状態の維持/)).toBeInTheDocument()
+    expect(screen.getByText(/必須Cookie/)).toBeInTheDocument()
+    expect(screen.getByText(/分析Cookie/)).toBeInTheDocument()
+    expect(screen.getByText(/広告Cookie/)).toBeInTheDocument()
   })
 
   it('renders GitHub Issues link', () => {
@@ -50,9 +66,10 @@ describe('PrivacyPage', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('renders establishment date', () => {
+  it('renders establishment date and last update date', () => {
     render(<PrivacyPage />)
     expect(screen.getByText(/制定日: 2025年12月20日/)).toBeInTheDocument()
+    expect(screen.getByText(/最終更新日: 2025年12月23日/)).toBeInTheDocument()
   })
 
   it('has correct layout structure', () => {
