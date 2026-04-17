@@ -44,7 +44,7 @@ describe('createClient (server)', () => {
     vi.clearAllMocks()
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
     mockGetAll.mockReturnValue([])
     mockSet.mockImplementation(() => {})
   })
@@ -64,7 +64,7 @@ describe('createClient (server)', () => {
 
     it('uses environment variables from process.env', async () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://custom.supabase.co'
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'custom-key'
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'custom-key'
 
       const client = await createClient()
 
@@ -171,7 +171,7 @@ describe('createClient (server)', () => {
   describe('環境変数', () => {
     it('uses NEXT_PUBLIC_SUPABASE_URL from environment', async () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://env-test.supabase.co'
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'env-key'
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'env-key'
 
       await createClient()
 
@@ -184,10 +184,10 @@ describe('createClient (server)', () => {
 
     it('handles missing environment variables gracefully', async () => {
       const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const originalKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       delete process.env.NEXT_PUBLIC_SUPABASE_URL
-      delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       await createClient()
 
@@ -198,7 +198,7 @@ describe('createClient (server)', () => {
       )
 
       process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalKey
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = originalKey
     })
   })
 

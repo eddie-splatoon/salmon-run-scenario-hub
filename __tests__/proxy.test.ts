@@ -20,7 +20,7 @@ describe('proxy', () => {
     vi.clearAllMocks()
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
   })
 
   afterEach(() => {

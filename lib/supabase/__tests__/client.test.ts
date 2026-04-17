@@ -17,7 +17,7 @@ describe('createClient (browser)', () => {
     vi.clearAllMocks()
     process.env = { ...originalEnv }
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
   })
 
   afterEach(() => {
@@ -34,7 +34,7 @@ describe('createClient (browser)', () => {
 
   it('uses environment variables from process.env', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://custom.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'custom-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'custom-key'
 
     const client = createClient()
 
