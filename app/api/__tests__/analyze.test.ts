@@ -56,7 +56,7 @@ describe('POST /api/analyze', () => {
     process.env = { ...originalEnv }
     process.env.GEMINI_API_KEY = 'test-api-key'
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-anon-key'
   })
 
   afterEach(() => {

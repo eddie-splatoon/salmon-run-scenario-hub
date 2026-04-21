@@ -113,7 +113,7 @@ import type { Database } from '@/app/types/database.types'
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 ```
 
 - `.env.local`に設定（Gitにコミットしない）
