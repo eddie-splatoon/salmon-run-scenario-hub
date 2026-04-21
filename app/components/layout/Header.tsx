@@ -374,9 +374,6 @@ export default function Header() {
                 </div>
               ) : user ? (
                 <>
-                  <div className="px-3 py-2 text-sm text-gray-400">
-                    {profileDisplayName || ''}
-                  </div>
                   <Link
                     href="/profile"
                     onClick={() => setMobileMenuOpen(false)}
