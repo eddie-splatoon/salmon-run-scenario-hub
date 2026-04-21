@@ -273,16 +273,6 @@ export default function Header() {
                     align="end"
                     sideOffset={5}
                   >
-                    <DropdownMenu.Item
-                      className="flex cursor-pointer items-center space-x-2 rounded-md px-3 py-2 text-sm text-gray-300 outline-none hover:bg-gray-700 hover:text-white focus:bg-gray-700 focus:text-white"
-                      disabled
-                    >
-                      <UserIcon className="h-4 w-4" />
-                      <span className="truncate">
-                        {profileDisplayName || ''}
-                      </span>
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Separator className="my-1 h-px bg-gray-700" />
                     <Link href="/profile" className="w-full">
                       <DropdownMenu.Item
                         className="flex cursor-pointer items-center space-x-2 rounded-md px-3 py-2 text-sm text-gray-300 outline-none hover:bg-gray-700 hover:text-white focus:bg-gray-700 focus:text-white"
