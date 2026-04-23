@@ -305,7 +305,7 @@
     "is_grizzco_weapon": false
   },
   {
-    "name": "モップリンD",
+    "name": "モップリン",
     "icon_url": null,
     "is_grizzco_weapon": false
   },
@@ -363,6 +363,41 @@
     "name": "クマサン印のローラー",
     "icon_url": null,
     "is_grizzco_weapon": true
+  },
+  {
+    "name": "スペースシューター",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "14式竹筒銃・甲",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "R-PEN/5H",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "S-BLAST92",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "イグザミナー",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "フィンセント",
+    "icon_url": null,
+    "is_grizzco_weapon": false
+  },
+  {
+    "name": "フルイドV",
+    "icon_url": null,
+    "is_grizzco_weapon": false
   },
   {
     "name": "緑ランダム",
