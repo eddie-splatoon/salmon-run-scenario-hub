@@ -1,6 +1,6 @@
 import { GoogleGenAI, MediaResolution } from '@google/genai'
 import { NextRequest, NextResponse } from 'next/server'
-import { ANALYSIS_PROMPT } from '@/lib/ai/prompt'
+import { buildAnalysisPrompt } from '@/lib/ai/prompt'
 import { fetchMasterNames } from '@/lib/utils/master-names'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
@@ -14,14 +14,12 @@ async function imageToBase64(image: File | Blob): Promise<string> {
   return buffer.toString('base64')
 }
 
-function buildResponseSchema(stages: string[], weapons: string[]) {
+function buildResponseSchema(stages: string[]) {
+  // ステージ名のみ enum 制約（7 件と少なく、制約による視覚認識への影響が限定的）。
+  // ブキ名は enum 制約しない（大きな enum の constrained decoding が誤選択を強制するため）。
   const stageNameField: Record<string, unknown> = { type: 'string' }
   if (stages.length > 0) {
     stageNameField.enum = stages
-  }
-  const weaponItemField: Record<string, unknown> = { type: 'string' }
-  if (weapons.length > 0) {
-    weaponItemField.enum = weapons
   }
 
   return {
@@ -33,7 +31,7 @@ function buildResponseSchema(stages: string[], weapons: string[]) {
       score: { type: 'integer' },
       weapons: {
         type: 'array',
-        items: weaponItemField,
+        items: { type: 'string' },
         minItems: 4,
         maxItems: 4,
       },
@@ -85,9 +83,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
     const base64Image = await imageToBase64(imageFile)
     const mimeType = imageFile.type || 'image/jpeg'
 
-    // マスタから enum に注入する名称を取得（LLM が自由記述で外れないよう制約）
+    // マスタ名称を取得:
+    // - stages: responseSchema の enum に注入（選択肢が少ないため制約の悪影響が小さい）
+    // - weapons: プロンプトにヒントとして列挙（enum 制約は constrained decoding で誤選択を誘発するため回避）
     const { stages, weapons } = await fetchMasterNames()
-    const responseSchema = buildResponseSchema(stages, weapons)
+    const responseSchema = buildResponseSchema(stages)
+    const prompt = buildAnalysisPrompt(weapons)
 
     const modelName = process.env.GEMINI_MODEL_NAME || DEFAULT_MODEL_NAME
     const ai = new GoogleGenAI({ apiKey })
@@ -95,11 +96,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
     const response = await ai.models.generateContent({
       model: modelName,
       contents: [
-        { text: ANALYSIS_PROMPT },
+        { text: prompt },
         { inlineData: { data: base64Image, mimeType } },
       ],
       config: {
         mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
+        temperature: 0.1,
         responseMimeType: 'application/json',
         responseJsonSchema: responseSchema,
       },

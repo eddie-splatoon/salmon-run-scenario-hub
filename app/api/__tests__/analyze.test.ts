@@ -156,8 +156,12 @@ describe('POST /api/analyze', () => {
     expect(callArg.config.mediaResolution).toBe('MEDIA_RESOLUTION_HIGH')
     expect(callArg.config.responseMimeType).toBe('application/json')
     expect(callArg.config.responseJsonSchema).toBeDefined()
+    // ステージは enum 制約（選択肢少数・影響軽微）
     expect(callArg.config.responseJsonSchema.properties.stage_name.enum).toContain('アラマキ砦')
-    expect(callArg.config.responseJsonSchema.properties.weapons.items.enum).toContain('スプラシューター')
+    // ブキは enum 制約を外し、プロンプト側でヒントとして列挙する
+    expect(callArg.config.responseJsonSchema.properties.weapons.items.enum).toBeUndefined()
+    const promptPart = callArg.contents.find((part: { text?: string }) => typeof part.text === 'string')
+    expect(promptPart?.text).toContain('スプラシューター')
   })
 
   it('returns 500 when response text is empty', async () => {
