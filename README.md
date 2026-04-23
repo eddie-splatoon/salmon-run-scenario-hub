@@ -20,12 +20,12 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL_NAME=gemini-1.5-pro  # オプション: デフォルトは gemini-1.5-pro
+GEMINI_MODEL_NAME=gemini-3-flash-preview  # オプション: デフォルトは gemini-3-flash-preview
 ```
 
 **注意**: 
 - `GEMINI_API_KEY`はGoogle AI Studio（https://aistudio.google.com/app/apikey）で取得できます。
-- `GEMINI_MODEL_NAME`は利用可能なモデル名を指定します（例: `gemini-1.5-pro`, `gemini-1.5-flash-002`）。
+- `GEMINI_MODEL_NAME`は利用可能なモデル名を指定します（例: `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-2.5-pro`）。
   利用可能なモデルを確認するには: `curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY"`
 
 ### 3. SupabaseでのGoogle認証設定
