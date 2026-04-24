@@ -12,20 +12,25 @@
 
 /**
  * 4つのブキアイコン領域全体（行）の入力画像内における比率。
- * IMG_5116.JPG (960×540) を基準に実測した近似値。
+ * IMG_5116.JPG (1280×720) にグリッドオーバーレイで実測:
+ *   - 4 アイコン横並びの全体領域 ≒ x 695-870, y 165-215
+ *   - つまり xStart/xEnd ≒ 54.3%/68.0%, yStart/yEnd ≒ 22.9%/29.9%
  *
- * 切り出し時は左右に余白（PADDING_RATIO）を取り、
- * アイコンの一部が切れないようにする。
+ * ブキ同士は横方向に密接しているため X は実測値ほぼそのまま、Y は上下に余裕を取る。
  */
 export const WEAPON_ROW_RATIO = {
-  xStart: 0.57,
-  xEnd: 0.93,
-  yStart: 0.22,
-  yEnd: 0.30,
+  xStart: 0.540,
+  xEnd: 0.685,
+  yStart: 0.225,
+  yEnd: 0.300,
 } as const
 
-/** 各アイコンの周囲に取る安全マージン（領域幅・高さに対する比率） */
-const PADDING_RATIO = 0.05
+/**
+ * 各アイコン切り出し時の安全マージン。ブキは横方向に密接しているため、
+ * X はほぼゼロ（隣接アイコンを巻き込まないように）。Y は上下に少し余裕。
+ */
+const PADDING_X_RATIO = 0.0
+const PADDING_Y_RATIO = 0.10
 
 /** 出力サイズ（拡大後）。Gemini が認識しやすい程度に大きく取る。 */
 export const CROP_OUTPUT_SIZE = {
@@ -72,8 +77,8 @@ export function computeWeaponCropRects(
   const rowHeight = rowBottom - rowTop
   const cellWidth = rowWidth / WEAPON_COUNT
 
-  const padX = cellWidth * PADDING_RATIO
-  const padY = rowHeight * PADDING_RATIO
+  const padX = cellWidth * PADDING_X_RATIO
+  const padY = rowHeight * PADDING_Y_RATIO
 
   const rects: CropRect[] = []
   for (let i = 0; i < WEAPON_COUNT; i++) {
