@@ -10,6 +10,26 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }))
 
+// Supabaseクライアントをモック（デフォルトでログイン済みユーザーを返す）
+const { mockGetUser, mockOnAuthStateChange, mockUnsubscribe } = vi.hoisted(() => ({
+  mockGetUser: vi.fn(),
+  mockOnAuthStateChange: vi.fn(),
+  mockUnsubscribe: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: vi.fn(() => ({
+    auth: {
+      getUser: mockGetUser,
+      onAuthStateChange: mockOnAuthStateChange,
+    },
+  })),
+}))
+
+vi.mock('@/lib/auth/google-auth', () => ({
+  signInWithGoogle: vi.fn(),
+}))
+
 // Material-UIのAutocompleteをモック
 vi.mock('@mui/material', async () => {
   const actual = await vi.importActual('@mui/material')
@@ -66,6 +86,16 @@ describe('ImageAnalyzer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+
+    // デフォルトでログイン済みユーザーを返す
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'test-user-id' } },
+      error: null,
+    })
+    mockOnAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: mockUnsubscribe } },
+    })
+
     vi.mocked(useRouter).mockReturnValue({
       push: mockPush,
       refresh: mockRefresh,

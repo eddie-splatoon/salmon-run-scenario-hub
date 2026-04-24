@@ -214,17 +214,19 @@ export default function Header() {
             >
               一覧
             </Link>
-            <Link
-              href="/analyze"
-              className={cn(
-                'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-                isActive('/analyze')
-                  ? 'bg-orange-500 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              )}
-            >
-              投稿する
-            </Link>
+            {!loading && user && (
+              <Link
+                href="/analyze"
+                className={cn(
+                  'px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  isActive('/analyze')
+                    ? 'bg-orange-500 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                投稿する
+              </Link>
+            )}
             <Link
               href="/guide"
               className={cn(
@@ -344,18 +346,20 @@ export default function Header() {
               >
                 一覧
               </Link>
-              <Link
-                href="/analyze"
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  'px-3 py-2 rounded-md text-base font-medium transition-colors',
-                  isActive('/analyze')
-                    ? 'bg-orange-500 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}
-              >
-                投稿する
-              </Link>
+              {!loading && user && (
+                <Link
+                  href="/analyze"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'px-3 py-2 rounded-md text-base font-medium transition-colors',
+                    isActive('/analyze')
+                      ? 'bg-orange-500 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  )}
+                >
+                  投稿する
+                </Link>
+              )}
               <Link
                 href="/guide"
                 onClick={() => setMobileMenuOpen(false)}

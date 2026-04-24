@@ -32,8 +32,16 @@ vi.mock('next/headers', () => ({
   ),
 }))
 
+const mockGetUser = vi.fn()
+
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(),
+  createClient: vi.fn(() =>
+    Promise.resolve({
+      auth: {
+        getUser: mockGetUser,
+      },
+    })
+  ),
 }))
 
 describe('POST /api/analyze', () => {
@@ -75,10 +83,37 @@ describe('POST /api/analyze', () => {
       stages: ['アラマキ砦'],
       weapons: ['スプラシューター', 'スプラチャージャー'],
     })
+
+    // デフォルトで認証済みユーザーを返す
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'test-user-id' } },
+      error: null,
+    })
   })
 
   afterEach(() => {
     process.env = originalEnv
+  })
+
+  it('returns 401 when user is not authenticated', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    })
+
+    const fileContent = new Uint8Array([1, 2, 3])
+    const request = new NextRequest('http://localhost:3000/api/analyze', {
+      method: 'POST',
+    })
+    const mockFormData = createMockFormDataWithFile(fileContent)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
+
+    const response = await POST(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('認証が必要です')
   })
 
   it('returns 500 when GEMINI_API_KEY is not configured', async () => {

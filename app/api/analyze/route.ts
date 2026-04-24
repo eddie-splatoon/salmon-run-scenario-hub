@@ -1,6 +1,7 @@
 import { GoogleGenAI, MediaResolution } from '@google/genai'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildAnalysisPrompt } from '@/lib/ai/prompt'
+import { createClient } from '@/lib/supabase/server'
 import { fetchMasterNames } from '@/lib/utils/master-names'
 import { lookupStageId, lookupWeaponIds } from '@/lib/utils/master-lookup'
 import type { AnalyzedScenario, AnalyzeResponse } from '@/app/types/analyze'
@@ -62,6 +63,20 @@ function buildResponseSchema(stages: string[]) {
 
 export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeResponse>> {
   try {
+    // 認証チェック: 未ログインでの AI 解析利用を禁止（Gemini API 課金スパム対策）
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json(
