@@ -583,13 +583,27 @@ describe('Header', () => {
       })
     })
 
-    it('should render all navigation links', async () => {
+    it('should render navigation links visible to guests', async () => {
       render(<Header />)
 
       await waitFor(() => {
         expect(screen.getByText('一覧')).toBeInTheDocument()
-        expect(screen.getByText('投稿する')).toBeInTheDocument()
         expect(screen.getByText('ガイド')).toBeInTheDocument()
+      })
+      // 未ログイン時は「投稿する」は表示しない（AI解析はログイン必須のため）
+      expect(screen.queryByText('投稿する')).not.toBeInTheDocument()
+    })
+
+    it('should show 投稿する link when user is logged in', async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: createMockUser() },
+        error: null,
+      })
+
+      render(<Header />)
+
+      await waitFor(() => {
+        expect(screen.getByText('投稿する')).toBeInTheDocument()
       })
     })
   })

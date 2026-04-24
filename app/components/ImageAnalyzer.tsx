@@ -19,6 +19,9 @@ import {
   Grid,
 } from '@mui/material'
 import { Upload, Clear, Save } from '@mui/icons-material'
+import { createClient } from '@/lib/supabase/client'
+import { signInWithGoogle } from '@/lib/auth/google-auth'
+import type { User } from '@supabase/supabase-js'
 import type { AnalyzedScenario, AnalyzeResponse, WaveInfo } from '@/app/types/analyze'
 
 interface Stage {
@@ -64,7 +67,39 @@ export default function ImageAnalyzer() {
   const [duplicateScenarioCode, setDuplicateScenarioCode] = useState<string | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
   const [weapons, setWeapons] = useState<Weapon[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [userLoading, setUserLoading] = useState(true)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // ログイン状態を取得（AI解析はログイン必須のため）
+  useEffect(() => {
+    const supabase = createClient()
+    let isMounted = true
+
+    const loadUser = async () => {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser()
+      if (isMounted) {
+        setUser(currentUser)
+        setUserLoading(false)
+      }
+    }
+    loadUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setUser(session?.user ?? null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
 
   // プレビューURLのクリーンアップ
   useEffect(() => {
@@ -475,6 +510,36 @@ export default function ImageAnalyzer() {
         画像解析
       </Typography>
 
+      {/* ログイン必須の案内（未ログイン時のみ表示） */}
+      {!userLoading && !user && (
+        <Alert
+          severity="info"
+          sx={{
+            mb: { xs: 2, sm: 3 },
+            backgroundColor: 'rgba(30, 58, 138, 0.3)',
+            color: '#bfdbfe',
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+          }}
+        >
+          <AlertTitle sx={{ fontSize: { xs: '0.9375rem', sm: '1rem' } }}>
+            ログインが必要です
+          </AlertTitle>
+          <Box sx={{ mb: 1.5 }}>
+            画像のAI解析をご利用いただくには、Googleアカウントでのログインが必要です。
+          </Box>
+          <Button
+            variant="contained"
+            onClick={() => signInWithGoogle()}
+            sx={{
+              backgroundColor: '#3b82f6',
+              '&:hover': { backgroundColor: '#2563eb' },
+            }}
+          >
+            Googleでログイン
+          </Button>
+        </Alert>
+      )}
+
       {/* 画像アップロード */}
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
         <input
@@ -483,14 +548,14 @@ export default function ImageAnalyzer() {
           accept="image/*"
           onChange={handleImageSelect}
           style={{ display: 'none' }}
-          disabled={isAnalyzing}
+          disabled={isAnalyzing || (!userLoading && !user)}
         />
         <Button
           variant="contained"
           component="label"
           startIcon={<Upload />}
           onClick={handleFileButtonClick}
-          disabled={isAnalyzing}
+          disabled={isAnalyzing || (!userLoading && !user)}
           fullWidth
           sx={{
             backgroundColor: '#3b82f6',
@@ -638,7 +703,7 @@ export default function ImageAnalyzer() {
         <Button
           variant="contained"
           onClick={handleAnalyze}
-          disabled={!selectedImage || isAnalyzing || isSaving}
+          disabled={!selectedImage || isAnalyzing || isSaving || (!userLoading && !user)}
           startIcon={isAnalyzing ? <CircularProgress size={16} sx={{ color: '#ffffff' }} /> : null}
           fullWidth
           sx={{
