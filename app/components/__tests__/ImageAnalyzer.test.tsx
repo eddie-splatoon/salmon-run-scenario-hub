@@ -30,6 +30,13 @@ vi.mock('@/lib/auth/google-auth', () => ({
   signInWithGoogle: vi.fn(),
 }))
 
+// jsdom には Image / Canvas の実装が無くクロップ処理が完了しないため、モックする。
+// 解析リクエストには weapon_crops が付かないが、API 側はオプション扱いなので動作には影響しない。
+vi.mock('@/lib/utils/weapon-crop', () => ({
+  extractWeaponCrops: vi.fn().mockResolvedValue([]),
+  WEAPON_COUNT: 4,
+}))
+
 // Material-UIのAutocompleteをモック
 vi.mock('@mui/material', async () => {
   const actual = await vi.importActual('@mui/material')

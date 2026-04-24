@@ -47,21 +47,52 @@ vi.mock('@/lib/supabase/server', () => ({
 describe('POST /api/analyze', () => {
   const originalEnv = process.env
 
-  const createMockFormDataWithFile = (fileContent: Uint8Array): FormData => {
+  const ensureArrayBuffer = (file: File, content: Uint8Array): File => {
+    if (!file.arrayBuffer) {
+      // jsdom 環境で arrayBuffer が未実装な File へのフォールバック
+      ;(file as unknown as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer =
+        vi.fn().mockResolvedValue(content.buffer as ArrayBuffer)
+    }
+    return file
+  }
+
+  const createMockFormDataWithFile = (
+    fileContent: Uint8Array,
+    weaponCropContents?: Uint8Array[]
+  ): FormData => {
     const file = new File([fileContent], 'test.jpg', { type: 'image/jpeg' })
     const formData = new FormData()
     formData.append('image', file)
 
+    const cropFiles =
+      weaponCropContents?.map((content, i) => {
+        const blob = new Blob([content as unknown as ArrayBuffer], { type: 'image/jpeg' })
+        return new File([blob], `weapon_${i + 1}.jpg`, { type: 'image/jpeg' })
+      }) ?? []
+    cropFiles.forEach((cropFile) => formData.append('weapon_crops', cropFile))
+
     const originalGet = formData.get.bind(formData)
+    const originalGetAll = formData.getAll.bind(formData)
+
     formData.get = vi.fn((name: string) => {
       const value = originalGet(name)
       if (name === 'image' && value instanceof File) {
-        if (!value.arrayBuffer) {
-          value.arrayBuffer = vi.fn().mockResolvedValue(fileContent.buffer)
-        }
+        ensureArrayBuffer(value, fileContent)
       }
       return value
     }) as typeof formData.get
+
+    formData.getAll = vi.fn((name: string) => {
+      const values = originalGetAll(name)
+      if (name === 'weapon_crops') {
+        values.forEach((value, i) => {
+          if (value instanceof File) {
+            ensureArrayBuffer(value, weaponCropContents?.[i] ?? new Uint8Array([0]))
+          }
+        })
+      }
+      return values
+    }) as typeof formData.getAll
 
     return formData
   }
@@ -197,6 +228,95 @@ describe('POST /api/analyze', () => {
     expect(callArg.config.responseJsonSchema.properties.weapons.items.enum).toBeUndefined()
     const promptPart = callArg.contents.find((part: { text?: string }) => typeof part.text === 'string')
     expect(promptPart?.text).toContain('スプラシューター')
+  })
+
+  it('forwards weapon crops as multi-part inlineData to Gemini', async () => {
+    const mockGenerateContent = vi.fn().mockResolvedValue({
+      text: JSON.stringify({
+        scenario_code: 'XYZ999',
+        stage_name: 'アラマキ砦',
+        danger_rate: 100,
+        weapons: ['スプラシューター', 'スプラシューター', 'スプラシューター', 'スプラシューター'],
+        waves: [
+          { wave_number: 1, tide: 'low', delivered_count: 1 },
+          { wave_number: 2, tide: 'normal', delivered_count: 1 },
+          { wave_number: 3, tide: 'high', delivered_count: 1 },
+        ],
+      }),
+    })
+
+    vi.mocked(GoogleGenAI).mockImplementation(
+      () => createMockGenAI(mockGenerateContent) as unknown as InstanceType<typeof GoogleGenAI>
+    )
+    vi.mocked(lookupStageId).mockResolvedValue(1)
+    vi.mocked(lookupWeaponIds).mockResolvedValue([1, 1, 1, 1])
+
+    const fileContent = new Uint8Array([1, 2, 3])
+    const cropContents = [
+      new Uint8Array([10]),
+      new Uint8Array([20]),
+      new Uint8Array([30]),
+      new Uint8Array([40]),
+    ]
+    const request = new NextRequest('http://localhost:3000/api/analyze', {
+      method: 'POST',
+    })
+    const mockFormData = createMockFormDataWithFile(fileContent, cropContents)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+
+    const callArg = mockGenerateContent.mock.calls[0][0]
+    const inlineParts = (
+      callArg.contents as Array<{ inlineData?: { data: string; mimeType: string } }>
+    ).filter((p) => p.inlineData)
+
+    // 1枚目（全体）+ 4枚（ブキ拡大）= 5枚
+    expect(inlineParts).toHaveLength(5)
+    inlineParts.forEach((p) => {
+      expect(p.inlineData?.mimeType).toBe('image/jpeg')
+      expect(typeof p.inlineData?.data).toBe('string')
+      expect((p.inlineData?.data ?? '').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('still works when no weapon crops are attached (graceful fallback)', async () => {
+    const mockGenerateContent = vi.fn().mockResolvedValue({
+      text: JSON.stringify({
+        scenario_code: 'NOCROP1',
+        stage_name: 'アラマキ砦',
+        danger_rate: 100,
+        weapons: ['スプラシューター', 'スプラシューター', 'スプラシューター', 'スプラシューター'],
+        waves: [
+          { wave_number: 1, tide: 'low', delivered_count: 1 },
+          { wave_number: 2, tide: 'normal', delivered_count: 1 },
+          { wave_number: 3, tide: 'high', delivered_count: 1 },
+        ],
+      }),
+    })
+
+    vi.mocked(GoogleGenAI).mockImplementation(
+      () => createMockGenAI(mockGenerateContent) as unknown as InstanceType<typeof GoogleGenAI>
+    )
+    vi.mocked(lookupStageId).mockResolvedValue(1)
+    vi.mocked(lookupWeaponIds).mockResolvedValue([1, 1, 1, 1])
+
+    const fileContent = new Uint8Array([1, 2, 3])
+    const request = new NextRequest('http://localhost:3000/api/analyze', {
+      method: 'POST',
+    })
+    const mockFormData = createMockFormDataWithFile(fileContent)
+    vi.spyOn(request, 'formData').mockResolvedValue(mockFormData)
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+
+    const callArg = mockGenerateContent.mock.calls[0][0]
+    const inlineParts = (
+      callArg.contents as Array<{ inlineData?: { data: string; mimeType: string } }>
+    ).filter((p) => p.inlineData)
+    expect(inlineParts).toHaveLength(1)
   })
 
   it('returns 500 when response text is empty', async () => {

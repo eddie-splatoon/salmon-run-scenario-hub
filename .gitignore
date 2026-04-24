@@ -45,3 +45,13 @@ coverage
 
 # Backup files from merge conflicts
 *.orig
+
+# IDE
+.idea/
+
+# Local scratch / preview artifacts
+tmp/
+
+# Local reference images (not committed to repo)
+IMG_*.JPG
+IMG_*.jpg

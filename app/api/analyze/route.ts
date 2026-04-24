@@ -95,8 +95,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
       )
     }
 
+    // クライアント側で切り出し・拡大されたブキアイコン 4 枚（任意）。
+    // 画像全体ではアイコンが小さく誤認しやすいため、Gemini に拡大画像を併送して認識精度を上げる。
+    const weaponCropFiles = formData
+      .getAll('weapon_crops')
+      .filter((v): v is File => v instanceof File)
+
     const base64Image = await imageToBase64(imageFile)
     const mimeType = imageFile.type || 'image/jpeg'
+
+    const weaponCropParts = await Promise.all(
+      weaponCropFiles.map(async (cropFile) => ({
+        inlineData: {
+          data: await imageToBase64(cropFile),
+          mimeType: cropFile.type || 'image/jpeg',
+        },
+      }))
+    )
 
     // マスタ名称を取得:
     // - stages: responseSchema の enum に注入（選択肢が少ないため制約の悪影響が小さい）
@@ -113,6 +128,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalyzeRe
       contents: [
         { text: prompt },
         { inlineData: { data: base64Image, mimeType } },
+        ...weaponCropParts,
       ],
       config: {
         mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,

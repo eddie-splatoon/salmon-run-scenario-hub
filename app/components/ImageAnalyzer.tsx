@@ -21,6 +21,7 @@ import {
 import { Upload, Clear, Save } from '@mui/icons-material'
 import { createClient } from '@/lib/supabase/client'
 import { signInWithGoogle } from '@/lib/auth/google-auth'
+import { extractWeaponCrops, WEAPON_COUNT } from '@/lib/utils/weapon-crop'
 import type { User } from '@supabase/supabase-js'
 import type { AnalyzedScenario, AnalyzeResponse, WaveInfo } from '@/app/types/analyze'
 
@@ -230,6 +231,22 @@ export default function ImageAnalyzer() {
     try {
       const formData = new FormData()
       formData.append('image', selectedImage)
+
+      // ブキアイコン4枚をクライアント側で切り出し・拡大して併送する。
+      // Gemini に画像全体だけを渡すとアイコンが小さく誤認しやすいため、
+      // 拡大画像を multi-part で渡して認識精度を上げる（#104）。
+      // 切り出しに失敗しても全体画像だけで解析を継続する（既存挙動を維持）。
+      try {
+        const crops = await extractWeaponCrops(selectedImage)
+        crops.forEach((blob, index) => {
+          formData.append('weapon_crops', blob, `weapon_${index + 1}.jpg`)
+        })
+      } catch (cropError) {
+        console.warn(
+          `[ImageAnalyzer] Failed to crop ${WEAPON_COUNT} weapon icons; falling back to whole image only.`,
+          cropError
+        )
+      }
 
       const response = await fetch('/api/analyze', {
         method: 'POST',
